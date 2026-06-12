@@ -1,6 +1,7 @@
 // Chat column — banners, user messages, and agent messages (with copy button).
 import { $, el } from "./dom.js";
 import { paint } from "./agents.js";
+import { renderMarkdown } from "./markdown.js";
 
 const chatScroll = $("chat-scroll");
 export const scrollChat = () => {
@@ -36,7 +37,8 @@ export function addAgentMsg(who, text) {
       copy.textContent = "✕";
     }
   };
-  const body = el("div", "body", text);
+  const body = el("div", "body");
+  body.append(renderMarkdown(text));
   wrap.append(head, copy, body);
   $("chat-inner").append(wrap);
   scrollChat();
