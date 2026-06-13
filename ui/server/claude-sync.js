@@ -39,5 +39,17 @@ if (copied === 0) {
   process.exit(0);
 }
 
-execFileSync("git", ["add", DEST], { stdio: "ignore" });
-console.log(`claude:sync: vendored ${PARTS.join(", ")} from ${srcClaude} → game-config/ (staged).`);
+let changed = false;
+try {
+  execFileSync("git", ["diff", "--quiet", DEST], { stdio: "ignore" });
+} catch {
+  changed = true;
+}
+if (changed) {
+  execFileSync("git", ["add", DEST], { stdio: "ignore" });
+  console.log(
+    `claude:sync: vendored ${PARTS.join(", ")} from ${srcClaude} → game-config/ (staged).`,
+  );
+} else {
+  console.log(`claude:sync: game-config/ already current (${PARTS.join(", ")} unchanged).`);
+}
