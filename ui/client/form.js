@@ -22,6 +22,14 @@ export function renderForm(m) {
 
   fields.forEach((f) => {
     const wrap = el("div", "form-field");
+
+    if (f.type === "note") {
+      if (f.label) wrap.append(el("div", "form-note-label", f.label));
+      if (f.value != null) wrap.append(el("div", "form-note", String(f.value)));
+      body.append(wrap);
+      return; // read-only: no reader → never in values, never required
+    }
+
     const clearInvalid = () => {
       wrap.classList.remove("invalid");
     };

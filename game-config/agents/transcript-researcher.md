@@ -57,6 +57,10 @@ One doc per transcript: `library/transcripts/<slug>.md`
 
 Keep it under a page. A digest nobody reads is a transcript re-read for nothing.
 
+## Rules
+
+- **Shell commands**: always prefix Bash commands with `rtk` (`rtk ls`, `rtk grep`, `rtk find`, `rtk cat`, `rtk mv`, `rtk git`). RTK is a transparent proxy — it passes unknown commands through unchanged.
+
 ## What you never do
 
 - Run shell commands without the `rtk` prefix — always `rtk ls`, `rtk grep`, `rtk find`, `rtk cat`, `rtk mv`. It passes unknown commands through unchanged.

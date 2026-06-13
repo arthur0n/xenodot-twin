@@ -43,6 +43,7 @@ function handleForm(m) {
   /** @type {Record<string, string | number | boolean | string[]>} */
   const values = {};
   for (const f of m.input?.fields ?? []) {
+    if (f.type === "note") continue; // read-only, returns no value
     values[f.id] =
       f.type === "checkbox"
         ? true

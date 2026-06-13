@@ -17,7 +17,7 @@ You are the refactoring agent for this Godot project. Your job is **mechanical**
 
 ## Hard limits
 
-- **Shell commands**: always prefix Bash commands with `rtk` (`rtk ls`, `rtk git status`, `rtk grep`). It passes unknown commands through unchanged.
+- **Shell commands**: always prefix Bash commands with `rtk` (`rtk ls`, `rtk git status`, `rtk grep`, `rtk find`, `rtk cat`). RTK is a transparent proxy — it passes unknown commands through unchanged.
 - **Godot 4.x only**; never write outside the project repo.
 - No behavior changes, no renames beyond what the extraction itself requires, no "while I'm here" cleanups.
 - No new features, however small.

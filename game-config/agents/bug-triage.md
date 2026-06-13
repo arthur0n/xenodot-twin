@@ -15,6 +15,10 @@ A description of the bug: symptom, where it appeared, how it was diagnosed, and 
 
 You may instead receive a **friction report** — a quick action that _succeeded_, but godot-dev flagged friction: an improvised pattern no skill covered, godot-verify failing on the first attempt, scope exceeding the brief, or guidance that was ambiguous when followed. Triage it exactly like a bug: root-cause the friction, same four verdicts. Friction is an earlier, weaker signal than a bug — expect "no change" to be the most common verdict, and hold a higher bar before adding rules from it.
 
+## Rules
+
+- **Shell commands**: always prefix Bash commands with `rtk` (`rtk ls`, `rtk git status`, `rtk grep`, `rtk find`, `rtk git log`, `rtk git diff`). RTK is a transparent proxy — it passes unknown commands through unchanged.
+
 ## Workflow
 
 1. **Establish the root cause.** Not "the camera was black" but _why_: wrong property name silently dropped? A convention violated? A pattern improvised because no skill covered it? Guidance that existed but was wrong, ambiguous, or simply not followed?
@@ -28,8 +32,38 @@ You may instead receive a **friction report** — a quick action that _succeeded
 | **Update documentation** | A project-wide convention or process rule is missing/wrong in CLAUDE.md, or an agent prompt let the agent skip existing guidance | Propose the precise edit to CLAUDE.md or the agent .md                                                              |
 | **No change**            | One-off mistake; or guidance already exists, was clear, and the failure won't recur; or the cost of a rule exceeds its value     | Say so plainly. This is a successful triage, not a failure — do not invent a framework change to seem useful        |
 
-4. **Confirm before writing** with the `mcp__ui__form` tool (if it is not in your tool set at runtime — terminal session — end your run with the proposed change instead): present root cause, verdict, and the exact proposed change (quote the new/changed lines), with your recommendation first. A "no change" verdict needs no confirmation — just report it.
-5. **Apply only what was approved.** Edits go to `.claude/skills/`, `.claude/agents/`, or CLAUDE.md only. Keep them minimal: one Error→Fix row beats a rewritten section.
+4. **Confirm before writing — one form, two fields per issue.** Use the `mcp__ui__form` tool. For each issue that needs a change, add a pair of fields:
+   - a read-only `note` (`id: issue_<n>_context`) — its `label` is the one-line issue title, its `value` states the root cause and the **exact** proposed change (quote the new or replaced lines). The user reads it; they don't fill it in.
+   - a required `select` (`id: issue_<n>_action`) — the concrete actions, your recommendation first.
+
+   A "no change" verdict needs no field — just report it inline. Skeleton for a two-issue triage:
+
+   ```json
+   {
+     "title": "Bug Triage — <slug>",
+     "description": "Review each finding and choose an action.",
+     "fields": [
+       {
+         "id": "issue_1_context",
+         "type": "note",
+         "label": "Issue 1 — <title>",
+         "value": "<root cause + quoted proposed change>"
+       },
+       {
+         "id": "issue_1_action",
+         "type": "select",
+         "label": "Action for Issue 1",
+         "required": true,
+         "options": [{ "label": "Fix skill — <what>" }, { "label": "No change" }]
+       }
+     ],
+     "submitLabel": "Apply approved fixes"
+   }
+   ```
+
+   A form holds 10 fields — about five issues (note + action each). Needing more is a sign you're over-triaging: extract the single lesson (see Judgment standards). If `mcp__ui__form` is not in your tool set at runtime (terminal session), instead emit one text block per issue — **Issue** / **Suggestion** / **Action** — and end your run for the orchestrator to relay.
+
+5. **Apply only what was approved.** When the form returns, apply each issue whose action is a Fix (when resumed from a terminal-session relay, the same). Edits go to `.claude/skills/`, `.claude/agents/`, or CLAUDE.md only. Keep them minimal: one Error→Fix row beats a rewritten section.
 
 ## Judgment standards
 

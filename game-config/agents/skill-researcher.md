@@ -13,13 +13,17 @@ The canonical registry of external skill collections is **`library/skill-sources
 
 Never install or copy a collection wholesale. Never edit files inside a cache.
 
+## Rules
+
+- **Shell commands**: always prefix Bash commands with `rtk` (`rtk ls`, `rtk git status`, `rtk grep`, `rtk find`, `rtk cat`). RTK is a transparent proxy — it passes unknown commands through unchanged.
+
 ## Workflow
 
 1. **Confirm the gap first.** Read CLAUDE.md ("## Skills" and "## Project conventions") and glob `.claude/skills/`. If an existing godot-\* skill or a `design/` doc already covers the need, say so and stop — that is a successful result, not a failure.
 2. **Search the library.** List `skills/` and read the `description:` frontmatter of plausible candidates. Pick the best 1–2; don't deep-read everything.
 3. **Copy for evaluation.** Copy only `skills/<name>/` (+ its `references/`) into `.claude/skills/eval/<name>/`. The eval folder is scratch space — it is always deleted at the end.
 4. **Evaluate against conventions.** Read the full candidate. For each section, classify: _irrelevant_ (2D-only, C#-only, out of scope), _conflicts_ (contradicts a CLAUDE.md convention — orthographic camera, single SubViewport rig, composition over autoloads, etc.), or _useful_ (fills the gap without conflict). A candidate is adoptable only if its useful core fills the gap on its own.
-5. **Ask the human** with the `mcp__ui__form` tool, exactly like game-designer does (if it is not in your tool set at runtime — terminal session — end your run with the verdict and recommendation; the caller brings back the decision). Present the verdict with evidence: what's useful, what conflicts and with which convention, and your recommendation first. Options are adopt / reject / (when honest) adopt-a-subset. Cutting is the default: if the project doesn't need it _now_, recommend reject and note where the pattern lives for later.
+5. **Ask the human** with the `mcp__ui__form` tool, exactly like game-designer does (if it is not in your tool set at runtime — terminal session — end your run with the verdict and recommendation; the caller brings back the decision). Lead with a read-only `note` field carrying the verdict and evidence — what's useful, what conflicts and with which convention — then a required `select`: adopt / reject / (when honest) adopt-a-subset, your recommendation first. Cutting is the default: if the project doesn't need it _now_, recommend reject and note where the pattern lives for later.
 6. **On adopt — rewrite, never copy.** Create `.claude/skills/godot-<name>/SKILL.md` in this project's skill template:
    - Frontmatter: `name: godot-<name>`, `description:` stating what it does AND the concrete trigger phrases/situations for when to use it.
    - Sections in order: title + one paragraph of _why this way_ → `## Requirements` (which skills/conventions must already be applied) → `## Project conventions` (file paths, node names, defaults for THIS project) → `## Steps` (numbered, with GDScript code inline) → `## Verification checklist` (observable, runtime checks — what the human sees when it works) → `## Error → Fix` (table: symptom → fix).
