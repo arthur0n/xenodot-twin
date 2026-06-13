@@ -2,7 +2,7 @@
 // orchestrator can run several at once), each as a colored chip with its task
 // and an elapsed timer. Replaces the old single-agent status bar.
 import { $, el } from "./dom.js";
-import { paint } from "./agents.js";
+import { paint, agentLabel } from "./agents.js";
 
 /** @typedef {{ label: string, desc: string, started: number, elapsed?: HTMLElement }} Running */
 /** @type {Map<string, Running>} */
@@ -36,7 +36,7 @@ function render() {
     // paint the chip so --agent-color flows to its border, dot, and name.
     const chip = paint(el("div", "running-agent"), r.label);
     chip.append(el("span", "status-dot"));
-    chip.append(el("span", "agent-name", r.label));
+    chip.append(el("span", "agent-name", agentLabel(r.label)));
     if (r.desc) chip.append(el("span", "running-target", r.desc));
     r.elapsed = el("span", "elapsed", "0s");
     chip.append(r.elapsed);

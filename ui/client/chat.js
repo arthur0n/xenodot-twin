@@ -1,6 +1,6 @@
 // Chat column — banners, user messages, agent messages, and thinking indicator.
 import { $, el } from "./dom.js";
-import { paint } from "./agents.js";
+import { paint, agentLabel, agentInitial } from "./agents.js";
 import { renderMarkdown } from "./markdown.js";
 
 const chatScroll = $("chat-scroll");
@@ -51,8 +51,9 @@ export function addUser(text) {
 export function addAgentMsg(who, text) {
   const wrap = el("div", "msg-agent");
   const head = el("span", "who");
-  head.append(paint(el("span", "agent-avatar", who.charAt(0).toUpperCase()), who));
-  head.append(` ${who}`);
+  const label = agentLabel(who);
+  head.append(paint(el("span", "agent-avatar", agentInitial(who)), who));
+  head.append(` ${label}`);
   const copy = el("button", "copy-btn", "⧉");
   copy.title = "Copy message";
   copy.onclick = async () => {

@@ -2,7 +2,7 @@
 // display formatters (shorten / stripEnvPrefix / toolDetail) shared with the
 // approval cards and the websocket dispatcher.
 import { $, $$, el } from "./dom.js";
-import { paint } from "./agents.js";
+import { paint, agentLabel } from "./agents.js";
 import { view } from "./state.js";
 
 /** Tool name -> log "kind" (drives the verb-pill color and the filter chips).
@@ -77,12 +77,12 @@ export function addLog(entry) {
   row.append(el("span", "log-time", nowStr()));
   if (entry.kind === "spawn") {
     const who = el("span", "log-agent");
-    who.append(paint(el("span", "", entry.agent), entry.agent));
+    who.append(paint(el("span", "", agentLabel(entry.agent)), entry.agent));
     who.append(el("span", "arrow", " ▸ "));
-    who.append(paint(el("span", "", entry.child ?? ""), entry.child ?? ""));
+    who.append(paint(el("span", "", agentLabel(entry.child ?? "")), entry.child ?? ""));
     row.append(who);
   } else {
-    row.append(paint(el("span", "log-agent", entry.agent), entry.agent));
+    row.append(paint(el("span", "log-agent", agentLabel(entry.agent)), entry.agent));
   }
   if (entry.kind === "say") {
     row.append(el("span", "log-text", entry.text));

@@ -19,6 +19,33 @@ const PALETTE = [
 const assigned = new Map();
 let nextIdx = 0;
 
+// Display-name (brand) map: identifier -> what the user sees. This is pure UI
+// flavor — the SDK identifiers (subagent_type) and agent filenames stay literal
+// so routing keeps working. Only the rendered text changes.
+//   main          -> Xenodot Hive   (the orchestrator / coordination loop)
+//   game-designer -> Designer Xenodot, godot-dev -> Dev Xenodot, etc.
+/** @type {Record<string, string>} */
+const DISPLAY = { main: "Xenodot Hive" };
+
+/** @param {string} name @returns {string} */
+export function agentLabel(name) {
+  if (!name) return name;
+  if (DISPLAY[name]) return DISPLAY[name];
+  const role = name.replace(/^(godot|game)-/, "").replace(/-/g, " ");
+  const titled = role.replace(/\b\w/g, (c) => c.toUpperCase());
+  return `${titled} Xenodot`;
+}
+
+/** The avatar/initial for an agent: the first word of its display name that
+ * isn't "Xenodot" — so the Hive reads "H" and "Designer Xenodot" reads "D".
+ * @param {string} name @returns {string} */
+export function agentInitial(name) {
+  const word = agentLabel(name)
+    .split(" ")
+    .find((w) => w && w !== "Xenodot");
+  return (word ?? agentLabel(name)).charAt(0).toUpperCase();
+}
+
 /** @param {string} name @returns {string} */
 export function agentColor(name) {
   if (name === "main") return "var(--accent-text)";

@@ -1,36 +1,36 @@
 /* ============================================================
    Xenodot Forge — UI styles
-   "The Foundry": industrial control room for the agent forge.
-   Warm iron surfaces, molten-ember accent, brass caution marks,
-   verdigris for quenched/done. Sharp corners, stamped labels.
+   "The Forge Temple": Adeptus-Mechanicus control sanctum.
+   Oxblood Martian iron, cog-green machine-spirit glow, brass
+   caution sigils. Sharp corners, stamped labels.
    Bricolage Grotesque (display) · Archivo (UI) · IBM Plex Mono.
    ============================================================ */
 
 :root {
-  /* Molten ember — the heat of the forge */
-  --accent: oklch(0.71 0.17 50);
-  --accent-text: oklch(0.79 0.13 55);
+  /* Machine-spirit glow — cog-green tech-light */
+  --accent: oklch(0.72 0.16 152);
+  --accent-text: oklch(0.82 0.15 155);
   --accent-dim: color-mix(in oklab, var(--accent) 13%, transparent);
   --accent-border: color-mix(in oklab, var(--accent) 38%, transparent);
 
-  /* Iron — warm-tinted blacks, never blue */
-  --bg: oklch(0.16 0.008 65);
-  --panel: oklch(0.19 0.009 65);
-  --panel-2: oklch(0.22 0.01 65);
-  --panel-3: oklch(0.26 0.012 65);
-  --well: oklch(0.14 0.007 65);
-  --border: oklch(0.85 0.02 70 / 0.08);
-  --border-strong: oklch(0.85 0.02 70 / 0.15);
+  /* Oxblood iron — dark Martian-red metal, never blue */
+  --bg: oklch(0.13 0.05 35.94);
+  --panel: oklch(0.17 0.03 26.13);
+  --panel-2: color-mix(in oklab, var(--panel), white 6%);
+  --panel-3: color-mix(in oklab, var(--panel), white 12%);
+  --well: oklch(0.13 0.02 28);
+  --border: oklch(0.85 0.03 35 / 0.08);
+  --border-strong: oklch(0.85 0.03 35 / 0.16);
 
-  --text: oklch(0.92 0.012 75);
-  --text-2: oklch(0.71 0.015 75);
-  --text-3: oklch(0.54 0.015 75);
+  --text: oklch(0.92 0.014 60);
+  --text-2: oklch(0.71 0.017 55);
+  --text-3: oklch(0.54 0.017 50);
 
   /* Forge semantics: verdigris = quenched, brass = caution,
      hot iron = danger, steel = inspection, copper = casting */
-  --green: oklch(0.75 0.1 165);
+  --green: oklch(0.78 0.11 172);
   --amber: oklch(0.78 0.12 85);
-  --red: oklch(0.66 0.19 28);
+  --red: oklch(0.64 0.21 25);
   --blue: oklch(0.74 0.08 235);
   --purple: oklch(0.74 0.1 350);
 
@@ -55,11 +55,9 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Brass caution stripes — approval surfaces wear them */
-  --hazard: repeating-linear-gradient(
-    135deg,
-    color-mix(in oklab, var(--amber) 6.5%, transparent) 0 7px,
-    transparent 7px 14px
-  );
+  --hazard: repeating-linear-gradient(135deg,
+      color-mix(in oklab, var(--amber) 6.5%, transparent) 0 7px,
+      transparent 7px 14px);
 }
 
 body.density-compact {
@@ -113,6 +111,7 @@ body {
 body.hide-activity .app-body {
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
 }
+
 body.hide-activity .activity,
 body.hide-activity #resize-activity {
   display: none;
@@ -148,6 +147,7 @@ body.hide-activity #resize-activity {
 #resize-sidebar {
   left: calc(var(--sidebar-w) - 4px);
 }
+
 #resize-activity {
   right: calc(var(--activity-w) - 4px);
 }
@@ -156,6 +156,7 @@ body.resizing {
   cursor: col-resize;
   user-select: none;
 }
+
 body.resizing iframe {
   pointer-events: none;
 }
@@ -179,12 +180,10 @@ body.resizing iframe {
   right: 0;
   bottom: -1px;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--accent) 65%, transparent),
-    color-mix(in oklab, var(--amber) 30%, transparent) 30%,
-    var(--border) 65%
-  );
+  background: linear-gradient(90deg,
+      color-mix(in oklab, var(--accent) 65%, transparent),
+      color-mix(in oklab, var(--amber) 30%, transparent) 30%,
+      var(--border) 65%);
   pointer-events: none;
 }
 
@@ -203,7 +202,7 @@ body.resizing iframe {
   width: 20px;
   height: 20px;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: linear-gradient(135deg, var(--amber), var(--accent) 55%, oklch(0.45 0.14 35));
+  background: linear-gradient(135deg, var(--amber), var(--accent) 55%, oklch(0.42 0.17 25));
   filter: drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 45%, transparent));
   display: grid;
   place-items: center;
@@ -262,9 +261,11 @@ body.resizing iframe {
   padding: 4px 10px;
   cursor: pointer;
 }
+
 .approvals-pill:hover {
   background: color-mix(in oklab, var(--amber) 16%, transparent);
 }
+
 .approvals-pill .badge {
   background: var(--amber);
 }
@@ -288,9 +289,7 @@ body.resizing iframe {
 
 .mode-select {
   appearance: none;
-  background: var(--panel-2)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23a89e92'/%3E%3C/svg%3E")
-    no-repeat right 9px center;
+  background: var(--panel-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23a89e92'/%3E%3C/svg%3E") no-repeat right 9px center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-2);
@@ -299,6 +298,7 @@ body.resizing iframe {
   padding: 4.5px 26px 4.5px 10px;
   cursor: pointer;
 }
+
 .mode-select:hover {
   border-color: var(--border-strong);
   color: var(--text);
@@ -326,10 +326,12 @@ body.resizing iframe {
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     box-shadow: 0 0 0 0 color-mix(in oklab, var(--green) 45%, transparent);
   }
+
   50% {
     box-shadow: 0 0 0 4px transparent;
   }
@@ -390,6 +392,7 @@ body.resizing iframe {
   padding: 2px 6px;
   border-radius: var(--radius-sm);
 }
+
 .icon-btn:hover {
   color: var(--text);
   background: var(--panel-3);
@@ -420,9 +423,11 @@ body.resizing iframe {
   cursor: pointer;
   margin-bottom: 4px;
 }
+
 .session-card:hover {
   background: var(--panel-2);
 }
+
 .session-card.active {
   background: var(--accent-dim);
   border-color: var(--accent-border);
@@ -442,6 +447,7 @@ body.resizing iframe {
   color: var(--text-3);
   padding-left: 14px;
 }
+
 .session-card.active .meta {
   color: var(--text-2);
 }
@@ -459,12 +465,14 @@ body.resizing iframe {
   padding: 1px 5px;
   cursor: pointer;
 }
+
 .session-del-btn:hover,
 .session-del-btn.confirm {
   background: color-mix(in oklab, var(--red) 12%, transparent);
   color: var(--red);
   border-color: color-mix(in oklab, var(--red) 40%, transparent);
 }
+
 .session-card:hover .session-del-btn {
   display: inline-flex;
   align-items: center;
@@ -498,9 +506,11 @@ body.resizing iframe {
   color: var(--text-3);
   transition: transform 0.15s var(--ease-out);
 }
+
 .tree-group.collapsed .chev {
   transform: rotate(-90deg);
 }
+
 .tree-group.collapsed .tree-item,
 .tree-group.collapsed .tree-empty {
   display: none;
@@ -531,6 +541,7 @@ body.resizing iframe {
   overflow: hidden;
   position: relative;
 }
+
 .tree-item:hover {
   background: var(--panel-2);
   color: var(--text);
@@ -554,11 +565,13 @@ body.resizing iframe {
   padding: 1px 5px;
   cursor: pointer;
 }
+
 .tree-add-btn:hover {
   background: var(--accent);
   color: var(--bg);
   border-color: var(--accent);
 }
+
 .tree-item:hover .tree-add-btn {
   display: inline-flex;
   align-items: center;
@@ -605,9 +618,11 @@ body.resizing iframe {
   cursor: pointer;
   transition: color 0.12s ease;
 }
+
 .side-tab:hover {
   color: var(--text-2);
 }
+
 .side-tab.on {
   color: var(--text);
   border-bottom-color: var(--accent);
@@ -620,6 +635,7 @@ body.resizing iframe {
   color: var(--text-3);
   margin-left: 5px;
 }
+
 .side-tab.on .count {
   color: var(--accent-text);
 }
@@ -645,9 +661,11 @@ body.resizing iframe {
   color: var(--text-3);
   transition: transform 0.15s var(--ease-out);
 }
+
 .tree-root.collapsed .chev {
   transform: rotate(-90deg);
 }
+
 .tree-root.collapsed .tree-nest {
   display: none;
 }
@@ -678,6 +696,7 @@ body.resizing iframe {
     border-color 0.12s ease,
     background 0.12s ease;
 }
+
 .new-item-btn:hover {
   color: var(--accent-text);
   border-color: var(--accent-border);
@@ -701,6 +720,7 @@ body.resizing iframe {
   padding: 4px 4px 4px 14px;
   cursor: pointer;
 }
+
 .expand-toggle:hover {
   color: var(--text);
 }
@@ -751,11 +771,9 @@ body.resizing iframe {
 .msg-user {
   align-self: flex-end;
   max-width: 78%;
-  background: linear-gradient(
-    160deg,
-    color-mix(in oklab, var(--accent) 19%, var(--panel-2)),
-    color-mix(in oklab, var(--accent) 11%, var(--panel-2))
-  );
+  background: linear-gradient(160deg,
+      color-mix(in oklab, var(--accent) 19%, var(--panel-2)),
+      color-mix(in oklab, var(--accent) 11%, var(--panel-2)));
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
   padding: 9px 16px 9px 14px;
   font-family: var(--font-ui);
@@ -784,11 +802,13 @@ body.resizing iframe {
 }
 
 @keyframes thinking-pulse {
+
   0%,
   100% {
     opacity: 0.35;
     transform: scale(0.8);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.1);
@@ -849,29 +869,36 @@ body.resizing iframe {
 .msg-agent .body p {
   margin: 0 0 8px;
 }
-.msg-agent .body > :last-child {
+
+.msg-agent .body> :last-child {
   margin-bottom: 0;
 }
+
 .msg-agent .body .md-h {
   font-family: var(--font-display);
   font-size: 13.5px;
   font-weight: 700;
   margin: 10px 0 6px;
 }
-.msg-agent .body > .md-h:first-child {
+
+.msg-agent .body>.md-h:first-child {
   margin-top: 0;
 }
+
 .msg-agent .body ul,
 .msg-agent .body ol {
   margin: 0 0 8px;
   padding-left: 20px;
 }
+
 .msg-agent .body li {
   margin: 2px 0;
 }
+
 .msg-agent .body li::marker {
   color: var(--text-3);
 }
+
 .msg-agent .body pre {
   background: var(--well);
   border: 1px solid var(--border);
@@ -884,6 +911,7 @@ body.resizing iframe {
   line-height: 1.55;
   color: var(--text-2);
 }
+
 .msg-agent .body pre code {
   background: none;
   border: none;
@@ -891,9 +919,11 @@ body.resizing iframe {
   font-size: inherit;
   color: inherit;
 }
+
 .msg-agent .body strong {
   font-weight: 650;
 }
+
 .msg-agent .body a {
   color: var(--accent-text);
   text-decoration-color: var(--accent-border);
@@ -924,10 +954,12 @@ body.resizing iframe {
   background: var(--panel);
   cursor: pointer;
 }
+
 .tool-group:hover {
   color: var(--text-2);
   border-color: var(--border-strong);
 }
+
 .tool-group .chev {
   font-size: 9px;
 }
@@ -971,14 +1003,13 @@ body.resizing iframe {
   height: 3px;
   background: var(--panel-3);
 }
+
 .progress-fill {
   height: 100%;
   width: 40%;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--accent) 70%, var(--amber)),
-    var(--accent)
-  );
+  background: linear-gradient(90deg,
+      color-mix(in oklab, var(--accent) 70%, var(--amber)),
+      var(--accent));
   transition: width 0.6s var(--ease-out);
 }
 
@@ -1013,6 +1044,7 @@ body.resizing iframe {
   text-decoration: line-through;
   text-decoration-color: var(--text-3);
 }
+
 .todo.done .tick {
   background: var(--green);
   border-color: var(--green);
@@ -1022,10 +1054,12 @@ body.resizing iframe {
 .todo.running {
   color: var(--text);
 }
+
 .todo.running .tick {
   border-color: var(--accent);
   position: relative;
 }
+
 .todo.running .tick::after {
   content: "";
   width: 5px;
@@ -1034,12 +1068,15 @@ body.resizing iframe {
   background: var(--accent);
   animation: pulse-sm 1.2s ease-in-out infinite;
 }
+
 @keyframes pulse-sm {
+
   0%,
   100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.4;
     transform: scale(0.7);
@@ -1082,6 +1119,7 @@ body.resizing iframe {
   overflow-x: auto;
   white-space: nowrap;
 }
+
 .cmd .prompt {
   color: var(--green);
 }
@@ -1091,9 +1129,11 @@ input.cmd {
   color: var(--text);
   outline: none;
 }
+
 input.cmd:focus {
   border-color: var(--accent-border);
 }
+
 input.cmd::placeholder {
   color: var(--text-3);
 }
@@ -1119,6 +1159,7 @@ input.cmd::placeholder {
     border-color 0.12s ease,
     color 0.12s ease;
 }
+
 .btn:hover {
   border-color: oklch(0.85 0.02 70 / 0.26);
 }
@@ -1128,6 +1169,7 @@ input.cmd::placeholder {
   border-color: transparent;
   color: oklch(0.18 0.03 50);
 }
+
 .btn.primary:hover {
   background: color-mix(in oklab, var(--accent) 85%, white);
 }
@@ -1136,6 +1178,7 @@ input.cmd::placeholder {
   background: transparent;
   color: var(--text-2);
 }
+
 .btn.ghost:hover {
   color: var(--red);
   border-color: color-mix(in oklab, var(--red) 40%, transparent);
@@ -1153,13 +1196,16 @@ input.cmd::placeholder {
 .approval.resolved .approval-body {
   display: none;
 }
+
 .approval.resolved .approval-resolved {
   display: flex;
 }
+
 .approval.resolved {
   border-color: color-mix(in oklab, var(--green) 30%, transparent);
   background: var(--panel);
 }
+
 .approval.resolved .card-head {
   background: none;
   border-bottom-color: var(--border);
@@ -1188,6 +1234,7 @@ input.cmd::placeholder {
   font-weight: 600;
   color: var(--text);
 }
+
 .form-label .req {
   color: var(--amber);
 }
@@ -1203,9 +1250,11 @@ input.cmd::placeholder {
   outline: none;
   resize: vertical;
 }
+
 .form-input:focus {
   border-color: var(--accent-border);
 }
+
 .form-input::placeholder {
   color: var(--text-3);
 }
@@ -1223,6 +1272,7 @@ input.cmd::placeholder {
   font-size: 12.5px;
   cursor: pointer;
 }
+
 .form-check input {
   accent-color: var(--accent);
   margin: 0;
@@ -1231,9 +1281,28 @@ input.cmd::placeholder {
 .form-field.invalid .form-input {
   border-color: color-mix(in oklab, var(--red) 55%, transparent);
 }
+
 .form-field.invalid .form-label,
 .form-field.invalid .form-check {
   color: var(--red);
+}
+
+/* Read-only note field — a static context block, not an input */
+.form-note-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.form-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+  background: var(--well);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  white-space: pre-wrap;
 }
 
 /* Streaming message */
@@ -1246,6 +1315,7 @@ input.cmd::placeholder {
   margin-left: 2px;
   animation: blink 1.1s steps(2) infinite;
 }
+
 @keyframes blink {
   50% {
     opacity: 0;
@@ -1268,11 +1338,16 @@ input.cmd::placeholder {
   gap: 9px;
 }
 
-/* Running agents — one chip per in-flight sub-agent; several can show at once. */
+/* Running agents — a status strip at the bottom of the chat (above the
+   composer), one chip per in-flight sub-agent; several can show at once. */
 .running-agents {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  width: 100%;
+  max-width: var(--chat-width);
+  margin: 0 auto;
+  padding: 2px 24px 8px;
 }
 
 .running-agent {
@@ -1349,6 +1424,7 @@ input.cmd::placeholder {
     border-color 0.12s ease,
     color 0.12s ease;
 }
+
 .chip:hover {
   color: var(--accent-text);
   border-color: var(--accent-border);
@@ -1437,9 +1513,126 @@ input.cmd::placeholder {
   padding: 6px 9px;
   font-size: 10.5px;
 }
+
 .approval-mini .btn {
   padding: 4px 11px;
   font-size: 11.5px;
+}
+
+/* Tasks board — the orchestrator's persistent to-do list, between approvals
+   and the activity log. Mirrors .approvals-panel framing. */
+.tasks-panel {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  max-height: 38vh;
+  overflow-y: auto;
+}
+
+.tasks-panel .side-head {
+  padding: 0 0 8px;
+}
+
+#tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 7px 9px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.task-row.status-done {
+  opacity: 0.62;
+}
+
+.task-tick {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 0;
+  color: var(--text-3);
+}
+
+.task-row.status-in_progress .task-tick {
+  color: var(--amber);
+}
+
+.task-row.status-done .task-tick {
+  color: var(--green);
+}
+
+.task-body {
+  min-width: 0;
+}
+
+.task-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.task-title {
+  word-break: break-word;
+}
+
+.task-row.status-done .task-title {
+  text-decoration: line-through;
+}
+
+.task-note {
+  color: var(--text-3);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* owner chip — agent (accent) vs user (blue), so handoffs are scannable */
+.owner-chip {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.owner-chip.owner-agent {
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.owner-chip.owner-user {
+  color: var(--blue);
+  background: color-mix(in oklab, var(--blue) 12%, transparent);
+  border-color: color-mix(in oklab, var(--blue) 30%, transparent);
+}
+
+.task-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.task-remove:hover {
+  color: var(--red);
 }
 
 .activity-head {
@@ -1469,9 +1662,11 @@ input.cmd::placeholder {
   cursor: pointer;
   font-family: var(--font-ui);
 }
+
 .filter-chip:hover {
   color: var(--text-2);
 }
+
 .filter-chip.on {
   color: var(--text);
   background: var(--panel-3);
@@ -1537,6 +1732,7 @@ input.cmd::placeholder {
 .msg-agent {
   position: relative;
 }
+
 .msg-agent .copy-btn {
   position: absolute;
   top: 8px;
@@ -1552,9 +1748,11 @@ input.cmd::placeholder {
   opacity: 0;
   transition: opacity 0.12s ease;
 }
+
 .msg-agent:hover .copy-btn {
   opacity: 1;
 }
+
 .msg-agent .copy-btn:hover {
   color: var(--text);
   border-color: var(--border-strong);
@@ -1567,6 +1765,7 @@ input.cmd::placeholder {
   font-weight: 600;
   color: var(--agent-color, var(--text));
 }
+
 .log-row:hover {
   background: var(--panel-2);
 }
@@ -1595,26 +1794,31 @@ input.cmd::placeholder {
   color: var(--blue);
   border-color: color-mix(in oklab, var(--blue) 28%, transparent);
 }
+
 .verb-task {
   background: color-mix(in oklab, var(--purple) 12%, transparent);
   color: var(--purple);
   border-color: color-mix(in oklab, var(--purple) 28%, transparent);
 }
+
 .verb-edit {
   background: color-mix(in oklab, var(--amber) 12%, transparent);
   color: var(--amber);
   border-color: color-mix(in oklab, var(--amber) 28%, transparent);
 }
+
 .verb-bash {
   background: color-mix(in oklab, var(--green) 12%, transparent);
   color: var(--green);
   border-color: color-mix(in oklab, var(--green) 28%, transparent);
 }
+
 .verb-write {
   background: color-mix(in oklab, var(--amber) 12%, transparent);
   color: var(--amber);
   border-color: color-mix(in oklab, var(--amber) 28%, transparent);
 }
+
 .verb-session {
   background: var(--panel-3);
   color: var(--text-2);
@@ -1632,6 +1836,7 @@ input.cmd::placeholder {
   direction: rtl;
   text-align: left;
 }
+
 .log-detail bdo {
   unicode-bidi: bidi-override;
   direction: ltr;
@@ -1646,11 +1851,13 @@ input.cmd::placeholder {
 .log-row.is-new {
   animation: log-in 0.35s var(--ease-out);
 }
+
 @keyframes log-in {
   from {
     opacity: 0;
     transform: translateX(-6px);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -1685,11 +1892,13 @@ input.cmd::placeholder {
   width: 10px;
   height: 10px;
 }
+
 ::-webkit-scrollbar-thumb {
   background: oklch(0.85 0.02 70 / 0.1);
   border: 3px solid transparent;
   background-clip: padding-box;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background-color: oklch(0.85 0.02 70 / 0.18);
   background-clip: padding-box;
@@ -1697,6 +1906,7 @@ input.cmd::placeholder {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .dot.pulse,
   .status-dot,
   .live-dot,
@@ -1704,6 +1914,7 @@ input.cmd::placeholder {
   .todo.running .tick::after {
     animation: none;
   }
+
   .log-row.is-new {
     animation: none;
   }
@@ -1720,15 +1931,18 @@ input.cmd::placeholder {
   border: 1px solid color-mix(in oklab, var(--amber) 40%, transparent);
   border-radius: 4px;
 }
+
 .project-banner strong {
   display: block;
   margin-bottom: 4px;
   color: var(--amber);
 }
+
 .project-banner .banner-path {
   margin-bottom: 6px;
   color: var(--text-3);
 }
+
 .project-banner .banner-code {
   margin-top: 6px;
   padding: 6px 8px;
@@ -1740,4 +1954,80 @@ input.cmd::placeholder {
   border-radius: 3px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Transcript harvest modal — paste a raw transcript, framework writes it to the
+   game's transcripts/ drop zone and runs transcript-researcher. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: oklch(0 0 0 / 0.55);
+}
+
+.modal {
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 50px oklch(0 0 0 / 0.5);
+}
+
+.modal-head {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.modal-sub {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.modal-sub code {
+  font-family: var(--font-mono);
+  color: var(--accent-text);
+}
+
+.modal .form-label {
+  margin-top: 6px;
+}
+
+.modal textarea.form-input {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.modal-error {
+  min-height: 15px;
+  font-size: 12px;
+  color: var(--red);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.req {
+  color: var(--red);
+}
+
+.muted {
+  color: var(--text-3);
+  font-weight: 400;
 }

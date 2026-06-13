@@ -4,14 +4,16 @@
 // reuses registerPending / settle from here.
 import { $, el } from "./dom.js";
 import { send } from "./websocket.js";
-import { paint } from "./agents.js";
+import { paint, agentLabel } from "./agents.js";
 import { VERB_KIND, shorten, stripEnvPrefix } from "./activity-log.js";
 
 /** A colored chip naming the agent that raised a card (omitted for the main
  * loop). Lets concurrent approvals from different agents be told apart.
  * @param {string} [agent] @returns {HTMLElement | null} */
 export function agentChip(agent) {
-  return agent && agent !== "main" ? paint(el("span", "card-agent", agent), agent) : null;
+  return agent && agent !== "main"
+    ? paint(el("span", "card-agent", agentLabel(agent)), agent)
+    : null;
 }
 
 /** @type {Map<number, { chatCard: HTMLElement, panelCard: HTMLElement }>} */
