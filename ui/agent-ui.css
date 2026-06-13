@@ -86,6 +86,11 @@
     oklch(0.95 0.02 70 / 0.014) 0 1px,
     transparent 1px 3px
   );
+
+  /* Oxide bloom — low-frequency fractal noise mapped to a flat rust hue, with
+     its alpha thresholded off the noise so corrosion shows in islands and
+     pits rather than an even wash. Large tile keeps the patches organic. */
+  --rust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='180'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.018 0.026' numOctaves='5' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.42 0 0 0 0 0.2 0 0 0 0 0.07 0 0 0 1.25 -0.52'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23r)'/%3E%3C/svg%3E");
 }
 
 body.density-compact {
@@ -196,10 +201,30 @@ body.resizing iframe {
   align-items: center;
   gap: 14px;
   padding: 0 16px;
-  background-color: var(--panel);
-  background-image: var(--metal-grain), var(--plate-sheen);
+  /* A turned-steel cylinder spanning the bench — a touch lighter and cooler
+     than the oxblood plates. The vertical ramp is the giveaway: dark rim up
+     top, a bright specular band a third of the way down, rolling off into
+     shadow at the underside. Grain rides on top in soft-light. */
+  background-color: oklch(0.21 0.022 32);
+  background-image:
+    var(--metal-grain),
+    linear-gradient(
+      180deg,
+      oklch(0.2 0.022 32) 0%,
+      oklch(0.235 0.02 34) 14%,
+      oklch(0.29 0.018 36) 32%,
+      oklch(0.235 0.021 33) 56%,
+      oklch(0.155 0.028 29) 100%
+    );
   background-blend-mode: soft-light, normal;
   position: relative;
+  z-index: 3;
+  /* Lit rim at the crown, dark hairline at the underside, and a drop shadow
+     so the cylinder sits proud of the columns below. */
+  box-shadow:
+    inset 0 1px 0 oklch(0.96 0.02 80 / 0.14),
+    inset 0 -1px 0 oklch(0 0 0 / 0.4),
+    0 5px 14px -5px oklch(0 0 0 / 0.55);
 }
 
 /* The molten seam — heat bleeding from the forge mark, fading right */
@@ -1398,10 +1423,16 @@ input.cmd::placeholder {
 /* ---------------- Composer ---------------- */
 
 .composer-zone {
-  border-top: 1px solid var(--border);
-  background-color: var(--panel);
-  background-image: var(--metal-grain), var(--plate-sheen);
-  background-blend-mode: soft-light, normal;
+  /* A corroded iron plate at the lip of the well — warmer and rustier than
+     the cool steel cylinder up top. Oxide blooms in patches over the grain,
+     and rust bleeds down from the welded top seam. */
+  border-top: 1px solid color-mix(in oklab, var(--amber) 22%, var(--border));
+  background-color: oklch(0.18 0.04 41);
+  background-image:
+    var(--rust),
+    linear-gradient(180deg, color-mix(in oklab, var(--amber) 13%, transparent) 0%, transparent 26%),
+    var(--metal-grain), var(--plate-sheen);
+  background-blend-mode: normal, normal, soft-light, normal;
   padding: 10px 24px 14px;
   /* A raised plate at the lip of the well — it casts up onto the recess. */
   position: relative;
@@ -2123,6 +2154,17 @@ input.cmd::placeholder {
   width: 11px;
   height: 11px;
   border-radius: 2px;
+}
+
+.draw-level-load {
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-2);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 6px;
+  cursor: pointer;
 }
 
 /* Stop button on the running-agents strip — interrupts the current turn */

@@ -15,6 +15,7 @@ import { recentSessions, deleteSession } from "./transcripts.js";
 import { writeTranscript } from "./transcript-write.js";
 import { writeAsset } from "./asset-write.js";
 import { writeLevel } from "./level-write.js";
+import { listLevels } from "./level-read.js";
 import { readTasks } from "./tasks-store.js";
 import { serveStatic } from "./static.js";
 import { handleConnection } from "./session.js";
@@ -128,6 +129,11 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === "POST" && req.url === "/api/level") {
     handleLevelPost(req, res);
+    return;
+  }
+  if (req.url === "/api/levels") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(listLevels()));
     return;
   }
   serveStatic(req, res);

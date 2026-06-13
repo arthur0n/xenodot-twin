@@ -5,7 +5,7 @@
 // of tile types, sized so every cell is visible (no zoom needed).
 // Tile codes: 0 floor · 1 wall · 2 door · 3 window · 4 item.
 import { $, el } from "./dom.js";
-import { postJSON } from "../lib/json.js";
+import { fetchJSON, postJSON } from "../lib/json.js";
 import { send } from "./websocket.js";
 import { addUser } from "./chat.js";
 import { loadState } from "./project-tree.js";
@@ -39,6 +39,9 @@ let brush = 1; // active tile id (-1 = number/marker mode; default: Wall)
 let painting = false;
 let lastX = -1;
 let lastY = -1;
+/** Saved drawn levels for the load picker (name -> grid).
+ * @type {Map<string, { width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }>} */
+const saved = new Map();
 
 /** @param {number} v @returns {string} */
 function colorFor(v) {
@@ -229,9 +232,58 @@ function buildPalette() {
   });
 }
 
+/** Load a saved level's grid onto the canvas (view + continue editing).
+ * @param {{ width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }} lv */
+function applyLevel(lv) {
+  const err = $("draw-level-error");
+  if (lv.width !== GRID_W || lv.height !== GRID_H) {
+    err.textContent = `Saved at ${lv.width}×${lv.height}; the painter is ${GRID_W}×${GRID_H} — can't load.`;
+    return;
+  }
+  err.textContent = "";
+  cells.fill(0);
+  cells.set(lv.cells.slice(0, GRID_W * GRID_H));
+  labels.length = 0;
+  const ls = (lv.labels ?? []).slice().sort((a, b) => a.n - b.n);
+  for (const l of ls) {
+    const idx = l.y * GRID_W + l.x;
+    if (idx >= 0 && idx < GRID_W * GRID_H && !labels.includes(idx)) labels.push(idx);
+  }
+  render();
+}
+
+/** Fetch the saved levels and (re)fill the load picker. */
+async function loadLevels() {
+  const sel = /** @type {HTMLSelectElement} */ ($("draw-level-load"));
+  /** @type {{ name: string, width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }[]} */
+  let list;
+  try {
+    list =
+      /** @type {{ name: string, width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }[]} */ (
+        await fetchJSON("/api/levels")
+      );
+  } catch {
+    return;
+  }
+  saved.clear();
+  sel.replaceChildren();
+  const ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = "— load saved —";
+  sel.append(ph);
+  for (const lv of list) {
+    saved.set(lv.name, lv);
+    const o = document.createElement("option");
+    o.value = lv.name;
+    o.textContent = `${lv.name} (${lv.width}×${lv.height})`;
+    sel.append(o);
+  }
+}
+
 function open() {
   $("draw-level-error").textContent = "";
   $("draw-level-modal").style.display = "";
+  void loadLevels();
   render();
 }
 function close() {
@@ -312,6 +364,15 @@ export function initDrawLevel() {
       cells.fill(0);
       labels.length = 0;
       render();
+    };
+
+  const loadSel = /** @type {HTMLSelectElement | null} */ (
+    document.getElementById("draw-level-load")
+  );
+  if (loadSel)
+    loadSel.onchange = () => {
+      const lv = saved.get(loadSel.value);
+      if (lv) applyLevel(lv);
     };
 
   buildPalette();
