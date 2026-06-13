@@ -179,6 +179,34 @@ npm run setup -- /path/to/your/game
 - **Verification is mandatory.** Godot exits 0 on script parse errors and silently drops unknown `.tscn` properties. `tools/verify_scene.gd` exists because bugs that should have been caught shipped "verified" without it.
 - **You stay the designer.** The framework keeps the loop fast and honest — it does not replace your judgement on what game to build.
 
+## Releases & versioning
+
+Git tags are the source of truth, in a 4-part scheme keyed to the change type:
+
+- `feat` → new **sub-version**: `v0.1.2` → `v0.1.3`
+- `fix` / `chore` / `refactor` → new **build**: `v0.1.2` → `v0.1.2.1`
+
+When you commit **in a terminal**, the pre-commit hook asks whether to cut a
+release. Pick a type and it bumps `package.json` and tags the commit; press enter
+to skip. Agent/CI commits (no TTY) are never prompted.
+
+Tags are created **locally** — push them yourself:
+
+```bash
+git push origin main
+git push origin v0.1.3
+```
+
+For a scripted / non-interactive release, stage the bump into your next commit:
+
+```bash
+npm run release -- feat   # or: fix | chore | refactor
+git commit -m "…"          # post-commit creates the tag
+```
+
+`package.json` tracks the 3-part sub-version; the 4th build digit lives only in
+the git tag (npm versions must be valid 3-part semver).
+
 ## Status
 
 ⚠️ **Proof of concept.** Shared so you can fork it and experiment with your own game. APIs, file layouts, and agent prompts will change without notice.

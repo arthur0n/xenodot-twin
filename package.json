@@ -1,6 +1,6 @@
 {
   "name": "xenodot-forge",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Xenodot Forge — POC web UI + agent workflow (design -> implement -> verify) for building Godot games with Claude Code",
   "type": "module",
   "private": true,
@@ -10,6 +10,7 @@
     "badges": "node ui/server/update-badges.js",
     "claude:sync": "node ui/server/claude-sync.js",
     "claude:install": "node ui/server/claude-install.js",
+    "release": "node ui/server/release-stage.js",
     "check": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",

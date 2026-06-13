@@ -1,3 +1,13 @@
+# Interactive release prompt — terminal commits only (skipped for non-TTY such
+# as CI or agent commits). Choosing a type bumps package.json and stages a tag
+# that post-commit creates. feat → sub-version (v0.1.X); fix|chore|refactor →
+# build digit (v0.1.2.X).
+if [ -t 1 ]; then
+  printf "Release for this commit? [enter=skip] feat|fix|chore|refactor: " >/dev/tty
+  read -r XREL </dev/tty || XREL=""
+  [ -n "$XREL" ] && node ui/server/release-stage.js "$XREL"
+fi
+
 # Keep the README badges and the vendored game config in sync with the paired
 # game project, then lint + format the staged files (lint-staged also tidies the
 # re-staged README). Both scripts git-add what they touch so it lands in the commit.

@@ -1,0 +1,2 @@
+# If a release was staged in pre-commit, create the annotated tag on this commit.
+node ui/server/release-tag.js
