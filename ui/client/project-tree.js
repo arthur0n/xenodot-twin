@@ -188,7 +188,35 @@ export async function loadState() {
   const s = /** @type {import("../lib/types.js").ProjectState} */ (await fetchJSON("/api/state"));
   state = s;
   view.projectDir = s.dir;
-  $("proj-name").textContent = s.name;
+  $("proj-name").textContent = s.found ? s.name : "no project";
   $("proj-path").textContent = s.dir.replace(/^\/Users\/[^/]+/, "~");
+  renderBanner(s);
   renderTab();
+}
+
+/** When the target folder has no Godot project, explain how to point the
+ * framework at one instead of showing silently-empty panels. The framework
+ * only reads the project — it stays in your own repo, wherever it lives.
+ * @param {import("../lib/types.js").ProjectState} s */
+function renderBanner(s) {
+  const banner = $("project-banner");
+  if (s.found) {
+    banner.style.display = "none";
+    return;
+  }
+  banner.replaceChildren();
+  banner.append(el("strong", undefined, "No Godot project here yet."));
+  banner.append(el("div", "banner-path", `Looking in: ${s.dir.replace(/^\/Users\/[^/]+/, "~")}`));
+  banner.append(
+    el(
+      "div",
+      undefined,
+      "Point the framework at your game (it only reads it — your project stays in its own repo):",
+    ),
+  );
+  const code = el("div", "banner-code");
+  code.append(el("div", undefined, "npm run setup -- /path/to/your/game"));
+  code.append(el("div", undefined, "# then restart, or one-off: npm start /path/to/your/game"));
+  banner.append(code);
+  banner.style.display = "";
 }

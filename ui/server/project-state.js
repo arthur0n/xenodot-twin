@@ -2,7 +2,7 @@
 // drifts from what's actually on disk.
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
-import { PROJECT_DIR } from "./config.js";
+import { PROJECT_DIR, PROJECT_FOUND } from "./config.js";
 
 /**
  * @param {string} dir
@@ -49,6 +49,9 @@ export function projectState() {
   return {
     name,
     dir,
+    // false → PROJECT_DIR has no project.godot; the UI shows a setup banner
+    // instead of empty panels (see loadState in project-tree.js).
+    found: PROJECT_FOUND,
     designDocs: walk(path.join(dir, "design"), [".md"], [], dir)
       .filter((f) => !f.endsWith("README.md"))
       .map((f) => ({ path: f, title: firstHeading(path.join(dir, f)) })),

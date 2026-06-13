@@ -2,7 +2,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot 4.x](https://img.shields.io/badge/Godot-4.x-blue.svg)
-![Skills: 9](https://img.shields.io/badge/Skills-9-purple.svg)
+![Skills: 10](https://img.shields.io/badge/Skills-10-purple.svg)
 ![Agents: 6](https://img.shields.io/badge/Agents-6-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
@@ -17,7 +17,8 @@ The agents self-improve from your experience — every bug, every awkward patter
 The tools are here. The shape of the framework is yours to decide.
 
 ### Roadmap:
-🔨 0.1 - [First Game Tutorial](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md) 
+
+🔨 0.1 - [First Game Tutorial](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)
 
 ## Why this exists
 
@@ -52,12 +53,19 @@ ui/         Web UI (Node) — run sessions from a browser.
             Designer questions render as clickable forms.
             Tool approvals become allow/deny buttons.
             Live event feed so you see what's happening.
-
-game/       Your Godot project lives here (gitignored — it has its own repo).
-            The framework tracks only the folder, not the contents.
 ```
 
-There is **no template**. The agents, skills, and verification tools live _inside the game project_ (`game/.claude/`, `game/tools/`) and evolve with the project through the framework's own loops: bug triage, skill research, friction reports. One live copy — the framework uses what's there. The reference project during this POC is [DiceOfFate](https://github.com/Coghatch-ai/dicefate).
+**The framework is independent of your game — it contains no game folder.** It
+_points at_ your Godot project wherever that project lives (by default a sibling
+folder named `game/`, next to this one), reads it in place, and never copies,
+vendors, or tracks it. Your project stays in its own git repo; the framework
+just drives Claude Code against it.
+
+There is **no template**. The agents, skills, and verification tools live
+_inside your game project_ (`<project>/.claude/`, `<project>/tools/`) and evolve
+with it through the framework's own loops: bug triage, skill research, friction
+reports. One live copy — the framework uses what's there. The reference project
+during this POC is [DiceOfFate](https://github.com/Coghatch-ai/dicefate).
 
 ## Requirements
 
@@ -67,26 +75,69 @@ There is **no template**. The agents, skills, and verification tools live _insid
 
 ## Quickstart
 
-1. Drop a Godot project with a `.claude/` setup into `game/` (clone one that has it, or your own):
+The framework and your game are two separate repos. Keep them side by side:
+
+```
+your-workspace/
+├── xenodot-forge/     ← this framework (your fork)
+└── game/              ← your Godot project (its own git repo)
+```
+
+1. Fork this framework, then clone it and your Godot project as siblings:
 
    ```bash
-   git clone <your-godot-project> game
+   git clone <your-fork-of-xenodot-forge> xenodot-forge
+   git clone <your-godot-project> game     # any Godot project with a .claude/ setup
    ```
 
-2. Start Claude Code **from inside the project directory** — that's what makes agents and skills discoverable:
+   The folder can be named anything and live anywhere — `game/` next to the
+   framework is just the default the UI looks for. (Don't have a project yet?
+   Clone the reference one: `git clone https://github.com/Coghatch-ai/dicefate game`.)
+
+2. **Terminal workflow** — start Claude Code from inside the project so its
+   agents and skills are discoverable:
 
    ```bash
    cd game && claude
    ```
 
-3. Ask for something. If the scope is clear and small, `godot-dev` builds and verifies it. If it's big or vague, `game-designer` will interview you — one question at a time, with a recommended answer — until the scope collapses to one buildable slice. That's a feature.
+   Ask for something. If the scope is clear and small, `godot-dev` builds and
+   verifies it. If it's big or vague, `game-designer` interviews you — one
+   question at a time, with a recommended answer — until the scope collapses to
+   one buildable slice. That's a feature.
 
-### Optional: web UI
+## Using the web UI
+
+The web UI runs the same agents from a browser: designer questions become
+clickable forms, tool approvals become allow/deny buttons, and a live feed shows
+what's happening.
 
 ```bash
+cd xenodot-forge
 npm install
-node ui/server/index.js game   # or any path to a Godot project (or: npm start game)
-# open http://localhost:3117
+npm run setup -- ../game     # remember where your game lives (do this once)
+npm start                    # then open http://localhost:3117
+```
+
+`npm run setup` saves the path to `.xenodot.json` (gitignored) so you don't
+repeat it. The framework only **reads** your project — it stays in its own repo.
+
+You can point at any project, no setup needed:
+
+```bash
+npm start /path/to/another/project     # one-off override
+GAME_DIR=/path/to/project npm start    # via environment variable
+```
+
+**Path resolution order** (first match wins): CLI argument → `GAME_DIR` env var →
+saved `.xenodot.json` → default sibling `../game`.
+
+**Troubleshooting — opens but shows no sessions or files?** The UI is pointed at
+a folder with no `project.godot`. The server prints a warning on start and the
+sidebar shows how to fix it. Point it at your game and restart:
+
+```bash
+npm run setup -- /path/to/your/game
 ```
 
 ## Design principles
@@ -127,20 +178,22 @@ This project is not a competitor on breadth. The differences are in philosophy:
 If you want broad coverage now, go use GodotPrompter. If you want to experiment with the pipeline model on your own project, fork this.
 
 ## Framework UI
+
 ### Functional Questions - Approval Gate
+
 <img width="581" height="606" alt="image" src="https://github.com/user-attachments/assets/8c4acf45-dda3-44b4-8be5-d204bdfffdc6" />
 
 ### Tools use - Approval Gate
+
 <img width="582" height="159" alt="image" src="https://github.com/user-attachments/assets/3b16e771-64ac-404b-8a03-e86437c99c5c" />
 
 ### Activities List
+
 <img width="517" height="750" alt="image" src="https://github.com/user-attachments/assets/e9f7f50d-622d-4183-9f72-a7e828d79b3c" />
 
 ### Session Management
+
 <img width="372" height="661" alt="image" src="https://github.com/user-attachments/assets/c0454de1-6962-43fb-b8c3-27de68cef965" />
-
-
-
 
 ## License
 

@@ -8,7 +8,7 @@
 import http from "node:http";
 import { mkdirSync } from "node:fs";
 import { WebSocketServer } from "ws";
-import { PORT, PROJECT_DIR, LOG_DIR } from "./config.js";
+import { PORT, PROJECT_DIR, PROJECT_FOUND, CONFIG_FILE, LOG_DIR } from "./config.js";
 import { projectState } from "./project-state.js";
 import { recentSessions } from "./transcripts.js";
 import { serveStatic } from "./static.js";
@@ -35,4 +35,18 @@ wss.on("connection", handleConnection);
 
 server.listen(PORT, () => {
   console.log(`UI on http://localhost:${PORT} — project: ${PROJECT_DIR}`);
+  if (!PROJECT_FOUND) {
+    console.warn(
+      [
+        "",
+        `⚠  No Godot project at: ${PROJECT_DIR}`,
+        "   The UI will open but show no sessions or files until it points at one.",
+        "   Point it at your game (the framework only reads it — it stays in place):",
+        "     • once:      npm run setup -- /path/to/your/game",
+        "     • one-off:   npm start /path/to/your/game",
+        `   Current target is set in ${CONFIG_FILE} (or defaults to ../game).`,
+        "",
+      ].join("\n"),
+    );
+  }
 });

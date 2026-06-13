@@ -1585,3 +1585,36 @@ input.cmd::placeholder {
     animation: none;
   }
 }
+
+/* Empty-state banner: shown when the target folder has no Godot project. */
+.project-banner {
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+  background: color-mix(in oklab, var(--amber) 7%, transparent);
+  border: 1px solid color-mix(in oklab, var(--amber) 40%, transparent);
+  border-radius: 4px;
+}
+.project-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--amber);
+}
+.project-banner .banner-path {
+  margin-bottom: 6px;
+  color: var(--text-3);
+}
+.project-banner .banner-code {
+  margin-top: 6px;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

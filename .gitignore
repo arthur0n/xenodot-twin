@@ -3,9 +3,7 @@ node_modules/
 logs/
 opendocs/
 
-# Your Godot project mounts here. Its files (including .claude/ agents and
-# skills, which live and evolve WITH the project) belong to its own repo —
-# the framework tracks only the folder.
-game/*
-!game/.gitkeep
+# Your saved game-project path (written by `npm run setup`). Local to each
+# fork — the framework is independent of which project it points at.
+.xenodot.json
 

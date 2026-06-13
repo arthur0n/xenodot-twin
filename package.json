@@ -5,7 +5,9 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "setup": "node ui/server/setup.js",
     "start": "node ui/server/index.js",
+    "badges": "node ui/server/update-badges.js",
     "check": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",

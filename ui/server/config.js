@@ -1,17 +1,48 @@
 // Server configuration — argv parsing, paths and policy constants, resolved
 // once at startup. Importing this module also validates --allow and exits on a
 // bad value (a load-time side effect, by design).
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseJSON } from "../lib/json.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** The ui/ directory (this file lives in ui/server/). */
 export const UI_DIR = path.join(__dirname, "..");
+/** The framework root (the folder you cloned/forked). */
+export const FRAMEWORK_DIR = path.join(UI_DIR, "..");
+/** Saved-path config written by `npm run setup` — gitignored, so each fork
+ * remembers its own game project without committing it. */
+export const CONFIG_FILE = path.join(FRAMEWORK_DIR, ".xenodot.json");
 
 const args = process.argv.slice(2);
-export const PROJECT_DIR = path.resolve(args.find((a) => !a.startsWith("--")) ?? ".");
+
+/** Where the framework reads the game project from. The framework is
+ * independent of the project: it points at this folder in place and never
+ * vendors or tracks it. Resolution order (first hit wins):
+ *   1. a path argument:        `npm start /path/to/project`
+ *   2. the GAME_DIR env var
+ *   3. the saved path:         `.xenodot.json` (set once via `npm run setup`)
+ *   4. default sibling:        `../game` (next to the framework folder)
+ */
+function resolveProjectDir() {
+  const argPath = args.find((a) => !a.startsWith("--"));
+  if (argPath) return path.resolve(argPath);
+  if (process.env.GAME_DIR) return path.resolve(process.env.GAME_DIR);
+  try {
+    const saved = /** @type {{ projectDir?: string }} */ (
+      parseJSON(readFileSync(CONFIG_FILE, "utf8"))
+    );
+    if (saved.projectDir) return path.resolve(saved.projectDir);
+  } catch {}
+  return path.resolve(FRAMEWORK_DIR, "..", "game");
+}
+
+export const PROJECT_DIR = resolveProjectDir();
+/** Whether PROJECT_DIR actually holds a Godot project — drives the startup
+ * warning and the UI's empty-state banner. */
+export const PROJECT_FOUND = existsSync(path.join(PROJECT_DIR, "project.godot"));
 export const PORT = Number(process.env.PORT ?? 3117);
 
 // Default permission policy for new sessions: ask | edits | all.

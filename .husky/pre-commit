@@ -1,1 +1,5 @@
+# Keep the README Skills/Agents badges in sync with the paired game project,
+# then lint + format the staged files (lint-staged also tidies the re-staged
+# README).
+node ui/server/update-badges.js
 npx lint-staged
