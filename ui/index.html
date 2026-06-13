@@ -66,7 +66,6 @@
           <button class="side-tab on" data-tab="assets">Game Files<span class="count"></span></button>
           <button class="side-tab" data-tab="agents">Agents<span class="count"></span></button>
           <button class="side-tab" data-tab="skills">Skills<span class="count"></span></button>
-          <button class="side-tab" data-tab="sources">Get Assets<span class="count"></span></button>
         </div>
         <div id="project-tree"></div>
       </div>
@@ -80,16 +79,20 @@
         <div class="chat-inner" id="chat-inner"></div>
       </div>
 
+      <!-- Running agents — a status strip at the bottom of the chat (above the
+           composer), one chip per in-flight sub-agent. -->
+      <div class="running-agents" id="running-agents" style="display:none"></div>
+
       <div class="composer-zone">
         <div class="composer-inner">
-
-          <div class="running-agents" id="running-agents" style="display:none"></div>
 
           <div class="quick-actions">
             <button class="chip" data-fill="start the game-designer agent: I want to design a new feature">new design doc</button>
             <button class="chip" data-fill="start the godot-dev agent to implement the design doc at design/">start agent dev</button>
             <button class="chip" data-fill="verify all scenes and report the results">verify scenes</button>
             <button class="chip" data-fill="what is the current state of the project?">project state</button>
+            <button class="chip" id="transcript-open">+ harvest transcript</button>
+            <button class="chip" id="assets-open">🎨 get assets</button>
           </div>
 
           <div class="composer">
@@ -139,6 +142,39 @@
       </div>
     </aside>
 
+  </div>
+</div>
+
+<div class="modal-overlay" id="transcript-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-head">Harvest a transcript</div>
+    <p class="modal-sub">Paste a raw video transcript. The framework saves it to the game's <code>transcripts/</code> folder and runs <strong>transcript-researcher</strong> on it.</p>
+    <label class="form-label" for="transcript-title">Title</label>
+    <input class="form-input" id="transcript-title" placeholder="e.g. godot baked lighting" />
+    <label class="form-label" for="transcript-building">What are we about to build? <span class="muted">(optional)</span></label>
+    <input class="form-input" id="transcript-building" placeholder="e.g. baked lighting for the blockout levels" />
+    <label class="form-label" for="transcript-text">Raw transcript <span class="req">*</span></label>
+    <textarea class="form-input" id="transcript-text" rows="10" placeholder="Paste the raw video transcript here…"></textarea>
+    <div class="modal-error" id="transcript-error"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="transcript-cancel">Cancel</button>
+      <button class="btn primary" id="transcript-submit">Add &amp; harvest</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="assets-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-head">Get assets</div>
+    <p class="modal-sub">Generate a pixel-art PNG on a free site, then upload it here — it lands in the game's <code>assets/textures/</code> and <strong>godot-dev</strong> imports and wires it.</p>
+    <label class="form-label">Needed now</label>
+    <div id="assets-asks"></div>
+    <label class="form-label">Generators</label>
+    <div id="assets-generators"></div>
+    <div class="modal-error" id="assets-error"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="assets-close">Close</button>
+    </div>
   </div>
 </div>
 

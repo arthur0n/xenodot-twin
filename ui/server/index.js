@@ -8,11 +8,64 @@
 import http from "node:http";
 import { mkdirSync } from "node:fs";
 import { WebSocketServer } from "ws";
+import { parseJSON } from "../lib/json.js";
 import { PORT, PROJECT_DIR, PROJECT_FOUND, CONFIG_FILE, LOG_DIR } from "./config.js";
 import { projectState } from "./project-state.js";
 import { recentSessions, deleteSession } from "./transcripts.js";
+import { writeTranscript } from "./transcript-write.js";
+import { writeAsset } from "./asset-write.js";
+import { readTasks } from "./tasks-store.js";
 import { serveStatic } from "./static.js";
 import { handleConnection } from "./session.js";
+
+/** Read a request body and write it as a transcript; respond with the path or an error.
+ * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
+function handleTranscriptPost(req, res) {
+  /** @type {Buffer[]} */
+  const chunks = [];
+  req.on("data", (/** @type {Buffer} */ c) => {
+    chunks.push(c);
+  });
+  req.on("end", () => {
+    /** @type {{ path: string } | { error: string }} */
+    let result;
+    try {
+      const body = /** @type {{ name?: string, text?: string }} */ (
+        parseJSON(Buffer.concat(chunks).toString("utf8"))
+      );
+      result = writeTranscript(body.name ?? "", body.text ?? "");
+    } catch {
+      result = { error: "bad request" };
+    }
+    res.writeHead("error" in result ? 400 : 200, { "content-type": "application/json" });
+    res.end(JSON.stringify(result));
+  });
+}
+
+/** Read an uploaded PNG (base64 data URL) and write it into the game's
+ * assets/textures/; respond with the project-relative path or an error.
+ * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
+function handleAssetPost(req, res) {
+  /** @type {Buffer[]} */
+  const chunks = [];
+  req.on("data", (/** @type {Buffer} */ c) => {
+    chunks.push(c);
+  });
+  req.on("end", () => {
+    /** @type {{ path: string } | { error: string }} */
+    let result;
+    try {
+      const body = /** @type {{ name?: string, dataUrl?: string }} */ (
+        parseJSON(Buffer.concat(chunks).toString("utf8"))
+      );
+      result = writeAsset(body.name ?? "", body.dataUrl ?? "");
+    } catch {
+      result = { error: "bad request" };
+    }
+    res.writeHead("error" in result ? 400 : 200, { "content-type": "application/json" });
+    res.end(JSON.stringify(result));
+  });
+}
 
 mkdirSync(LOG_DIR, { recursive: true });
 
@@ -32,6 +85,19 @@ const server = http.createServer((req, res) => {
     const ok = deleteSession(id);
     res.writeHead(ok ? 200 : 404, { "content-type": "application/json" });
     res.end(JSON.stringify({ deleted: ok }));
+    return;
+  }
+  if (req.method === "POST" && req.url === "/api/transcript") {
+    handleTranscriptPost(req, res);
+    return;
+  }
+  if (req.url === "/api/tasks") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(readTasks()));
+    return;
+  }
+  if (req.method === "POST" && req.url === "/api/asset") {
+    handleAssetPost(req, res);
     return;
   }
   serveStatic(req, res);

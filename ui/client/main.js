@@ -7,6 +7,8 @@ import { initApprovalsPill } from "./approvals.js";
 import { loadState, initProjectTabs } from "./project-tree.js";
 import { loadSessions } from "./sessions.js";
 import { initComposer } from "./composer.js";
+import { initTranscript } from "./transcript.js";
+import { initGetAssets } from "./get-assets.js";
 import { send } from "./websocket.js";
 import { $, $input } from "./dom.js";
 
@@ -17,6 +19,8 @@ initActivityLog();
 initApprovalsPill();
 initComposer();
 initProjectTabs();
+initGetAssets();
+initTranscript();
 
 $input("mode-select").onchange = () => {
   send({ type: "policy", value: $input("mode-select").value });

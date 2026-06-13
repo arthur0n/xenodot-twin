@@ -48,91 +48,6 @@ const NEW_PROMPTS = {
     "it encodes and its verification gate — then write .claude/skills/<name>/SKILL.md",
 };
 
-/** Free pixel-art generators the human-in-the-loop sourcing flow points at.
- * Curated, static (not scanned from the project) — see library/asset-sources.md.
- * @type {{ name: string, url: string, fit: string }[]} */
-const ASSET_SOURCES = [
-  { name: "pixler.dev", url: "https://pixler.dev/", fit: "no signup · transparent PNG · blade, tree, props" },
-  {
-    name: "SEELE AI",
-    url: "https://www.seeles.ai/features/tools/sprite",
-    fit: "no login · PNG + frame JSON · sprite sheets",
-  },
-  { name: "SpriteLab", url: "https://spritelab.dev/", fit: "free tier (signup) · packs & variants" },
-  { name: "Perchance", url: "https://perchance.org/ai-pixel-art-generator", fit: "no signup · quick concepts" },
-  { name: "Pixelorama", url: "https://www.pixelorama.org/", fit: "free editor · tile/seam fix, downscale" },
-];
-
-/** Copy-paste prompts, one per asset the blockout needs. @type {{ label: string, text: string }[]} */
-const ASSET_PROMPTS = [
-  {
-    label: "Grass blade",
-    text: "single pixel-art grass blade, vertical taper from wide base to thin tip, side-on, flat 2D, ~16x32, transparent background, no outline, SNES style",
-  },
-  {
-    label: "Tree billboard",
-    text: "single pixel-art tree, ~32x48, side-on billboard view, stylized canopy, transparent background, retro 16-bit, no ground shadow",
-  },
-  {
-    label: "Ground tile",
-    text: "seamless tileable pixel-art ground texture, grass with dirt patches, top-down, 32x32, no visible seams, repeats cleanly",
-  },
-];
-
-/** The Get Assets tab: free generators + copy-paste prompts for the
- * generate → download → drop in assets/textures/ → flip use_texture loop.
- * Static curated data — no /api/state dependency. @param {HTMLElement} tree */
-function renderSources(tree) {
-  tree.append(
-    el(
-      "div",
-      "tree-empty",
-      "Free pixel-art generators. Generate → download → drop in assets/textures/ → set use_texture=true.",
-    ),
-  );
-
-  ASSET_SOURCES.forEach((s) => {
-    const item = el("div", "tree-item");
-    const link = /** @type {HTMLAnchorElement} */ (el("a", "tree-item-path", s.name + " ↗"));
-    link.href = s.url;
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.style.color = "inherit";
-    link.style.textDecoration = "none";
-    item.append(link, el("span", "desc", `— ${s.fit}`));
-    tree.append(item);
-  });
-
-  tree.append(el("div", "tree-empty", "Copy a prompt:"));
-  ASSET_PROMPTS.forEach((p) => {
-    const item = el("div", "tree-item", p.label + " ");
-    const btn = el("button", "tree-add-btn", "copy");
-    btn.title = p.text;
-    btn.style.display = "inline-flex";
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      void navigator.clipboard?.writeText(p.text);
-      btn.textContent = "copied";
-      setTimeout(() => {
-        btn.textContent = "copy";
-      }, 1200);
-    };
-    item.append(btn);
-    tree.append(item);
-  });
-
-  const cat = el("div", "tree-item");
-  cat.append(el("span", "tree-item-path", "library/asset-sources.md"), el("span", "desc", "— full catalog"));
-  const add = el("button", "tree-add-btn", "+");
-  add.title = "Add to chat";
-  add.onclick = (e) => {
-    e.stopPropagation();
-    appendToComposer("@library/asset-sources.md");
-  };
-  cat.append(add);
-  tree.append(cat);
-}
-
 /**
  * A collapsible group of items, persisted by label.
  * @template T
@@ -247,7 +162,6 @@ function renderTab() {
         assets: state.designDocs.length + state.scenes.length + state.scripts.length,
         agents: state.agents.length,
         skills: state.skills.length,
-        sources: ASSET_SOURCES.length,
       }
     : null;
   $$(".side-tab").forEach((t) => {
@@ -261,7 +175,6 @@ function renderTab() {
   if (!state) return;
   if (activeTab === "agents") renderAgents(tree, state);
   else if (activeTab === "skills") renderSkills(tree, state);
-  else if (activeTab === "sources") renderSources(tree);
   else renderAssets(tree, state);
 }
 

@@ -22,9 +22,13 @@
   --border: oklch(0.85 0.03 35 / 0.08);
   --border-strong: oklch(0.85 0.03 35 / 0.16);
 
-  --text: oklch(0.92 0.014 60);
-  --text-2: oklch(0.71 0.017 55);
-  --text-3: oklch(0.54 0.017 50);
+  --text: oklch(0.93 0.014 60);
+  --text-2: oklch(0.75 0.018 55);
+  /* Tertiary now clears WCAG AA (~4.6:1 on --panel) — was 0.54 (~3.8:1).
+     Still reads as "stamped, weathered" but no longer strains the eye. */
+  --text-3: oklch(0.64 0.019 52);
+  /* Decoration only — glyphs/markers/rules that are seen, never read. */
+  --text-4: oklch(0.5 0.016 48);
 
   /* Forge semantics: verdigris = quenched, brass = caution,
      hot iron = danger, steel = inspection, copper = casting */
@@ -55,9 +59,33 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Brass caution stripes — approval surfaces wear them */
-  --hazard: repeating-linear-gradient(135deg,
-      color-mix(in oklab, var(--amber) 6.5%, transparent) 0 7px,
-      transparent 7px 14px);
+  --hazard: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--amber) 6.5%, transparent) 0 7px,
+    transparent 7px 14px
+  );
+
+  /* Forged-iron texture. Desaturated fractal grain meant to be blended in
+     soft-light so it modulates the metal (light catches the ridges, shadow
+     pools in the pits) rather than flatly lightening it. Tiled, GPU-cheap,
+     no image request. */
+  --metal-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.55'/%3E%3C/svg%3E");
+
+  /* Rolled-plate sheen — a single broad light streak, as if forge-light
+     rakes across the bench at an angle. */
+  --plate-sheen: linear-gradient(
+    115deg,
+    transparent 28%,
+    oklch(0.95 0.02 70 / 0.03) 47%,
+    transparent 66%
+  );
+
+  /* Milled hairlines — faint vertical tooling marks for chrome panels. */
+  --plate-mill: repeating-linear-gradient(
+    90deg,
+    oklch(0.95 0.02 70 / 0.014) 0 1px,
+    transparent 1px 3px
+  );
 }
 
 body.density-compact {
@@ -168,7 +196,9 @@ body.resizing iframe {
   align-items: center;
   gap: 14px;
   padding: 0 16px;
-  background: var(--panel);
+  background-color: var(--panel);
+  background-image: var(--metal-grain), var(--plate-sheen);
+  background-blend-mode: soft-light, normal;
   position: relative;
 }
 
@@ -180,10 +210,12 @@ body.resizing iframe {
   right: 0;
   bottom: -1px;
   height: 1px;
-  background: linear-gradient(90deg,
-      color-mix(in oklab, var(--accent) 65%, transparent),
-      color-mix(in oklab, var(--amber) 30%, transparent) 30%,
-      var(--border) 65%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 65%, transparent),
+    color-mix(in oklab, var(--amber) 30%, transparent) 30%,
+    var(--border) 65%
+  );
   pointer-events: none;
 }
 
@@ -289,7 +321,9 @@ body.resizing iframe {
 
 .mode-select {
   appearance: none;
-  background: var(--panel-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23a89e92'/%3E%3C/svg%3E") no-repeat right 9px center;
+  background: var(--panel-2)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23a89e92'/%3E%3C/svg%3E")
+    no-repeat right 9px center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-2);
@@ -326,7 +360,6 @@ body.resizing iframe {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     box-shadow: 0 0 0 0 color-mix(in oklab, var(--green) 45%, transparent);
@@ -341,7 +374,9 @@ body.resizing iframe {
 
 .sidebar {
   border-right: 1px solid var(--border);
-  background: var(--panel);
+  background-color: var(--panel);
+  background-image: var(--metal-grain), var(--plate-mill), var(--plate-sheen);
+  background-blend-mode: soft-light, normal, normal;
   overflow-y: auto;
   padding: var(--pad) 0;
   display: flex;
@@ -364,21 +399,23 @@ body.resizing iframe {
 .side-label {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
+/* Stamped ember chip — a struck rivet head, glowing from the forge. */
 .side-label::before {
   content: "";
   width: 5px;
   height: 5px;
   transform: rotate(45deg);
-  background: color-mix(in oklab, var(--accent) 75%, transparent);
+  background: var(--accent);
+  box-shadow: 0 0 5px color-mix(in oklab, var(--accent) 60%, transparent);
   flex: none;
 }
 
@@ -428,9 +465,24 @@ body.resizing iframe {
   background: var(--panel-2);
 }
 
+/* The live session sits on the bench still hot — a quenched-edge bar
+   bleeds machine-spirit light down its left flank. */
 .session-card.active {
+  position: relative;
   background: var(--accent-dim);
   border-color: var(--accent-border);
+}
+
+.session-card.active::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 7px color-mix(in oklab, var(--accent) 70%, transparent);
 }
 
 .session-card .name {
@@ -630,7 +682,7 @@ body.resizing iframe {
 
 .side-tab .count {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--text-3);
   margin-left: 5px;
@@ -732,10 +784,17 @@ body.resizing iframe {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  /* Machined surface — barely-there tooling marks */
-  background:
-    repeating-linear-gradient(45deg, oklch(0.9 0.02 70 / 0.009) 0 1px, transparent 1px 10px),
-    var(--bg);
+  /* Forged base plate — same iron grain as the chrome, kept faint because
+     reading text sits here. A broad ember bloom warms the top of the bench. */
+  background-color: var(--bg);
+  background-image:
+    var(--metal-grain),
+    radial-gradient(
+      120% 70% at 50% -10%,
+      color-mix(in oklab, var(--accent) 5%, transparent),
+      transparent 60%
+    );
+  background-blend-mode: soft-light, normal;
 }
 
 .chat-scroll {
@@ -771,9 +830,11 @@ body.resizing iframe {
 .msg-user {
   align-self: flex-end;
   max-width: 78%;
-  background: linear-gradient(160deg,
-      color-mix(in oklab, var(--accent) 19%, var(--panel-2)),
-      color-mix(in oklab, var(--accent) 11%, var(--panel-2)));
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--accent) 19%, var(--panel-2)),
+    color-mix(in oklab, var(--accent) 11%, var(--panel-2))
+  );
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
   padding: 9px 16px 9px 14px;
   font-family: var(--font-ui);
@@ -802,7 +863,6 @@ body.resizing iframe {
 }
 
 @keyframes thinking-pulse {
-
   0%,
   100% {
     opacity: 0.35;
@@ -849,7 +909,7 @@ body.resizing iframe {
   display: grid;
   place-items: center;
   font-family: var(--font-display);
-  font-size: 8.5px;
+  font-size: 9.5px;
   font-weight: 700;
   color: var(--agent-color, var(--accent-text));
 }
@@ -870,7 +930,7 @@ body.resizing iframe {
   margin: 0 0 8px;
 }
 
-.msg-agent .body> :last-child {
+.msg-agent .body > :last-child {
   margin-bottom: 0;
 }
 
@@ -881,7 +941,7 @@ body.resizing iframe {
   margin: 10px 0 6px;
 }
 
-.msg-agent .body>.md-h:first-child {
+.msg-agent .body > .md-h:first-child {
   margin-top: 0;
 }
 
@@ -896,7 +956,7 @@ body.resizing iframe {
 }
 
 .msg-agent .body li::marker {
-  color: var(--text-3);
+  color: var(--text-4);
 }
 
 .msg-agent .body pre {
@@ -964,7 +1024,7 @@ body.resizing iframe {
   font-size: 9px;
 }
 
-/* Todo / progress card — the work order */
+/* Todo / progress card — the work order, a cut billet like the user plate. */
 .card {
   align-self: flex-start;
   width: 100%;
@@ -972,6 +1032,7 @@ body.resizing iframe {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
   overflow: hidden;
 }
 
@@ -1007,9 +1068,11 @@ body.resizing iframe {
 .progress-fill {
   height: 100%;
   width: 40%;
-  background: linear-gradient(90deg,
-      color-mix(in oklab, var(--accent) 70%, var(--amber)),
-      var(--accent));
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 70%, var(--amber)),
+    var(--accent)
+  );
   transition: width 0.6s var(--ease-out);
 }
 
@@ -1070,7 +1133,6 @@ body.resizing iframe {
 }
 
 @keyframes pulse-sm {
-
   0%,
   100% {
     opacity: 1;
@@ -1326,7 +1388,9 @@ input.cmd::placeholder {
 
 .composer-zone {
   border-top: 1px solid var(--border);
-  background: var(--panel);
+  background-color: var(--panel);
+  background-image: var(--metal-grain), var(--plate-sheen);
+  background-blend-mode: soft-light, normal;
   padding: 10px 24px 14px;
 }
 
@@ -1410,15 +1474,18 @@ input.cmd::placeholder {
   flex-wrap: wrap;
 }
 
-/* Quick actions: bench tags, not pills */
+/* Quick actions: bench tags, not pills. Prose labels read in the UI face;
+   a notched corner keeps the stamped-billet language. */
 .chip {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 500;
   color: var(--text-2);
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 4px 11px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+  padding: 4px 12px;
   cursor: pointer;
   transition:
     border-color 0.12s ease,
@@ -1476,7 +1543,9 @@ input.cmd::placeholder {
 
 .activity {
   border-left: 1px solid var(--border);
-  background: var(--panel);
+  background-color: var(--panel);
+  background-image: var(--metal-grain), var(--plate-mill), var(--plate-sheen);
+  background-blend-mode: soft-light, normal, normal;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1600,10 +1669,10 @@ input.cmd::placeholder {
 .owner-chip {
   flex: none;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   padding: 1px 5px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
@@ -1710,7 +1779,7 @@ input.cmd::placeholder {
 }
 
 .log-agent .arrow {
-  color: var(--text-3);
+  color: var(--text-4);
   font-size: 9px;
 }
 
@@ -1779,10 +1848,10 @@ input.cmd::placeholder {
 /* Verb stamps — square, uppercase, inked like tool markings */
 .verb-pill {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   padding: 1px 6px;
   border-radius: 1px;
   border: 1px solid transparent;
@@ -1906,7 +1975,6 @@ input.cmd::placeholder {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   .dot.pulse,
   .status-dot,
   .live-dot,
@@ -2030,4 +2098,19 @@ input.cmd::placeholder {
 .muted {
   color: var(--text-3);
   font-weight: 400;
+}
+
+/* Get-assets modal — one card per open request / ad-hoc upload. */
+.asset-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.asset-card .modal-head {
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.asset-card .form-input {
+  margin: 6px 0;
 }

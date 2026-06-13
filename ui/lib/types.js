@@ -53,7 +53,7 @@
 // ---------- Forms & questions ----------
 /** @typedef {{ label: string, description?: string }} ChoiceOption */
 /** @typedef {{ question: string, options?: (string | ChoiceOption)[], multiSelect?: boolean }} Question */
-/** @typedef {"text" | "textarea" | "number" | "checkbox" | "select" | "multiselect"} FieldType */
+/** @typedef {"text" | "textarea" | "number" | "checkbox" | "select" | "multiselect" | "note"} FieldType */
 /**
  * @typedef {object} FormField
  * @property {string} id
