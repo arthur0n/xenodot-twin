@@ -1,9 +1,12 @@
 // "Draw level" — sketch a top-down blockout in the browser and ship it to the
-// game as a tile grid the guided-level builder extrudes at runtime. Sibling to
-// get-assets.js — same modal → POST → file → user_input handoff plumbing.
-// Prototype, "for an idea": a small 24×16 grid with a numbered ruler + a palette
-// of tile types, sized so every cell is visible (no zoom needed).
-// Tile codes: 0 floor · 1 wall · 2 door · 3 window · 4 item.
+// game as a tile grid the level-designer briefs and godot-dev builds into a
+// GridMap level (skill: godot-gridmap-level). The grid is a build-time spatial
+// reference, NOT loaded at runtime. Sibling to get-assets.js — same modal → POST
+// → file → user_input handoff plumbing. Prototype, "for an idea": a small 24×16
+// grid with a numbered ruler + a palette of tile types, sized so every cell is
+// visible (no zoom needed).
+// Structure codes: 0 floor · 1 wall · 2 door · 3 window · 4 item. Items carry an
+// id (same id = the same item); rooms are a separate multi-cell numbered overlay.
 import { $, el } from "./dom.js";
 import { fetchJSON, postJSON } from "../lib/json.js";
 import { send } from "./websocket.js";
@@ -17,56 +20,103 @@ const RULER = 18; // px margin on top + left for ruler numbers
 const PAD = 14; // px margin on right + bottom so the last ruler number isn't clipped
 const MAJOR = 4; // a heavier gridline + a ruler number every N cells
 const CELL_SIZE = 1; // default world units/cell; the level-designer settles the real scale
+const MAX_ID = 99; // id range for item / room numbers
 
-/** The brush palette. id 0 = erase (paint floor). @type {{ id: number, label: string, color: string }[]} */
-const PALETTE = [
-  { id: 1, label: "Wall", color: "#5cc99a" },
-  { id: 2, label: "Door", color: "#e0a44a" },
-  { id: 3, label: "Window", color: "#5aa6d9" },
-  { id: 4, label: "Item 1", color: "#a87de0" },
-  { id: 5, label: "Item 2", color: "#e0635f" },
-  { id: 6, label: "Item 3", color: "#e069b4" },
-  { id: 7, label: "Item 4", color: "#45c8c0" },
-  { id: -1, label: "Number", color: "#e8e8e8" },
-  { id: 0, label: "Erase", color: "" },
+const WALL_COLOR = "#5cc99a";
+const DOOR_COLOR = "#e0a44a";
+const WINDOW_COLOR = "#5aa6d9";
+const ITEM_COLOR = "#a87de0"; // one colour for every item — the id (not the colour) distinguishes them
+
+/** A palette tool. `code` is the structure tile written to `cells`; rooms are an
+ * overlay (no structure code). `numbered` tools paint the active id.
+ * @typedef {{ key: string, label: string, color: string, code?: number, numbered?: boolean, overlay?: boolean }} Tool */
+/** @type {Tool} */
+const WALL_TOOL = { key: "wall", label: "Wall", color: WALL_COLOR, code: 1 };
+/** @type {Tool[]} */
+const TOOLS = [
+  WALL_TOOL,
+  { key: "door", label: "Door", color: DOOR_COLOR, code: 2 },
+  { key: "window", label: "Window", color: WINDOW_COLOR, code: 3 },
+  { key: "item", label: "Item", color: ITEM_COLOR, code: 4, numbered: true },
+  { key: "room", label: "Room", color: "#d8b24a", numbered: true, overlay: true },
+  { key: "erase", label: "Erase", color: "" },
 ];
 
-/** Tile codes, row-major (width = GRID_W). @type {Uint8Array} */
+/** Structure tile per cell (0 floor · 1 wall · 2 door · 3 window · 4 item), row-major. @type {Uint8Array} */
 const cells = new Uint8Array(GRID_W * GRID_H);
-/** Numbered markers: cell indices in placement order (shown number = index + 1). @type {number[]} */
-const labels = [];
-let brush = 1; // active tile id (-1 = number/marker mode; default: Wall)
+/** Item id (1..MAX_ID where cells==4, else 0), row-major. @type {Uint8Array} */
+const itemIds = new Uint8Array(GRID_W * GRID_H);
+/** Room id (1..MAX_ID overlay, else 0), row-major. @type {Uint8Array} */
+const roomIds = new Uint8Array(GRID_W * GRID_H);
+
+let toolKey = "wall"; // active tool key (default: Wall)
+let activeId = 1; // active id painted by numbered tools (Item / Room)
 let painting = false;
 let lastX = -1;
 let lastY = -1;
-/** Saved drawn levels for the load picker (name -> grid).
- * @type {Map<string, { width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }>} */
+
+/** A numbered cell tag in the export / saved grids.
+ * @typedef {{ id: number, x: number, y: number }} Tag */
+/** A saved drawn level (older saves may carry colour items in `cells` and single-cell `labels`).
+ * @typedef {{ width: number, height: number, cells: number[], items?: Tag[], rooms?: Tag[], labels?: { n: number, x: number, y: number }[] }} SavedGrid */
+/** Saved drawn levels for the load picker (name -> grid). @type {Map<string, SavedGrid>} */
 const saved = new Map();
 
-/** @param {number} v @returns {string} */
-function colorFor(v) {
-  switch (v) {
+/** @returns {Tool} */
+function activeTool() {
+  return TOOLS.find((t) => t.key === toolKey) ?? WALL_TOOL;
+}
+
+/** @param {number} code @returns {string} */
+function colorFor(code) {
+  switch (code) {
     case 1:
-      return "#5cc99a";
+      return WALL_COLOR;
     case 2:
-      return "#e0a44a";
+      return DOOR_COLOR;
     case 3:
-      return "#5aa6d9";
+      return WINDOW_COLOR;
     case 4:
-      return "#a87de0";
-    case 5:
-      return "#e0635f";
-    case 6:
-      return "#e069b4";
-    case 7:
-      return "#45c8c0";
+      return ITEM_COLOR;
     default:
       return "";
   }
 }
 
+/** Distinct translucent tint per room id. @param {number} id @param {number} alpha @returns {string} */
+function roomColor(id, alpha) {
+  const hue = (id * 67) % 360;
+  return `hsl(${hue} 65% 55% / ${alpha})`;
+}
+
 /** @returns {HTMLCanvasElement} */
 const canvasEl = () => /** @type {HTMLCanvasElement} */ ($("draw-level-canvas"));
+
+/** Outlined white label for ids drawn over the grid.
+ * @param {CanvasRenderingContext2D} ctx @param {string} t @param {number} cx @param {number} cy */
+function outlinedText(ctx, t, cx, cy) {
+  ctx.strokeStyle = "rgba(0,0,0,0.78)";
+  ctx.strokeText(t, cx, cy);
+  ctx.fillStyle = "#fff";
+  ctx.fillText(t, cx, cy);
+}
+
+/** Sum of cell coords per room id, for placing one number at each room's centroid.
+ * @returns {Map<number, { sx: number, sy: number, n: number }>} */
+function roomCentroids() {
+  /** @type {Map<number, { sx: number, sy: number, n: number }>} */
+  const m = new Map();
+  for (let i = 0; i < roomIds.length; i++) {
+    const id = roomIds[i];
+    if (!id) continue;
+    const a = m.get(id) ?? { sx: 0, sy: 0, n: 0 };
+    a.sx += i % GRID_W;
+    a.sy += Math.floor(i / GRID_W);
+    a.n += 1;
+    m.set(id, a);
+  }
+  return m;
+}
 
 function render() {
   const canvas = canvasEl();
@@ -75,12 +125,23 @@ function render() {
   const gridBottom = RULER + GRID_H * CELL_PX;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // painted cells
+  // structure cells
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
-      const v = cells[y * GRID_W + x];
-      if (v) {
-        ctx.fillStyle = colorFor(v);
+      const code = cells[y * GRID_W + x];
+      if (code) {
+        ctx.fillStyle = colorFor(code);
+        ctx.fillRect(RULER + x * CELL_PX, RULER + y * CELL_PX, CELL_PX, CELL_PX);
+      }
+    }
+  }
+
+  // room overlay — translucent tint over whatever structure is underneath
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      const rid = roomIds[y * GRID_W + x];
+      if (rid) {
+        ctx.fillStyle = roomColor(rid, 0.24);
         ctx.fillRect(RULER + x * CELL_PX, RULER + y * CELL_PX, CELL_PX, CELL_PX);
       }
     }
@@ -117,29 +178,55 @@ function render() {
     ctx.fillText(String(j), RULER * 0.5, RULER + j * CELL_PX);
   }
 
-  // numbered markers, drawn on top of the tiles (white text, dark outline)
-  ctx.font = "bold 11px ui-monospace, monospace";
+  // item ids — one number per item cell
+  ctx.font = "bold 10px ui-monospace, monospace";
   ctx.lineWidth = 3;
-  labels.forEach((idx, i) => {
-    const cx = RULER + (idx % GRID_W) * CELL_PX + CELL_PX / 2;
-    const cy = RULER + Math.floor(idx / GRID_W) * CELL_PX + CELL_PX / 2;
-    const t = String(i + 1);
-    ctx.strokeStyle = "rgba(0,0,0,0.75)";
-    ctx.strokeText(t, cx, cy);
-    ctx.fillStyle = "#fff";
-    ctx.fillText(t, cx, cy);
-  });
+  for (let i = 0; i < cells.length; i++) {
+    const iid = itemIds[i] ?? 0;
+    if (cells[i] === 4 && iid > 0) {
+      const cx = RULER + (i % GRID_W) * CELL_PX + CELL_PX / 2;
+      const cy = RULER + Math.floor(i / GRID_W) * CELL_PX + CELL_PX / 2;
+      outlinedText(ctx, String(iid), cx, cy);
+    }
+  }
+
+  // room ids — one number at each room's centroid
+  ctx.font = "bold 13px ui-monospace, monospace";
+  for (const [id, a] of roomCentroids()) {
+    const cx = RULER + (a.sx / a.n + 0.5) * CELL_PX;
+    const cy = RULER + (a.sy / a.n + 0.5) * CELL_PX;
+    outlinedText(ctx, String(id), cx, cy);
+  }
 }
 
-/** @param {number} x @param {number} y @param {number} v */
-function setCell(x, y, v) {
+/** Apply the active tool (or erase) to one cell.
+ * @param {number} x @param {number} y @param {boolean} erase */
+function applyCell(x, y, erase) {
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return;
-  cells[y * GRID_W + x] = v;
+  const idx = y * GRID_W + x;
+  const t = activeTool();
+  if (t.key === "erase") {
+    cells[idx] = 0;
+    itemIds[idx] = 0;
+    roomIds[idx] = 0;
+    return;
+  }
+  if (t.overlay) {
+    roomIds[idx] = erase ? 0 : activeId; // Room: overlay layer only
+    return;
+  }
+  if (erase) {
+    cells[idx] = 0;
+    itemIds[idx] = 0;
+    return;
+  }
+  cells[idx] = t.code ?? 0;
+  itemIds[idx] = t.code === 4 ? activeId : 0;
 }
 
-/** Fill cells along a line (Bresenham) so fast drags leave no gaps.
- * @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 @param {number} v */
-function paintLine(x0, y0, x1, y1, v) {
+/** Apply along a line (Bresenham) so fast drags leave no gaps.
+ * @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 @param {boolean} erase */
+function paintLine(x0, y0, x1, y1, erase) {
   const dx = Math.abs(x1 - x0);
   const dy = Math.abs(y1 - y0);
   const sx = x0 < x1 ? 1 : -1;
@@ -148,7 +235,7 @@ function paintLine(x0, y0, x1, y1, v) {
   let x = x0;
   let y = y0;
   for (;;) {
-    setCell(x, y, v);
+    applyCell(x, y, erase);
     if (x === x1 && y === y1) break;
     const e2 = 2 * err;
     if (e2 > -dy) {
@@ -175,7 +262,7 @@ function cellAt(e) {
   return { x, y };
 }
 
-/** Paint the active tile brush (or erase, on right-button) under a pointer event.
+/** Paint the active tool (right-button erases) under a pointer event.
  * @param {PointerEvent} e */
 function paintAt(e) {
   const { x, y } = cellAt(e);
@@ -184,36 +271,38 @@ function paintAt(e) {
     lastY = -1;
     return;
   }
-  const v = (e.buttons & 2) !== 0 ? 0 : brush;
-  if (lastX >= 0) paintLine(lastX, lastY, x, y, v);
-  else setCell(x, y, v);
+  const erase = (e.buttons & 2) !== 0;
+  if (lastX >= 0) paintLine(lastX, lastY, x, y, erase);
+  else applyCell(x, y, erase);
   lastX = x;
   lastY = y;
   render();
 }
 
-/** Number mode: left-click tags a cell with the next number; right-click removes it.
- * @param {PointerEvent} e */
-function stampNumber(e) {
-  const { x, y } = cellAt(e);
-  if (x < 0) return;
-  const idx = y * GRID_W + x;
-  const at = labels.indexOf(idx);
-  if ((e.buttons & 2) !== 0) {
-    if (at >= 0) labels.splice(at, 1);
-  } else if (at < 0) {
-    labels.push(idx);
-  }
-  render();
+/** @returns {HTMLInputElement | null} */
+const numInput = () =>
+  /** @type {HTMLInputElement | null} */ (document.getElementById("draw-level-num-val"));
+
+/** Clamp + store the active id and reflect it in the stepper input. @param {number} n */
+function setActiveId(n) {
+  activeId = Math.max(1, Math.min(MAX_ID, Math.trunc(n) || 1));
+  const inp = numInput();
+  if (inp) inp.value = String(activeId);
 }
 
-/** Build the tile palette buttons and wire selection. */
+/** Show the id stepper only while a numbered tool (Item / Room) is active. */
+function syncNumberUI() {
+  const box = document.getElementById("draw-level-number");
+  if (box) box.style.visibility = activeTool().numbered ? "visible" : "hidden";
+}
+
+/** Build the tool palette buttons and wire selection. */
 function buildPalette() {
   const wrap = $("draw-level-palette");
   wrap.replaceChildren();
-  PALETTE.forEach((p) => {
+  TOOLS.forEach((p) => {
     const btn = el("button", "draw-level-swatch");
-    btn.setAttribute("aria-pressed", String(p.id === brush));
+    btn.setAttribute("aria-pressed", String(p.key === toolKey));
     const dot = el("span", "draw-level-dot");
     if (p.color) {
       dot.style.background = p.color;
@@ -223,17 +312,19 @@ function buildPalette() {
     }
     btn.append(dot, document.createTextNode(p.label));
     btn.onclick = () => {
-      brush = p.id;
+      toolKey = p.key;
       Array.from(wrap.children).forEach((c) => {
         c.setAttribute("aria-pressed", String(c === btn));
       });
+      syncNumberUI();
     };
     wrap.append(btn);
   });
+  syncNumberUI();
 }
 
 /** Load a saved level's grid onto the canvas (view + continue editing).
- * @param {{ width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }} lv */
+ * @param {SavedGrid} lv */
 function applyLevel(lv) {
   const err = $("draw-level-error");
   if (lv.width !== GRID_W || lv.height !== GRID_H) {
@@ -242,12 +333,38 @@ function applyLevel(lv) {
   }
   err.textContent = "";
   cells.fill(0);
-  cells.set(lv.cells.slice(0, GRID_W * GRID_H));
-  labels.length = 0;
-  const ls = (lv.labels ?? []).slice().sort((a, b) => a.n - b.n);
-  for (const l of ls) {
-    const idx = l.y * GRID_W + l.x;
-    if (idx >= 0 && idx < GRID_W * GRID_H && !labels.includes(idx)) labels.push(idx);
+  itemIds.fill(0);
+  roomIds.fill(0);
+  const src = lv.cells.slice(0, GRID_W * GRID_H);
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i] ?? 0;
+    if (c >= 5 && c <= 7) {
+      cells[i] = 4; // legacy colour items (5/6/7) → item with id 2/3/4
+      itemIds[i] = c - 3;
+    } else if (c === 4) {
+      cells[i] = 4;
+      itemIds[i] = 1;
+    } else if (c >= 1 && c <= 3) {
+      cells[i] = c;
+    }
+  }
+  for (const it of lv.items ?? []) {
+    const idx = it.y * GRID_W + it.x;
+    if (idx >= 0 && idx < cells.length) {
+      cells[idx] = 4;
+      itemIds[idx] = Math.max(1, Math.min(MAX_ID, it.id));
+    }
+  }
+  if (lv.rooms) {
+    for (const r of lv.rooms) {
+      const idx = r.y * GRID_W + r.x;
+      if (idx >= 0 && idx < roomIds.length) roomIds[idx] = Math.max(1, Math.min(MAX_ID, r.id));
+    }
+  } else {
+    for (const l of lv.labels ?? []) {
+      const idx = l.y * GRID_W + l.x; // legacy single-cell numbers → room ids
+      if (idx >= 0 && idx < roomIds.length) roomIds[idx] = Math.max(1, Math.min(MAX_ID, l.n));
+    }
   }
   render();
 }
@@ -255,13 +372,10 @@ function applyLevel(lv) {
 /** Fetch the saved levels and (re)fill the load picker. */
 async function loadLevels() {
   const sel = /** @type {HTMLSelectElement} */ ($("draw-level-load"));
-  /** @type {{ name: string, width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }[]} */
+  /** @type {(SavedGrid & { name: string })[]} */
   let list;
   try {
-    list =
-      /** @type {{ name: string, width: number, height: number, cells: number[], labels?: { n: number, x: number, y: number }[] }[]} */ (
-        await fetchJSON("/api/levels")
-      );
+    list = /** @type {(SavedGrid & { name: string })[]} */ (await fetchJSON("/api/levels"));
   } catch {
     return;
   }
@@ -293,25 +407,26 @@ function close() {
 async function exportLevel() {
   const err = $("draw-level-error");
   err.textContent = "";
+  /** @type {Tag[]} */
+  const items = [];
+  /** @type {Tag[]} */
+  const rooms = [];
   let nWall = 0;
   let nDoor = 0;
   let nWindow = 0;
-  let nI1 = 0;
-  let nI2 = 0;
-  let nI3 = 0;
-  let nI4 = 0;
-  for (const c of cells) {
-    if (c === 1) nWall++;
-    else if (c === 2) nDoor++;
-    else if (c === 3) nWindow++;
-    else if (c === 4) nI1++;
-    else if (c === 5) nI2++;
-    else if (c === 6) nI3++;
-    else if (c === 7) nI4++;
+  for (let i = 0; i < cells.length; i++) {
+    const x = i % GRID_W;
+    const y = Math.floor(i / GRID_W);
+    const iid = itemIds[i] ?? 0;
+    const rid = roomIds[i] ?? 0;
+    if (cells[i] === 1) nWall++;
+    else if (cells[i] === 2) nDoor++;
+    else if (cells[i] === 3) nWindow++;
+    else if (cells[i] === 4 && iid > 0) items.push({ id: iid, x, y });
+    if (rid > 0) rooms.push({ id: rid, x, y });
   }
-  const nItems = nI1 + nI2 + nI3 + nI4;
-  if (nWall + nDoor + nWindow + nItems === 0 && labels.length === 0) {
-    err.textContent = "Paint at least one tile or number first.";
+  if (nWall + nDoor + nWindow + items.length + rooms.length === 0) {
+    err.textContent = "Paint at least one tile, item, or room first.";
     return;
   }
   const grid = {
@@ -319,7 +434,8 @@ async function exportLevel() {
     height: GRID_H,
     cell_size: CELL_SIZE,
     cells: Array.from(cells),
-    labels: labels.map((idx, i) => ({ n: i + 1, x: idx % GRID_W, y: Math.floor(idx / GRID_W) })),
+    items,
+    rooms,
   };
   /** @type {{ path?: string, error?: string }} */
   let data;
@@ -337,16 +453,23 @@ async function exportLevel() {
   }
   close();
   void loadState();
-  const summary = `${nWall} wall, ${nDoor} door, ${nWindow} window, ${nItems} item${nItems === 1 ? "" : "s"} (types ${nI1}/${nI2}/${nI3}/${nI4}), ${labels.length} numbered marker${labels.length === 1 ? "" : "s"}`;
+  const itemIdCount = new Set(items.map((t) => t.id)).size;
+  const roomIdCount = new Set(rooms.map((t) => t.id)).size;
+  const summary =
+    `${nWall} wall, ${nDoor} door, ${nWindow} window, ` +
+    `${items.length} item cell${items.length === 1 ? "" : "s"} across ${itemIdCount} id${itemIdCount === 1 ? "" : "s"}, ` +
+    `${rooms.length} room cell${rooms.length === 1 ? "" : "s"} across ${roomIdCount} room${roomIdCount === 1 ? "" : "s"}`;
   const prompt =
     `I drew a level (${summary}) and saved the grid to ${data.path} ` +
-    `(${GRID_W}×${GRID_H}; tile codes 0 floor, 1 wall, 2 door, 3 window, 4/5/6/7 = four item types by colour; ` +
-    `plus a "labels" list of numbered markers {n,x,y} that identify specific cells). ` +
+    `(${GRID_W}×${GRID_H}; structure codes 0 floor, 1 wall, 2 door, 3 window, 4 item; ` +
+    `plus "items": [{id,x,y}] where the same id means the same item, and "rooms": [{id,x,y}] ` +
+    `tagging cells into numbered rooms — same id = one room region). ` +
     `Dispatch the level-designer agent: have it read the grid, ask me what the level is ABOUT (the concept) ` +
-    `first, then the name, scene details (metres per cell, wall height, what door/window/each item type and each ` +
-    `numbered marker become, player spawn, theme); it writes a brief to design/levels/<name>.md and ALWAYS hands ` +
-    `off to the game-designer agent, which folds it into a design doc and dispatches godot-dev to build the NAMED ` +
-    `guided level (levels/<name>.tscn via levels/guided_level.gd, merge wall runs, register in main.gd) and verify with godot-verify.`;
+    `first, then the name and level-design details (metres per cell, wall height, what each item id and each room ` +
+    `are, player spawn, theme); it writes a level-design brief to design/levels/<name>.md and hands off to the ` +
+    `game-designer agent, which decides how to build it (splitting a large level into small pieces) and dispatches ` +
+    `godot-dev to build the greybox as a GridMap + MeshLibrary scene (skill: godot-gridmap-level), register it in ` +
+    `main.gd, and verify with godot-verify.`;
   addUser(prompt);
   send({ type: "user_input", text: prompt });
 }
@@ -362,8 +485,25 @@ export function initDrawLevel() {
   if (clearBtn)
     clearBtn.onclick = () => {
       cells.fill(0);
-      labels.length = 0;
+      itemIds.fill(0);
+      roomIds.fill(0);
       render();
+    };
+
+  const dec = document.getElementById("draw-level-num-dec");
+  if (dec)
+    dec.onclick = () => {
+      setActiveId(activeId - 1);
+    };
+  const inc = document.getElementById("draw-level-num-inc");
+  if (inc)
+    inc.onclick = () => {
+      setActiveId(activeId + 1);
+    };
+  const inp = numInput();
+  if (inp)
+    inp.onchange = () => {
+      setActiveId(Number(inp.value));
     };
 
   const loadSel = /** @type {HTMLSelectElement | null} */ (
@@ -376,6 +516,7 @@ export function initDrawLevel() {
     };
 
   buildPalette();
+  setActiveId(activeId);
 
   const canvas = canvasEl();
   if (canvas) {
@@ -383,10 +524,6 @@ export function initDrawLevel() {
     canvas.height = RULER + GRID_H * CELL_PX + PAD;
     canvas.addEventListener("pointerdown", (e) => {
       canvas.setPointerCapture(e.pointerId);
-      if (brush === -1) {
-        stampNumber(e);
-        return;
-      }
       painting = true;
       lastX = -1;
       lastY = -1;

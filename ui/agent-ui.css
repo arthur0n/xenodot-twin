@@ -831,6 +831,45 @@ body.resizing iframe {
     inset 0 1px 0 0 oklch(0.95 0.02 70 / 0.04);
   position: relative;
   z-index: 0;
+  overflow: hidden;
+}
+
+/* Etched emblems in the empty gutters — a forge cog and an abstract targeting
+   sigil, lightly scribed into the iron. They ride behind the transcript
+   (z-index: -1) at a whisper of opacity, so they set the mood without ever
+   competing with text. Drawn as inline SVG — no files, no requests. */
+.main::before,
+.main::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.05;
+}
+
+/* Cog — a toothed ring (thick dashed stroke makes the teeth), bleeding off
+   the top-right corner above the right gutter. */
+.main::before {
+  top: -64px;
+  right: -64px;
+  width: 308px;
+  height: 308px;
+  transform: rotate(8deg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%23dcc7b0' stroke-width='3'%3E%3Ccircle cx='100' cy='100' r='78' stroke-width='22' stroke-dasharray='15 13'/%3E%3Ccircle cx='100' cy='100' r='62'/%3E%3Ccircle cx='100' cy='100' r='30'/%3E%3Cpath d='M100 70V40M100 130v30M70 100H40M130 100h30'/%3E%3C/g%3E%3Ccircle cx='100' cy='100' r='7' fill='%23dcc7b0'/%3E%3C/svg%3E");
+}
+
+/* Sigil — concentric reticle with a dotted mid-ring and crosshair ticks,
+   tucked into the lower-left gutter, above the composer. */
+.main::after {
+  bottom: 104px;
+  left: -76px;
+  width: 286px;
+  height: 286px;
+  transform: rotate(-6deg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%23c9b59e' stroke-width='2'%3E%3Ccircle cx='100' cy='100' r='92'/%3E%3Ccircle cx='100' cy='100' r='66' stroke-width='1' stroke-dasharray='3 7'/%3E%3Ccircle cx='100' cy='100' r='34'/%3E%3Cpath d='M100 0v26M100 174v26M0 100h26M174 100h26'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 .chat-scroll {
@@ -1461,6 +1500,48 @@ input.cmd::placeholder {
     inset 0 1px 0 oklch(0.96 0.008 240 / 0.06);
 }
 
+/* Forge-console fittings scribed into the tray, behind the inputs (z-index:
+   -1) at a faint whisper. Two layers, both symmetric: hex-socket bolts pinning
+   the four corners of the plate, and a matched pair of rotary knobs (identical
+   size, both needles at 12 o'clock) flanking the input. */
+.composer-zone::before,
+.composer-zone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.03;
+  background-repeat: no-repeat;
+}
+
+/* Four matching hex-socket bolts, one per corner — the same url repeated so
+   each corner position gets its own bolt. */
+.composer-zone::before {
+  background-size: 17px 17px;
+  background-position:
+    left 16px top 13px,
+    right 16px top 13px,
+    left 16px bottom 13px,
+    right 16px bottom 13px;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='5'%3E%3Ccircle cx='50' cy='50' r='40'/%3E%3Cpath d='M50 30 67 40 67 60 50 70 33 60 33 40Z'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='5'%3E%3Ccircle cx='50' cy='50' r='40'/%3E%3Cpath d='M50 30 67 40 67 60 50 70 33 60 33 40Z'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='5'%3E%3Ccircle cx='50' cy='50' r='40'/%3E%3Cpath d='M50 30 67 40 67 60 50 70 33 60 33 40Z'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='5'%3E%3Ccircle cx='50' cy='50' r='40'/%3E%3Cpath d='M50 30 67 40 67 60 50 70 33 60 33 40Z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Matched pair of knobs, mirrored in the left/right gutters. */
+.composer-zone::after {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='2.5'%3E%3Ccircle cx='50' cy='50' r='30'/%3E%3Ccircle cx='50' cy='50' r='43' stroke-width='1.5' stroke-dasharray='1.5 7'/%3E%3Cpath d='M50 50 50 26'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='4' fill='%23d6c2ac'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23d6c2ac' stroke-width='2.5'%3E%3Ccircle cx='50' cy='50' r='30'/%3E%3Ccircle cx='50' cy='50' r='43' stroke-width='1.5' stroke-dasharray='1.5 7'/%3E%3Cpath d='M50 50 50 26'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='4' fill='%23d6c2ac'/%3E%3C/svg%3E");
+  background-size: 44px 44px;
+  background-position:
+    left 18px center,
+    right 18px center;
+}
+
 .composer-inner {
   max-width: var(--chat-width);
   margin: 0 auto;
@@ -1621,6 +1702,26 @@ input.cmd::placeholder {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* A small scribed cog wedged into the bottom-left corner of the readout
+   column — same etched language as the chat emblems, behind the panels. */
+.activity::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  bottom: -58px;
+  left: -58px;
+  width: 196px;
+  height: 196px;
+  pointer-events: none;
+  opacity: 0.045;
+  transform: rotate(-12deg);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%23cbb7a0' stroke-width='4'%3E%3Ccircle cx='100' cy='100' r='76' stroke-width='24' stroke-dasharray='17 15'/%3E%3Ccircle cx='100' cy='100' r='58'/%3E%3Ccircle cx='100' cy='100' r='26'/%3E%3C/g%3E%3C/svg%3E")
+    no-repeat center / contain;
 }
 
 /* Approvals panel pinned to the top of the activity column */
@@ -1779,9 +1880,32 @@ input.cmd::placeholder {
 .activity-head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 12px 14px 10px;
   border-bottom: 1px solid var(--border);
+}
+
+/* Agent picklist — drops to its own full-width line under the kind chips.
+   Same stamped-select treatment as the top-bar mode selector. */
+.agent-filter {
+  flex-basis: 100%;
+  appearance: none;
+  background: var(--panel-2)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23a89e92'/%3E%3C/svg%3E")
+    no-repeat right 9px center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  padding: 4.5px 26px 4.5px 10px;
+  cursor: pointer;
+}
+
+.agent-filter:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
 .activity-head .side-label {
@@ -2191,6 +2315,48 @@ input.cmd::placeholder {
   border-radius: var(--radius);
   padding: 2px 6px;
   cursor: pointer;
+}
+
+/* Id stepper for the Item / Room tools — hidden while a non-numbered tool is active */
+.draw-level-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.draw-level-num-label {
+  color: var(--text-3);
+}
+
+.draw-level-num-btn {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.draw-level-num-btn:hover {
+  background: var(--panel-3);
+  border-color: var(--accent-border);
+}
+
+.draw-level-num-val {
+  width: 42px;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 4px;
 }
 
 /* Stop button on the running-agents strip — interrupts the current turn */

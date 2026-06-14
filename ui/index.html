@@ -132,6 +132,9 @@
           <button class="filter-chip" data-filter="tools">Tools</button>
           <button class="filter-chip" data-filter="files">Files</button>
         </div>
+        <select class="agent-filter" id="agent-filter" aria-label="Filter activity by agent">
+          <option value="">All agents</option>
+        </select>
       </div>
 
       <div class="log-scroll" id="log-scroll"></div>
@@ -182,9 +185,15 @@
 <div class="modal-overlay" id="draw-level-modal" style="display:none">
   <div class="modal">
     <div class="modal-head">Draw a level</div>
-    <p class="modal-sub">Pick a tile and drag on the grid — <strong>wall · door · window · 4 item colours</strong> (empty stays floor). Export saves the grid and hands it to the <strong>level-designer</strong>, who asks the level name + scene details, then has <strong>godot-dev</strong> build it.</p>
+    <p class="modal-sub">Pick a tool and drag on the grid — <strong>wall · door · window · item · room</strong> (empty stays floor). <strong>Item</strong> and <strong>Room</strong> paint the chosen <strong>id</strong> (same id = same item / one room). Export saves the grid and hands it to the <strong>level-designer</strong>, who asks the level name + scene details, then has <strong>godot-dev</strong> build it.</p>
     <div class="draw-level-toolbar">
       <div class="draw-level-palette" id="draw-level-palette"></div>
+      <div class="draw-level-number" id="draw-level-number" title="Active id for the Item / Room tools">
+        <span class="draw-level-num-label">id</span>
+        <button class="draw-level-num-btn" id="draw-level-num-dec" type="button" aria-label="lower id">−</button>
+        <input class="draw-level-num-val" id="draw-level-num-val" type="number" min="1" max="99" value="1" />
+        <button class="draw-level-num-btn" id="draw-level-num-inc" type="button" aria-label="raise id">+</button>
+      </div>
       <button class="btn ghost" id="draw-level-clear">Clear</button>
       <select class="draw-level-load" id="draw-level-load" title="Load a saved level onto the canvas"></select>
       <span class="muted">24 × 16 · right-click erases</span>

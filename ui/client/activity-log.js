@@ -30,10 +30,47 @@ const FILTERS = {
 };
 /** @param {string | null | undefined} key @returns {FilterFn} */
 const filterFor = (key) => FILTERS[key ?? "all"] ?? FILTERS.all ?? (() => true);
-const activeFilterFn = () => {
+
+/** The kind filter from the active chip (All / Tools / Files). @returns {FilterFn} */
+const activeKindFn = () => {
   const chip = /** @type {HTMLElement | null} */ (document.querySelector(".filter-chip.on"));
   return filterFor(chip?.dataset.filter);
 };
+
+/** The agent picked in the dropdown ("" = all agents). @returns {string} */
+const selectedAgent = () =>
+  /** @type {HTMLSelectElement | null} */ (document.getElementById("agent-filter"))?.value ?? "";
+
+/** A row matches when the kind chip AND the agent picklist both accept it. A
+ * row carries every agent it involves (parent + spawned child) in data-agents.
+ * @param {HTMLElement} row @returns {boolean} */
+const rowVisible = (row) => {
+  if (!activeKindFn()(row)) return false;
+  const agent = selectedAgent();
+  return !agent || (row.dataset.agents ?? "").split(" ").includes(agent);
+};
+
+/** Re-run both filters across every row. */
+const applyFilters = () => {
+  $$(".log-row").forEach((row) => {
+    row.style.display = rowVisible(row) ? "" : "none";
+  });
+};
+
+/** Agents already offered in the dropdown, in first-seen order. @type {Set<string>} */
+const seenAgents = new Set();
+
+/** Add an agent to the picklist the first time it shows up in the stream.
+ * @param {string | undefined} agent */
+function ensureAgentOption(agent) {
+  if (!agent || seenAgents.has(agent)) return;
+  seenAgents.add(agent);
+  const sel = $("agent-filter");
+  if (!sel) return;
+  const opt = /** @type {HTMLOptionElement} */ (el("option", "", agentLabel(agent)));
+  opt.value = agent;
+  sel.append(opt);
+}
 
 function nowStr() {
   const d = new Date();
@@ -74,6 +111,11 @@ export function addLog(entry) {
       (entry.kind === "spawn" ? " spawn" : ""),
   );
   row.dataset.kind = entry.kind;
+  // Every agent the row involves — parent plus any spawned child — so the
+  // agent picklist can match either side of a "main ▸ child" spawn row.
+  row.dataset.agents = [entry.agent, entry.child].filter(Boolean).join(" ");
+  ensureAgentOption(entry.agent);
+  ensureAgentOption(entry.child);
   row.append(el("span", "log-time", nowStr()));
   if (entry.kind === "spawn") {
     const who = el("span", "log-agent");
@@ -94,7 +136,7 @@ export function addLog(entry) {
     );
     row.append(detail);
   }
-  if (!activeFilterFn()(row)) row.style.display = "none";
+  if (!rowVisible(row)) row.style.display = "none";
   $("log-scroll").prepend(row);
 }
 
@@ -106,12 +148,10 @@ export function initActivityLog() {
         c.classList.remove("on");
       });
       chip.classList.add("on");
-      const fn = filterFor(chip.dataset.filter);
-      $$(".log-row").forEach((row) => {
-        row.style.display = fn(row) ? "" : "none";
-      });
+      applyFilters();
     });
   });
+  $("agent-filter")?.addEventListener("change", applyFilters);
   $("clear-log").onclick = () => {
     $("log-scroll").replaceChildren();
   };
