@@ -1,0 +1,44 @@
+name: onboarding
+
+# Guards the clean-clone onboarding path — the one a forker actually walks but
+# the maintainer never does (their game already has .claude/). Tier 1 runs on
+# every push/PR; the Godot boot (Tier 2) is a separate, non-blocking job.
+on:
+  push:
+  pull_request:
+
+jobs:
+  onboarding:
+    name: Install + wiring (Tier 1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      # Exports the repo as a forker receives it (git archive of tracked files),
+      # installs into a fixture game, and asserts agents/skills/hook-merge.
+      # Tier 2 self-skips here — no Godot on this runner.
+      - run: npm run test:onboarding
+
+  godot-smoke:
+    name: Headless Godot boot (Tier 2, optional)
+    runs-on: ubuntu-latest
+    continue-on-error: true # slower/flakier engine download must never block the gate
+    env:
+      GODOT_VERSION: 4.6.3-stable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install Godot (headless-capable standard build)
+        run: |
+          curl -fsSL -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          echo "GODOT=$PWD/Godot_v${GODOT_VERSION}_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Onboarding test with Godot boot (Tier 1 + Tier 2)
+        run: npm run test:onboarding

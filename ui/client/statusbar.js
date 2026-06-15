@@ -35,4 +35,9 @@ export function initStatusbar() {
       $("usage").textContent = `$${u.cost.toFixed(2)} · ${(u.tokens / 1000).toFixed(1)}k tok`;
     }
   });
+  // The Xenodot mark breathes its machine-spirit glow while the hive works a
+  // turn, and settles when idle — the creature reacting to the forge.
+  subscribe("busy", (busy) => {
+    document.querySelector(".brand")?.classList.toggle("busy", Boolean(busy));
+  });
 }

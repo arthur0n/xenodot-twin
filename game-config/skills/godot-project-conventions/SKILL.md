@@ -40,7 +40,7 @@ This skill is the keystone: it makes project-wide decisions once, applies them t
 
 - Engine: Godot 4.3+ (reversed-Z). Renderer: Forward+ (required by outline shaders).
 - Art style: 3D pixel art. 3D content renders inside a SubViewport (skill: godot-3d-pixelation); post-process effects attach to the camera inside it.
-- Camera: orthographic, fixed angle (skill: godot-camera-rig). Do not switch to perspective without flagging the texel-snapping consequence.
+- Camera: projection is genre-dependent. The pixel-art look comes from the SubViewport downscale (godot-3d-pixelation), not the camera. Orthographic fixed-angle (skill: godot-orthographic-follow-camera) is the default for top-down/iso games; first-person/third-person genres use a perspective eye-camera inside the SubViewport. Switching projection only trades the texel-snapping behaviour — flag it, don't forbid it.
 - Folders: scenes/, entities/, levels/, shaders/post/, resources/.
 - Naming: node names PascalCase; files and folders snake_case; one scene per entity in entities/<name>/.
 - Input actions: move_left, move_right, move_forward, move_back, jump.

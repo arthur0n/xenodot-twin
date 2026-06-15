@@ -8,10 +8,19 @@
 // Usage: npm run claude:install               (target = configured game, see config.js)
 //        npm run claude:install -- --force
 //        node ui/server/claude-install.js /path/to/game [--force]
-import { existsSync, mkdirSync, readdirSync, copyFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  copyFileSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { PROJECT_DIR, FRAMEWORK_DIR } from "./config.js";
+import { parseJSON } from "../lib/json.js";
 
 const SRC = path.join(FRAMEWORK_DIR, "game-config");
 const force = process.argv.slice(2).includes("--force");
@@ -22,9 +31,18 @@ if (!existsSync(SRC)) {
   process.exit(1);
 }
 
-const tally = { created: 0, overwritten: 0, skipped: 0 };
+const tally = { created: 0, overwritten: 0, skipped: 0, merged: 0 };
 
-/** Recursively copy src → dst, skipping existing files unless --force.
+/**
+ * @typedef {{ command?: string }} HookCmd
+ * @typedef {{ matcher?: string, hooks?: HookCmd[] }} HookEntry
+ * @typedef {{ hooks?: { PreToolUse?: HookEntry[] } }} Settings
+ */
+
+/** Recursively copy src → dst, skipping existing files unless --force. The one
+ * exception is `.claude/settings.json`: it is always *merged* (never wholesale
+ * copied or overwritten), because a real game's settings.json carries the
+ * consumer's own permissions — see mergeSettings.
  * @param {string} src @param {string} dst */
 function copyTree(src, dst) {
   mkdirSync(dst, { recursive: true });
@@ -33,6 +51,8 @@ function copyTree(src, dst) {
     const d = path.join(dst, entry.name);
     if (entry.isDirectory()) {
       copyTree(s, d);
+    } else if (path.relative(SRC, s) === "settings.json") {
+      mergeSettings(s, d);
     } else if (!existsSync(d)) {
       copyFileSync(s, d);
       tally.created++;
@@ -43,6 +63,42 @@ function copyTree(src, dst) {
       tally.skipped++;
     }
   }
+}
+
+/** Splice the framework's rtk hook into the game's settings.json without
+ * touching anything else the consumer has (permissions, other hooks). The
+ * shipped settings.json contains only the rtk PreToolUse block; we add it iff an
+ * equivalent isn't already present. Idempotent, and non-destructive even under
+ * --force — we parse-and-rewrite, never overwrite the file wholesale. (This is
+ * the file most games already have, so a plain skip/clobber would either drop
+ * the hook or wipe their permissions.)
+ * @param {string} srcPath @param {string} destPath */
+function mergeSettings(srcPath, destPath) {
+  // No existing file → the simple copy is already correct and complete.
+  if (!existsSync(destPath)) {
+    copyFileSync(srcPath, destPath);
+    tally.created++;
+    return;
+  }
+
+  const incoming = /** @type {Settings} */ (parseJSON(readFileSync(srcPath, "utf8")));
+  const current = /** @type {Settings} */ (parseJSON(readFileSync(destPath, "utf8")));
+  current.hooks ??= {};
+  current.hooks.PreToolUse ??= [];
+
+  // A hook counts as "ours" if any of its commands invokes `rtk hook`, so a
+  // reformatted command or renamed matcher still reads as already-installed.
+  const isOurs = (/** @type {HookEntry} */ e) =>
+    (e.hooks ?? []).some((h) => typeof h.command === "string" && h.command.includes("rtk hook"));
+
+  if (current.hooks.PreToolUse.some(isOurs)) {
+    tally.skipped++;
+    return;
+  }
+
+  for (const block of incoming.hooks?.PreToolUse ?? []) current.hooks.PreToolUse.push(block);
+  writeFileSync(destPath, JSON.stringify(current, null, 2) + "\n");
+  tally.merged++;
 }
 
 /** @returns {boolean} */
@@ -67,7 +123,7 @@ if (force) {
 copyTree(SRC, dest);
 
 console.log(
-  `claude:install: ${dest} — created ${tally.created}, overwritten ${tally.overwritten}, skipped ${tally.skipped}.`,
+  `claude:install: ${dest} — created ${tally.created}, overwritten ${tally.overwritten}, merged ${tally.merged}, skipped ${tally.skipped}.`,
 );
 if (tally.skipped && !force) {
   console.log(

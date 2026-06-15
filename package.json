@@ -1,11 +1,13 @@
 {
   "name": "xenodot-forge",
   "version": "0.1.5",
-  "description": "Xenodot Forge — POC web UI + agent workflow (design -> implement -> verify) for building Godot games with Claude Code",
+  "description": "Xenodot Forge — POC web UI + agent workflow (design -> implement -> verify) for building Godot-family (Godot / Redot / Blazium) games with Claude Code",
   "type": "module",
   "private": true,
   "scripts": {
     "setup": "node ui/server/setup.js",
+    "bootstrap": "node ui/server/bootstrap.js",
+    "doctor": "node ui/server/doctor.js",
     "start": "node ui/server/index.js",
     "badges": "node ui/server/update-badges.js",
     "claude:sync": "node ui/server/claude-sync.js",
@@ -13,6 +15,7 @@
     "release": "node ui/server/release-stage.js",
     "check": "tsc --noEmit",
     "test": "node ui/reducer.check.js",
+    "test:onboarding": "node ui/server/onboarding.check.js",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "format": "prettier --write .",

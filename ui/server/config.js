@@ -18,6 +18,20 @@ export const CONFIG_FILE = path.join(FRAMEWORK_DIR, ".xenodot.json");
 
 const args = process.argv.slice(2);
 
+/** @typedef {{ name?: string, projectFile?: string, bin?: string }} EngineConfig */
+
+/** Parsed `.xenodot.json` (written by `npm run setup`), or `{}` if absent/invalid.
+ * Read once: it carries both the saved project path and the engine block. */
+const SAVED = (() => {
+  try {
+    return /** @type {{ projectDir?: string, engine?: EngineConfig }} */ (
+      parseJSON(readFileSync(CONFIG_FILE, "utf8"))
+    );
+  } catch {
+    return {};
+  }
+})();
+
 /** Where the framework reads the game project from. The framework is
  * independent of the project: it points at this folder in place and never
  * vendors or tracks it. Resolution order (first hit wins):
@@ -30,19 +44,40 @@ function resolveProjectDir() {
   const argPath = args.find((a) => !a.startsWith("--"));
   if (argPath) return path.resolve(argPath);
   if (process.env.GAME_DIR) return path.resolve(process.env.GAME_DIR);
-  try {
-    const saved = /** @type {{ projectDir?: string }} */ (
-      parseJSON(readFileSync(CONFIG_FILE, "utf8"))
-    );
-    if (saved.projectDir) return path.resolve(saved.projectDir);
-  } catch {}
+  if (SAVED.projectDir) return path.resolve(SAVED.projectDir);
   return path.resolve(FRAMEWORK_DIR, "..", "game");
 }
 
 export const PROJECT_DIR = resolveProjectDir();
-/** Whether PROJECT_DIR actually holds a Godot project — drives the startup
- * warning and the UI's empty-state banner. */
-export const PROJECT_FOUND = existsSync(path.join(PROJECT_DIR, "project.godot"));
+
+/** The target engine: Godot or a source-compatible fork (Redot / Blazium). The
+ * forks share Godot's project format, scene files, GDScript and CLI, so swapping
+ * the binary is the whole switch — see docs/engines.md. Resolution (first hit
+ * wins): env (`ENGINE_NAME` / `ENGINE_PROJECT_FILE` / `ENGINE_BIN`) →
+ * `.xenodot.json` `engine` field → Godot defaults.
+ *   - `projectFile`: on-disk marker used to detect a project. `project.godot` by
+ *     default, which the forks also use, so detection works for them unchanged.
+ *   - `bin`: optional engine executable the verify gate runs; when set it is
+ *     exported to sessions as `$GODOT` (see session.js). Otherwise the game's
+ *     `tools/validate.sh` resolves it from `$GODOT`/PATH. */
+export const ENGINE = {
+  name: process.env.ENGINE_NAME ?? SAVED.engine?.name ?? "godot",
+  projectFile: process.env.ENGINE_PROJECT_FILE ?? SAVED.engine?.projectFile ?? "project.godot",
+  bin: process.env.ENGINE_BIN ?? SAVED.engine?.bin ?? null,
+};
+/** Capitalized engine name for UI/CLI copy, e.g. "Godot", "Redot", "Blazium". */
+export const ENGINE_LABEL = ENGINE.name.charAt(0).toUpperCase() + ENGINE.name.slice(1);
+
+// When an engine binary is configured, propagate it as $GODOT so the verify gate
+// uses it. The Claude Code session the SDK spawns inherits this process's env, so
+// every `$GODOT` call (tools/validate.sh, the godot-verify skill) hits the chosen
+// fork binary with no per-shell setup. A binary set in the shell already (without
+// an explicit engine.bin) is left untouched. Load-time side effect, by design.
+if (ENGINE.bin) process.env.GODOT = ENGINE.bin;
+
+/** Whether PROJECT_DIR actually holds an engine project (Godot or a fork) —
+ * drives the startup warning and the UI's empty-state banner. */
+export const PROJECT_FOUND = existsSync(path.join(PROJECT_DIR, ENGINE.projectFile));
 export const PORT = Number(process.env.PORT ?? 3117);
 
 // Default permission policy for new sessions: ask | edits | all.

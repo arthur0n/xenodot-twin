@@ -92,7 +92,7 @@ Default `BoxMesh` / `PlaneMesh` UVs map one full 0–1 copy of the image onto _e
 - Set **`uv1_scale`** proportional to the face size in metres so texel density is consistent across props (e.g. a 3 m wall at 1 tile/m → `uv1_scale = Vector3(3, 3, 1)`; Godot's own fix for a plain box's stretched default UVs is `uv1_scale = Vector3(3, 2, 1)`).
 - The texture must be **seamless/tileable** and **opaque** — alpha on a surface texture makes the face render cut-out/transparent.
 
-A 32×32 PNG is sprite-sized: correct on a billboard (`godot-foliage`) or as one tile, wrong wrapped over a whole prop. A discrete prop (furniture, item) is a **sourced `.glb` model**, not a texture on a box — see `godot-mesh-import-pixel-art`. (The pixel-art _look_ itself comes from the SubViewport downscale + orthographic camera, not the texture — see `godot-3d-pixelation` / `godot-camera-rig`.)
+A 32×32 PNG is sprite-sized: correct on a billboard (`godot-foliage`) or as one tile, wrong wrapped over a whole prop. A discrete prop (furniture, item) is a **sourced `.glb` model**, not a texture on a box — see `godot-mesh-import-pixel-art`. (The pixel-art _look_ itself comes from the SubViewport downscale, not the texture or the camera — see `godot-3d-pixelation`.)
 
 **4. Make-Unique on imported mesh materials**
 

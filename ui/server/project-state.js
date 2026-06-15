@@ -2,7 +2,7 @@
 // drifts from what's actually on disk.
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
-import { PROJECT_DIR, PROJECT_FOUND } from "./config.js";
+import { PROJECT_DIR, PROJECT_FOUND, ENGINE } from "./config.js";
 
 /**
  * @param {string} dir
@@ -39,7 +39,7 @@ export function projectState() {
   const dir = PROJECT_DIR;
   let name = path.basename(dir);
   try {
-    const match = readFileSync(path.join(dir, "project.godot"), "utf8").match(
+    const match = readFileSync(path.join(dir, ENGINE.projectFile), "utf8").match(
       /config\/name="([^"]+)"/,
     );
     if (match?.[1]) name = match[1];

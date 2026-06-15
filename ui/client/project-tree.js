@@ -5,6 +5,7 @@
 import { $, $$, el, fillComposer, appendToComposer } from "./dom.js";
 import { fetchJSON, parseJSON } from "../lib/json.js";
 import { view } from "./state.js";
+import { paint, agentLabel, agentInitial } from "./agents.js";
 
 const COLLAPSE_KEY = "xenodot-collapsed";
 const TAB_KEY = "xenodot-side-tab";
@@ -161,12 +162,19 @@ function newItemBtn(tab, label) {
   return btn;
 }
 
-/** @param {HTMLElement} tree @param {import("../lib/types.js").ProjectState} s */
+/** The Agents tab: the project's cast, each Xenodot shown by its identity sigil
+ * and branded name (so the roster reads like the running strip and activity log
+ * — one agent, one color, everywhere). The literal id the SDK routes on (and the
+ * model) trail as the dim caption. @param {HTMLElement} tree @param {import("../lib/types.js").ProjectState} s */
 function renderAgents(tree, s) {
   if (!s.agents.length) tree.append(el("div", "tree-empty", "none yet"));
   s.agents.forEach((a) => {
-    const item = el("div", "tree-item", a.name + " ");
-    if (a.model) item.append(el("span", "desc", `(${a.model})`));
+    const item = paint(el("div", "tree-item agent-item"), a.name);
+    item.append(
+      el("span", "agent-avatar", agentInitial(a.name)),
+      el("span", "agent-item-name", agentLabel(a.name)),
+      el("span", "desc", a.model ? `${a.name} · ${a.model}` : a.name),
+    );
     tree.append(item);
   });
   tree.append(newItemBtn("agents", "new agent"));

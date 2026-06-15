@@ -1,4 +1,11 @@
-# Roadmap — itch.io Demo (Xenodot Forge proof-of-pipeline)
+# Roadmap — itch.io Demo (Xenodot Forge proof-of-pipeline) ⏹ RETIRED (unbuilt idea)
+
+> **Status: RETIRED — never built. Superseded by [`fps_poc.md`](./fps_poc.md).**
+> This apartment-demo direction was an _idea_ that was scoped but never started (every phase
+> below was 📋). The active POC is now a first-person shooter — see `fps_poc.md`. Kept here as a
+> record of the explored direction; do not pick up phases from this doc.
+
+---
 
 > **The first end-to-end proof that the Xenodot Forge pipeline ships a real, public game.**
 > Target: a furnished, explorable **3D-pixel-art apartment**, playable in-browser **and**

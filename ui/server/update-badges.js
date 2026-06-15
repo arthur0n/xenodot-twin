@@ -4,12 +4,12 @@
 // README.md, and re-stages it. Wired into .husky/pre-commit so the counts can
 // never drift from reality. Run manually with: npm run badges
 //
-// If no Godot project is configured/found, it skips silently (exit 0) — a fork
-// without a game checked out should still be able to commit.
+// If no engine project (Godot or a fork) is configured/found, it skips silently
+// (exit 0) — a fork without a game checked out should still be able to commit.
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { PROJECT_DIR, PROJECT_FOUND, FRAMEWORK_DIR } from "./config.js";
+import { PROJECT_DIR, PROJECT_FOUND, FRAMEWORK_DIR, ENGINE_LABEL } from "./config.js";
 
 /** @param {string} dir @param {(d: import("node:fs").Dirent) => boolean} keep @returns {number | null} */
 function count(dir, keep) {
@@ -30,7 +30,9 @@ function setBadge(text, label, n) {
 }
 
 if (!PROJECT_FOUND) {
-  console.warn(`update-badges: no Godot project at ${PROJECT_DIR} — leaving badges unchanged.`);
+  console.warn(
+    `update-badges: no ${ENGINE_LABEL} project at ${PROJECT_DIR} — leaving badges unchanged.`,
+  );
   process.exit(0);
 }
 

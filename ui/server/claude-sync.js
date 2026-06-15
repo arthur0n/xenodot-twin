@@ -17,6 +17,12 @@ import { PROJECT_DIR, PROJECT_FOUND, FRAMEWORK_DIR } from "./config.js";
 const DEST = path.join(FRAMEWORK_DIR, "game-config");
 const PARTS = ["agents", "skills"];
 
+// docs/roadmap is mirrored game → framework (the framework's own docs copy), NOT into
+// game-config: roadmaps are per-game and must not ship to forks via claude:install. This
+// removes the old "edit both by hand" chore for roadmap docs.
+const ROADMAP_SRC = path.join(PROJECT_DIR, "docs", "roadmap");
+const ROADMAP_DEST = path.join(FRAMEWORK_DIR, "docs", "roadmap");
+
 if (!PROJECT_FOUND) {
   console.warn(`claude:sync: no game project at ${PROJECT_DIR} — nothing to sync.`);
   process.exit(0);
@@ -35,21 +41,33 @@ for (const part of PARTS) {
 }
 
 if (copied === 0) {
-  console.warn(`claude:sync: no agents/ or skills/ under ${srcClaude} — skipping.`);
-  process.exit(0);
+  console.warn(`claude:sync: no agents/ or skills/ under ${srcClaude} — skipping config vendor.`);
+} else {
+  stageIfChanged(DEST, `vendored ${PARTS.join(", ")} from ${srcClaude} → game-config/`);
 }
 
-let changed = false;
-try {
-  execFileSync("git", ["diff", "--quiet", DEST], { stdio: "ignore" });
-} catch {
-  changed = true;
-}
-if (changed) {
-  execFileSync("git", ["add", DEST], { stdio: "ignore" });
-  console.log(
-    `claude:sync: vendored ${PARTS.join(", ")} from ${srcClaude} → game-config/ (staged).`,
-  );
+// Mirror docs/roadmap → framework docs/roadmap (independent of the config vendor above).
+if (existsSync(ROADMAP_SRC)) {
+  rmSync(ROADMAP_DEST, { recursive: true, force: true }); // mirror: prune removed files
+  mkdirSync(path.dirname(ROADMAP_DEST), { recursive: true });
+  cpSync(ROADMAP_SRC, ROADMAP_DEST, { recursive: true });
+  stageIfChanged(ROADMAP_DEST, `mirrored docs/roadmap/ from ${ROADMAP_SRC} → docs/roadmap/`);
 } else {
-  console.log(`claude:sync: game-config/ already current (${PARTS.join(", ")} unchanged).`);
+  console.warn(`claude:sync: no docs/roadmap/ under ${PROJECT_DIR} — skipping roadmap mirror.`);
+}
+
+/** @param {string} dest @param {string} what */
+function stageIfChanged(dest, what) {
+  let changed = false;
+  try {
+    execFileSync("git", ["diff", "--quiet", dest], { stdio: "ignore" });
+  } catch {
+    changed = true;
+  }
+  if (changed) {
+    execFileSync("git", ["add", dest], { stdio: "ignore" });
+    console.log(`claude:sync: ${what} (staged).`);
+  } else {
+    console.log(`claude:sync: ${dest} already current.`);
+  }
 }

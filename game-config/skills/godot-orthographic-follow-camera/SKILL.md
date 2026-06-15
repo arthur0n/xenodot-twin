@@ -1,6 +1,6 @@
 ---
-name: godot-camera-rig
-description: Orthographic Camera3D at a fixed angle on a pivot that smoothly follows a target — the camera for the 3D pixel-art game. Use when the project needs a camera, the view looks distorted or "too 3D", an isometric/fixed-angle follow is wanted, setting up a POC scene, or someone proposes a perspective camera (explain why orthographic is required).
+name: godot-orthographic-follow-camera
+description: Orthographic Camera3D at a fixed angle on a pivot that smoothly follows a target — the default camera for top-down / isometric 3D pixel-art games. Use when a top-down/iso game needs its camera, the view looks distorted or "too 3D", an isometric/fixed-angle follow is wanted, or setting up a top-down POC scene. NOT for first-person/third-person genres — those use a perspective eye-camera inside the SubViewport (the pixel-art look comes from the downscale, not the projection).
 ---
 
 # Godot Camera Rig (orthographic, fixed angle)

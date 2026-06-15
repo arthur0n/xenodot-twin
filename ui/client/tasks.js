@@ -6,6 +6,7 @@ import { $, el } from "./dom.js";
 import { send } from "./websocket.js";
 import { subscribe, getState } from "./store.js";
 import { reconcile } from "./reconcile.js";
+import { agentColor, agentInitial, agentLabel, agentRole } from "./agents.js";
 
 /** @typedef {import("../lib/types.js").Task} Task */
 
@@ -89,6 +90,33 @@ function createRow(t) {
   return row;
 }
 
+/** Stamp the owner chip. An agent-owned task that knows its creator names the
+ * Xenodot that owns it — a filled sigil (the agent's initial) plus its role,
+ * tinted by that agent's identity color and echoed as a left accent on the row,
+ * so the board tracks the same agent by the same hue the running strip and
+ * activity log use. User-owned tasks read "You"; legacy agent tasks with no
+ * recorded creator fall back to a plain "Agent" stamp.
+ * @param {HTMLElement} row @param {HTMLElement} chip @param {Task} t */
+function updateOwnerChip(row, chip, t) {
+  const agent = t.owner === "agent" ? t.agent : undefined;
+  chip.replaceChildren();
+  if (agent) {
+    row.classList.add("identified");
+    row.style.setProperty("--agent-color", agentColor(agent));
+    chip.className = "owner-chip owner-agent identified";
+    chip.title = agentLabel(agent);
+    chip.append(
+      el("span", "owner-sigil", agentInitial(agent)),
+      el("span", "owner-label", agentRole(agent)),
+    );
+  } else {
+    row.style.removeProperty("--agent-color");
+    chip.className = `owner-chip owner-${t.owner}`;
+    chip.title = "";
+    chip.append(el("span", "owner-label", t.owner === "user" ? "You" : "Agent"));
+  }
+}
+
 /** @param {HTMLElement} row @param {Task} t */
 function updateRow(row, t) {
   row.classList.remove(
@@ -97,19 +125,26 @@ function updateRow(row, t) {
     "status-done",
     "owner-agent",
     "owner-user",
+    "identified",
   );
+  const prevStatus = row.dataset.status;
   row.classList.add(`status-${t.status}`, `owner-${t.owner}`);
   row.dataset.status = t.status;
-  const tick = row.querySelector(".task-tick");
+  const tick = /** @type {HTMLElement | null} */ (row.querySelector(".task-tick"));
   if (tick) {
     tick.textContent = TICK[t.status] ?? "○";
     tick.setAttribute("title", `mark ${NEXT_STATUS[t.status] ?? "pending"}`);
+    // Struck-done: when a task FIRST flips to done (not on load or re-render),
+    // the tick stamps in like a punch hitting the billet. Restart via reflow so
+    // a toggled-back-and-done task replays it.
+    if (t.status === "done" && prevStatus && prevStatus !== "done") {
+      tick.classList.remove("struck");
+      void tick.offsetWidth;
+      tick.classList.add("struck");
+    }
   }
-  const chip = row.querySelector(".owner-chip");
-  if (chip) {
-    chip.textContent = t.owner;
-    chip.className = `owner-chip owner-${t.owner}`;
-  }
+  const chip = /** @type {HTMLElement | null} */ (row.querySelector(".owner-chip"));
+  if (chip) updateOwnerChip(row, chip, t);
   const title = row.querySelector(".task-title");
   if (title) title.textContent = t.title;
   const note = /** @type {HTMLElement | null} */ (row.querySelector(".task-note"));

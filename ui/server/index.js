@@ -1,7 +1,8 @@
-// POC web UI server for the Godot agent workflow. Bridges a browser
-// (WebSocket) to a Claude Code session (Agent SDK).
+// POC web UI server for the engine-agnostic agent workflow (Godot or a
+// compatible fork — Redot / Blazium). Bridges a browser (WebSocket) to a Claude
+// Code session (Agent SDK).
 //
-// Usage: node ui/server/index.js /path/to/your/godot/project
+// Usage: node ui/server/index.js /path/to/your/project
 //
 // Requires Claude Code installed and authenticated on this machine — the SDK
 // drives the same local Claude Code the terminal uses.
@@ -9,7 +10,7 @@ import http from "node:http";
 import { mkdirSync } from "node:fs";
 import { WebSocketServer } from "ws";
 import { parseJSON } from "../lib/json.js";
-import { PORT, PROJECT_DIR, PROJECT_FOUND, CONFIG_FILE, LOG_DIR } from "./config.js";
+import { PORT, PROJECT_DIR, PROJECT_FOUND, CONFIG_FILE, LOG_DIR, ENGINE_LABEL } from "./config.js";
 import { projectState } from "./project-state.js";
 import { recentSessions, deleteSession } from "./transcripts.js";
 import { writeTranscript } from "./transcript-write.js";
@@ -151,7 +152,7 @@ server.listen(PORT, () => {
     console.warn(
       [
         "",
-        `⚠  No Godot project at: ${PROJECT_DIR}`,
+        `⚠  No ${ENGINE_LABEL} project at: ${PROJECT_DIR}`,
         "   The UI will open but show no sessions or files until it points at one.",
         "   Point it at your game (the framework only reads it — it stays in place):",
         "     • once:      npm run setup -- /path/to/your/game",

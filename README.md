@@ -1,12 +1,12 @@
 # Xenodot Forge
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Godot 4.x](https://img.shields.io/badge/Godot-4.x-blue.svg)
-![Skills: 19](https://img.shields.io/badge/Skills-19-purple.svg)
+![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
+![Skills: 21](https://img.shields.io/badge/Skills-21-purple.svg)
 ![Agents: 10](https://img.shields.io/badge/Agents-10-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
-An experiment in building Godot games with Claude Code using **a deliberate pipeline instead of a chat box**.
+An experiment in building games on **Godot and its compatible forks (Redot, Blazium)** with Claude Code using **a deliberate pipeline instead of a chat box**.
 
 ## The real goal
 
@@ -18,7 +18,7 @@ The tools are here. The shape of the framework is yours to decide.
 
 ### Roadmap:
 
-🔨 0.1 - [First Game Tutorial](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)
+🔨 [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md) — the active roadmap. The foundation POC ([`first_game.md`](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)) is complete and retired.
 
 ## Why this exists
 
@@ -70,12 +70,14 @@ during this POC is [DiceOfFate](https://github.com/Coghatch-ai/dicefate).
 ## Requirements
 
 - [Claude Code](https://claude.com/claude-code) installed and authenticated
-- Godot 4.x (skills target 4.x APIs; verified against 4.6)
+- A Godot-family engine 4.x — **Godot**, **Redot**, or **Blazium** (skills target
+  4.x APIs; verified against 4.6). The forks share Godot's project format, GDScript
+  and CLI, so they run the same pipeline unchanged — see [docs/engines.md](docs/engines.md).
 - Node.js 18+ (only for the web UI)
 
 ## Quickstart
 
-The framework and your game are two separate repos. Keep them side by side:
+The framework and your game are two separate repos, side by side:
 
 ```
 your-workspace/
@@ -83,22 +85,35 @@ your-workspace/
 └── game/              ← your Godot project (its own git repo)
 ```
 
-1. Fork this framework, then clone it and your Godot project as siblings:
+**One command takes you from a fresh clone to a wired, runnable game.**
+
+1. Fork this framework, then clone your fork and install deps:
 
    ```bash
    git clone <your-fork-of-xenodot-forge> xenodot-forge
-   git clone <your-godot-project> game     # any Godot project with a .claude/ setup
+   cd xenodot-forge && npm install
    ```
 
-   The folder can be named anything and live anywhere — `game/` next to the
-   framework is just the default the UI looks for. (Don't have a project yet?
-   Clone the reference one: `git clone https://github.com/Coghatch-ai/dicefate game`.)
-
-2. **Terminal workflow** — start Claude Code from inside the project so its
-   agents and skills are discoverable:
+2. Bootstrap a game next to it. `--starter` scaffolds a minimal, **runnable**
+   Godot project; the command then installs the agents + skills + rtk hook into
+   it and runs a health check:
 
    ```bash
-   cd game && claude
+   npm run bootstrap -- ../game --starter
+   ```
+
+   - **Have a Godot project already?** Point bootstrap at it and drop `--starter`
+     — it wires the project in place, merging the hook **without touching your
+     `settings.json` permissions**: `npm run bootstrap -- /path/to/your/game`.
+   - **Want a richer reference than the bare starter?** Clone DiceOfFate as your
+     game first: `git clone https://github.com/Coghatch-ai/dicefate ../game`, then
+     `npm run bootstrap -- ../game`.
+
+3. **Install runs before you start Claude** — that's the step that puts the agents
+   in the project. Now start Claude Code from inside the game so they're found:
+
+   ```bash
+   cd ../game && claude
    ```
 
    Ask for something. If the scope is clear and small, `godot-dev` builds and
@@ -106,24 +121,26 @@ your-workspace/
    question at a time, with a recommended answer — until the scope collapses to
    one buildable slice. That's a feature.
 
-## Installing the Claude config
+Verify a project is wired correctly at any time with `npm run doctor` (or
+`npm run doctor -- /path/to/game`) — it checks the Godot project, the installed
+agents + skills, and the rtk hook.
 
-The framework ships its Claude Code setup in two parts:
+## What gets installed
+
+`bootstrap` does the work; this is what it deploys. The framework ships its
+Claude Code setup in two parts:
 
 - **Framework spine** (`.claude/`) — rules + the rtk hook for working _on the
-  framework_. It's committed, so your fork already has it; nothing to install.
+  framework_. Committed, so your fork already has it; nothing to install.
 - **Game config** (`game-config/`) — the rtk hook + the godot agents + skills the
-  framework deploys _into a game_. Install it once into your game:
+  framework deploys _into a game_. `bootstrap` installs these; the raw step is
+  `npm run claude:install` (after `npm run setup -- ../game`).
 
-  ```bash
-  cd xenodot-forge
-  npm run setup -- ../game     # point at your game first (if you haven't)
-  npm run claude:install       # copy agents + skills + hook into ../game/.claude
-  ```
-
-`claude:install` is **non-destructive** — it never overwrites files you already
-have (your agents evolve in place). Pass `--force` for a clean reset to the
-shipped bundle:
+`claude:install` is **non-destructive** — it never overwrites your agents (they
+evolve in place), and it **merges** its `rtk` hook into your
+`.claude/settings.json` without disturbing the permissions you already have. Pass
+`--force` for a clean reset of the shipped agents + skills (settings are still
+merged, never clobbered):
 
 ```bash
 npm run claude:install -- --force
@@ -136,7 +153,9 @@ either way. On first use you may need to approve the project hook once via
 
 > **Maintaining a fork:** `game-config/` is kept current automatically — a
 > pre-commit step (`npm run claude:sync`) re-vendors your reference game's
-> `.claude/` agents + skills on every commit, so what you ship never drifts.
+> `.claude/` agents + skills on every commit, so what you ship never drifts. The
+> whole clone → install → run path is guarded by `npm run test:onboarding` (and
+> CI), so it can't silently break.
 
 ## Using the web UI
 
@@ -146,13 +165,12 @@ what's happening.
 
 ```bash
 cd xenodot-forge
-npm install
-npm run setup -- ../game     # remember where your game lives (do this once)
-npm start                    # then open http://localhost:3117
+npm start                    # opens http://localhost:3117
 ```
 
-`npm run setup` saves the path to `.xenodot.json` (gitignored) so you don't
-repeat it. The framework only **reads** your project — it stays in its own repo.
+`bootstrap` (or `npm run setup`) already saved your game's path to `.xenodot.json`
+(gitignored), so `npm start` finds it with no arguments. The framework only
+**reads** your project — it stays in its own repo.
 
 You can point at any project, no setup needed:
 

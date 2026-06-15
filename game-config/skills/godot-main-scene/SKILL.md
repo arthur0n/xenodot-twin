@@ -14,7 +14,7 @@ Main (Node)                          res://main.tscn + res://main.gd (project ro
 ├── SubViewportContainer             ← pixelation rig (skill: godot-3d-pixelation)
 │   └── SubViewport
 │       ├── LevelHost (Node)         ← levels instanced here; unique_name_in_owner = true
-│       └── CameraRig                ← persistent camera (skill: godot-camera-rig)
+│       └── CameraRig                ← persistent camera (skill: godot-orthographic-follow-camera)
 └── UI (CanvasLayer)                 ← native-res UI, outside the SubViewport
 ```
 

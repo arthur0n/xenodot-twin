@@ -273,6 +273,24 @@ body.resizing iframe {
   filter: drop-shadow(0 0 7px color-mix(in oklab, var(--accent) 36%, transparent));
 }
 
+/* While the hive works a turn (store `busy`), the creature's glow breathes —
+   waxing brighter and settling, like the forge drawing breath. Idle is the calm
+   static glow above. */
+.brand.busy .brand-mark {
+  animation: forge-breathe 2.6s var(--ease-out) infinite;
+}
+
+@keyframes forge-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 30%, transparent));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 13px color-mix(in oklab, var(--accent) 66%, transparent));
+  }
+}
+
 /* Wordmark echoes the emblem's stamped banner: tracked caps, "FORGE"
    quenched to alien lime as a second tier. */
 .brand-word {
@@ -683,6 +701,28 @@ body.resizing iframe {
   color: var(--text-3);
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Agents roster — the cast, each by its identity sigil + branded name, so the
+   same hue that tags an agent in the running strip and log tags it here too.
+   The literal routing id + model trail as the dim caption on the right. */
+.tree-item.agent-item {
+  align-items: center;
+}
+
+.agent-item-name {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--agent-color, var(--text));
+}
+
+.tree-item.agent-item .desc {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 10px;
+  text-align: right;
 }
 
 .tree-empty {
@@ -2033,6 +2073,28 @@ input.cmd::placeholder {
   color: var(--green);
 }
 
+/* A task struck done — the ✓ lands like a punch hitting the billet: a quick
+   press in that settles, no rebound. One-shot, armed only on the live flip. */
+.task-tick.struck {
+  animation: tick-strike 0.32s var(--ease-out);
+}
+
+@keyframes tick-strike {
+  0% {
+    transform: scale(2);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(0.86);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
 .task-body {
   min-width: 0;
 }
@@ -2057,15 +2119,21 @@ input.cmd::placeholder {
   margin-top: 2px;
 }
 
-/* owner chip — agent (accent) vs user (blue), so handoffs are scannable */
+/* Owner stamp — who the task belongs to, read at a glance. A user task is
+   blue ("You"); an agent task names its Xenodot (a filled sigil + role) in that
+   agent's identity color, the same hue it wears in the running strip and the
+   activity log. A legacy agent task with no recorded creator stays plain accent. */
 .owner-chip {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: var(--font-mono);
   font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
 }
@@ -2080,6 +2148,36 @@ input.cmd::placeholder {
   color: var(--blue);
   background: color-mix(in oklab, var(--blue) 12%, transparent);
   border-color: color-mix(in oklab, var(--blue) 30%, transparent);
+}
+
+/* An identified agent task — tinted by its Xenodot's color, sigil padded in. */
+.owner-chip.identified {
+  padding-left: 2px;
+  color: var(--agent-color, var(--accent));
+  background: color-mix(in oklab, var(--agent-color, var(--accent)) 13%, transparent);
+  border-color: color-mix(in oklab, var(--agent-color, var(--accent)) 34%, transparent);
+}
+
+/* The forge punch: a small stamped square holding the agent's initial, inked
+   dark on the agent's own color so it reads like a struck maker's mark. */
+.owner-sigil {
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 1px;
+  font-family: var(--font-display);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: color-mix(in oklab, var(--bg) 86%, var(--agent-color, var(--accent)));
+  background: var(--agent-color, var(--accent));
+}
+
+/* The owning Xenodot's color, carried onto the row as a left accent — no reflow
+   (an inset bar, not a wider border), so a task gaining an agent doesn't shift. */
+.task-row.owner-agent.identified {
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--agent-color, var(--accent)) 72%, transparent);
 }
 
 .task-remove {
@@ -2394,7 +2492,9 @@ input.cmd::placeholder {
   .status-dot,
   .live-dot,
   .cursor,
-  .todo.running .tick::after {
+  .todo.running .tick::after,
+  .task-tick.struck,
+  .brand.busy .brand-mark {
     animation: none;
   }
 

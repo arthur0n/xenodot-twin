@@ -1,0 +1,22 @@
+; Engine configuration file.
+; Minimal starter scaffolded by `xenodot-forge` bootstrap (`npm run bootstrap -- <game> --starter`).
+; It is a neutral, runnable base — replace it with your own game. The agent
+; pipeline and skills are installed into `.claude/` alongside it.
+
+config_version=5
+
+[application]
+
+config/name="Xenodot Starter"
+config/description="Minimal runnable starter scaffolded by xenodot-forge. Replace with your game."
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.6", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
