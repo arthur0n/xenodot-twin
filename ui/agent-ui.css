@@ -676,6 +676,27 @@ body.resizing iframe {
   color: var(--red);
 }
 
+/* Account-level plan burn (claude.ai rate-limit utilization), shown next to the
+   per-session context meter. */
+.plan-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  padding-left: 14px;
+}
+
+.plan-label.ctx-warn {
+  color: var(--amber);
+}
+
+.plan-label.ctx-hot {
+  color: var(--red);
+}
+
+.plan-label:empty {
+  display: none;
+}
+
 .side-head-actions {
   display: flex;
   align-items: center;

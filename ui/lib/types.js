@@ -48,6 +48,7 @@
  * @property {number} [total_cost_usd]
  * @property {number} [duration_ms]
  * @property {{ input_tokens?: number, output_tokens?: number }} [usage]
+ * @property {{ status?: string, utilization?: number, rateLimitType?: string, resetsAt?: number }} [rate_limit_info] - rate_limit_event: claude.ai plan utilization
  * @property {{ content?: ContentBlock[] }} [message]
  * @property {string} [task_id] - background-task lifecycle events (task_started/updated/notification)
  * @property {string} [tool_use_id] - the spawning Task tool_use id a task event ties back to

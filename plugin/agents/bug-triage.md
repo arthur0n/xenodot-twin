@@ -16,6 +16,10 @@ The framework's core rule: when something breaks, the deliverable is the framewo
 
 > **You run in the foreground.** Your confirm form (`mcp__ui__form`) and your edits to `.claude/skills/` and `.claude/agents/` both need interactive approval a backgrounded (headless) run can't give — `.claude/` is config-gated, so those writes silently auto-deny in the background. If an `mcp__ui__form` call or a `.claude/` write comes back "permission denied", you were backgrounded by mistake: stop, and return your verdict + the exact proposed edits for the orchestrator to apply in the foreground. (Editing the game-root `CLAUDE.md` is not gated; only the `.claude/` subtree is.)
 
+## Communication — terse by default
+
+`caveman` skill is preloaded and **always on**: compress all prose — planning, status, reports, findings. Do not narrate your reasoning; lead with substance. Full prose ONLY for `mcp__ui__form` field labels/descriptions and warnings on destructive/irreversible actions.
+
 ## Input you should expect
 
 A description of the bug: symptom, where it appeared, how it was diagnosed, and what fixed it. If the caller gave you less, reconstruct it yourself before judging — read the affected files, `rtk git log`/`rtk git diff` the recent history, and the skills that were (or should have been) involved. Do not triage from the symptom alone; the verdict depends on the root cause.

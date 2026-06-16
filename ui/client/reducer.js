@@ -126,7 +126,29 @@ function reduceEvent(s, m) {
   if (m.type === "assistant") return foldAssistant(s, m);
   if (m.type === "user") return foldUser(s, m);
   if (m.type === "result") return foldResult(s, m);
+  if (m.type === "rate_limit_event") return foldRateLimit(s, m);
   return s; // unknown subtype — identity-preserving no-op
+}
+
+/** Stash the claude.ai plan's live utilization, keyed by window (five_hour |
+ * seven_day | …), so the session panel can show actual plan burn ("plan: N%")
+ * next to the per-session context meter. @param {State} s @param {SdkEvent} m @returns {State} */
+function foldRateLimit(s, m) {
+  const info = m.rate_limit_info;
+  if (!info?.rateLimitType) return s;
+  const pct =
+    info.utilization == null
+      ? undefined
+      : info.utilization <= 1
+        ? info.utilization * 100
+        : info.utilization;
+  return {
+    ...s,
+    rateLimit: {
+      ...s.rateLimit,
+      [info.rateLimitType]: { pct, status: info.status, resetsAt: info.resetsAt },
+    },
+  };
 }
 
 /** @param {State} s @param {SdkEvent} m @returns {State} */

@@ -41,6 +41,38 @@ function paintContextMeter(sess) {
   label.textContent = `context ${used}k / ${max}k · ${Math.round(pct)}%`;
 }
 
+/** Short label for a rate-limit window. @param {string} t @returns {string} */
+function windowLabel(t) {
+  if (t === "five_hour") return "5h";
+  if (t === "seven_day") return "7d";
+  if (t === "seven_day_opus") return "7d opus";
+  if (t === "seven_day_sonnet") return "7d sonnet";
+  if (t === "overage") return "overage";
+  return t;
+}
+
+/** Paint actual claude.ai plan burn next to the per-session meter: pick the most
+ * pressing window (highest utilization), e.g. "plan 10% · 5h". This is the
+ * account-level "how fast am I burning my limit" signal, distinct from the
+ * per-session context meter. @param {import("./store.js").State["rateLimit"]} rl */
+function paintPlanUsage(rl) {
+  const label = $("plan-label");
+  const entries = Object.entries(rl).filter(([, v]) => v.pct != null);
+  if (!entries.length) {
+    label.textContent = "";
+    label.className = "plan-label";
+    return;
+  }
+  const top = entries.sort((a, b) => (b[1].pct ?? 0) - (a[1].pct ?? 0))[0];
+  if (!top) return;
+  const [type, v] = top;
+  const pct = Math.round(v.pct ?? 0);
+  const hot = v.status === "rejected" || pct >= 80;
+  const warn = v.status === "allowed_warning" || pct >= 50;
+  label.textContent = `plan ${pct}% · ${windowLabel(type)}`;
+  label.className = `plan-label${hot ? " ctx-hot" : warn ? " ctx-warn" : ""}`;
+}
+
 export function initStatusbar() {
   subscribe("connection", (conn, s) => {
     if (conn.open) everOpen = true;
@@ -53,6 +85,9 @@ export function initStatusbar() {
     if (sess.status) $("session-meta").textContent = sess.status;
     paintContextMeter(sess);
     paintModel(s);
+  });
+  subscribe("rateLimit", (rl) => {
+    paintPlanUsage(rl);
   });
   subscribe("usage", (u) => {
     if (u.cost > 0 || u.tokens > 0) {

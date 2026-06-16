@@ -55,6 +55,7 @@ import { reduce } from "./reducer.js";
  * @property {{ cost: number, tokens: number }} usage
  * @property {{ open: boolean }} connection
  * @property {{ model: string, status: string, contextPct?: number, contextTokens?: number, contextMax?: number }} session
+ * @property {Record<string, { pct?: number, status?: string, resetsAt?: number }>} rateLimit - claude.ai plan utilization, keyed by window (five_hour | seven_day | …)
  * @property {boolean} busy                - hive MAIN turn in flight (drives the composer button)
  */
 
@@ -73,6 +74,7 @@ export function initialState() {
     usage: { cost: 0, tokens: 0 },
     connection: { open: false },
     session: { model: "", status: "" },
+    rateLimit: {},
     busy: false,
   };
 }
