@@ -12,18 +12,18 @@ An experiment in building games on **Godot and its compatible forks (Redot, Blaz
 
 Most frameworks hand you a fixed toolbox. This one is designed to be **broken, rebuilt, and replaced by you**.
 
-The agents self-improve from your experience — every bug, every awkward pattern, every moment where the pipeline slowed you down instead of helping is signal. The `bug-triage`, `skill-researcher`, and `godot-refactor` agents exist specifically to close that loop: find the friction, trace the root cause, update the skills, rewrite the rules. The framework you end up with is not the one you started with.
+The agents self-improve from your experience, every bug, every awkward pattern, every moment where the pipeline slowed you down instead of helping is signal. The `bug-triage`, `skill-researcher`, and `godot-refactor` agents exist specifically to close that loop: find the friction, trace the root cause, update the skills, rewrite the rules. The framework you end up with is not the one you started with.
 
 The tools are here. The shape of the framework is yours to decide.
 
 ### Roadmap:
 
 ✅ [Foundation POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md)) is complete and retired.
-🔨 [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md) — the active roadmap.
+🔨 [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md), the active roadmap.
 
 ## Why this exists
 
-Most AI-assisted game dev setups hand you a frontier model and a blank prompt. Describe your game, get some code, paste it in, pray it runs. That works — until you want to ship something repeatable, reviewable, and actually _yours_.
+Most AI-assisted game dev setups hand you a frontier model and a blank prompt. Describe your game, get some code, paste it in, pray it runs. That works, until you want to ship something repeatable, reviewable, and actually _yours_.
 
 This project bets on a different loop: **move the design decisions to before inference, not during it.** You don't tell the model what to build; you go through a structured interview that cuts scope to one buildable slice, produces a locked design doc, and only _then_ hands it off to a dev agent. The model stops guessing. You stop pasting broken code.
 
@@ -31,8 +31,8 @@ The pipeline looks like this:
 
 ```
 idea → game-designer       (interviews you, pushes back on vague scope, writes a one-page design doc)
-     → godot-dev           (implements exactly that doc — nothing more, nothing less)
-     → godot-verify        (headless engine checks — catches what Godot silently drops)
+     → godot-dev           (implements exactly that doc, nothing more, nothing less)
+     → godot-verify        (headless engine checks, catches what Godot silently drops)
      → you                 (one look in the editor, that's your job)
 ```
 
@@ -43,29 +43,28 @@ Push-back is the product. The designer agent will not silently fill gaps. It ask
 | Term              | What it means                                                        |
 | ----------------- | -------------------------------------------------------------------- |
 | **Xenodot**       | The ecosystem                                                        |
-| **Xenodot Forge** | This framework — web UI + the agent workflow                         |
+| **Xenodot Forge** | This framework: web UI + the agent workflow                          |
 | **Xenodots**      | The individual agents (designer, dev, refactor, researchers, triage) |
-| **Xenodot Hive**  | The multi-agent orchestrator — the main coordination loop            |
+| **Xenodot Hive**  | The multi-agent orchestrator: the main coordination loop             |
 
 ## What's inside
 
 ```
-ui/         Web UI (Node) — run sessions from a browser.
+ui/         Web UI (Node), run sessions from a browser.
             Designer questions render as clickable forms.
             Tool approvals become allow/deny buttons.
             Live event feed so you see what's happening.
 ```
 
-**The framework is independent of your game — it contains no game folder.** It
+**The framework is independent of your game, it contains no game folder.** It
 _points at_ your Godot project wherever it lives (by default a sibling folder named
 `game/`), reads it in place, and never tracks it. Your project stays in its own git
 repo; the framework drives Claude Code against it.
 
-**The framework's capabilities ship as a Claude Code plugin** (`plugin/`) — the agents,
+**The framework's capabilities ship as a Claude Code plugin** (`plugin/`), the agents,
 `godot-*` skills, verification tools, safety hooks and knowledge base, the single source of
 truth. The web UI loads it automatically (the Agent SDK `plugins` option); terminal Claude
-Code installs it once. Nothing is copied into your game, so **your game stays pure game** —
-only its own scenes, scripts and design docs are committed. Per-game working files (`tools/`,
+Code installs it once. Nothing is copied into your game, so **your game stays pure game**, only its own scenes, scripts and design docs are committed. Per-game working files (`tools/`,
 `library/`) appear as gitignored, generated paths. New, game-specific skills you author start
 local in `<game>/.claude/`, and you **promote** the ones worth sharing into the plugin
 (`npm run promote -- …`). The reference project during this POC is
@@ -74,84 +73,76 @@ local in `<game>/.claude/`, and you **promote** the ones worth sharing into the 
 ## Requirements
 
 - [Claude Code](https://claude.com/claude-code) installed and authenticated
-- A Godot-family engine 4.x — **Godot**, **Redot**, or **Blazium** (skills target
+- A Godot-family engine 4.x: **Godot**, **Redot**, or **Blazium** (skills target
   4.x APIs; verified against 4.6). The forks share Godot's project format, GDScript
-  and CLI, so they run the same pipeline unchanged — see [docs/engines.md](docs/engines.md).
+  and CLI, so they run the same pipeline unchanged, see [docs/engines.md](docs/engines.md).
 - Node.js 18+ (only for the web UI)
 
 ## Quickstart
 
-The framework and your **Godot game folder** are two separate repos, side by side:
+The framework and your Godot game are **two separate repos, side by side** (recommended, not required — any path works):
 
 ```
 your-workspace/
-├── xenodot-forge/     ← this framework (your fork)
-└── game/              ← your Godot game folder (any name; its own git repo)
+├── xenodot-forge/   ← this framework (cloned)
+└── game/            ← your Godot project (any name; its own git repo)
 ```
 
-> **`game/` is a placeholder, not a required name.** Your Godot game folder can be
-> named anything and live anywhere — even nested, e.g. `journeyone/fpspoc-2/`. Wherever
-> this README shows `../game`, substitute the real path to your Godot project folder.
-
-**One command takes you from a fresh clone to a wired, runnable game.**
-
-1. **Fork this framework on GitHub** ([what's a fork?](https://docs.github.com/en/get-started/quickstart/fork-a-repo) —
-   use the **Fork** button on the [repo page](https://github.com/arthur0n/xenodot-forge)),
-   then clone your fork and install deps:
+1. **Clone the framework and install:**
 
    ```bash
-   git clone <your-fork-of-xenodot-forge> xenodot-forge
+   git clone https://github.com/arthur0n/xenodot-forge.git
    cd xenodot-forge && npm install
    ```
 
-2. Create a game next to it. `forge new` scaffolds a minimal, **runnable** Godot
-   project (or wires an existing one in place), remembers its path, and materializes
-   the plugin's per-game files (the verify tools + the knowledge-base link), then runs
-   a health check. It does **not** copy agents/skills in — those load from the plugin.
+2. **Point it at your game.** Scaffolds a new runnable project if the path doesn't exist, or wires an existing one in place (and remembers it):
 
    ```bash
-   npm run new -- ../game     # ../game = path to YOUR Godot game folder (any name/location)
+   npm run new -- ../game     # any path works: ../game, /abs/path, ../nested/project
    ```
 
-   - **Have a Godot project already?** Point it at the folder — it wires it in place
-     and adds the gitignore rules for the generated paths. Use the real path, which can
-     be absolute or nested: `npm run new -- /path/to/your/game` or
-     `npm run new -- ../journeyone/fpspoc-2`.
-   - **Want a richer reference?** Clone DiceOfFate as your Godot game folder first:
-     `git clone https://github.com/Coghatch-ai/dicefate ../game`, then `npm run new -- ../game`.
-
-3. Run it. The **web UI** loads the plugin automatically — no install step:
+3. **Run the web UI:**
 
    ```bash
-   npm start          # http://localhost:3117 — drives your game via the plugin
+   npm start                  # http://localhost:3117
    ```
 
-   To use **terminal Claude Code** in the game instead, install the plugin once
-   (`forge new` / `doctor` print the exact commands):
+Every command runs **from inside `xenodot-forge/`** and takes the game path as an argument, so your game can be named anything and live anywhere. Re-check wiring anytime with `npm run doctor -- <path>`.
 
-   ```bash
-   # in Claude Code, once:
-   #   /plugin marketplace add /path/to/xenodot-forge
-   #   /plugin install xenodot@xenodot-forge
-   cd ../game && claude
-   ```
+### Let Claude do it for you
 
-   Ask for something. If the scope is clear and small, `godot-dev` builds and
-   verifies it. If it's big or vague, `game-designer` interviews you — one
-   question at a time, with a recommended answer — until the scope collapses to
-   one buildable slice. That's a feature.
+Open Claude Code inside the cloned repo and paste, filling the one blank:
 
-Verify a project is wired correctly at any time with `npm run doctor` (or
-`npm run doctor -- /path/to/game`) — it checks the plugin, the Godot project, and the
-materialized tools/library, and prints the one-time terminal plugin-install commands.
+```text
+Read this repo's README and follow its Quickstart to set up and run it against my Godot
+game at: <PATH TO MY GODOT GAME>. Run the commands yourself, fix anything that fails, and
+tell me the URL when it's up.
+```
+
+### Terminal Claude Code instead of the web UI
+
+Install the plugin once (`npm run doctor` prints the exact commands), then run `claude` from your game folder:
+
+```
+/plugin marketplace add /path/to/xenodot-forge
+/plugin install xenodot@xenodot-forge
+```
+
+### Updating
+
+Your game lives in its own repo, so pulling the latest framework never touches your work:
+
+```bash
+cd xenodot-forge && git pull
+```
 
 ## What ships
 
 The framework's Claude Code setup is in two parts:
 
-- **Framework spine** (`.claude/`) — rules + the rtk hook for working _on the framework_
+- **Framework spine** (`.claude/`), rules + the rtk hook for working _on the framework_
   (the Node/TS web UI). Committed; nothing to install.
-- **The xenodot plugin** (`plugin/`) — the agents, `godot-*` skills, the game-agnostic
+- **The xenodot plugin** (`plugin/`), the agents, `godot-*` skills, the game-agnostic
   verification tools (the validate gate, verify/gen scripts), safety hooks, and the
   knowledge base (`library/`). The **single source of truth** for what a game gets. The web
   UI loads it via the Agent SDK `plugins` option; terminal Claude Code installs it once from
@@ -159,25 +150,25 @@ The framework's Claude Code setup is in two parts:
   `xenodot:<name>`.
 
 Nothing is copied into your game. The only per-game files the framework materializes are
-gitignored and regenerated on demand: `tools/` (copied — Godot runs `.gd` helpers from
+gitignored and regenerated on demand: `tools/` (copied, Godot runs `.gd` helpers from
 `res://`) and `library/` (a symlink to the plugin's knowledge base). Your committed game
 stays pure game.
 
 **Example assets, kept out of your game (`x-shared-assets`).** Free CC0 example assets
 (models/textures from Poly Pizza, Kenney, Quaternius, …) live in an **external shared asset
-library** so your game tree stays clean — they're used by the game but never part of it. The
+library** so your game tree stays clean, they're used by the game but never part of it. The
 framework mounts that library into the game as a gitignored symlink at `res://x-shared-assets/`
 (with `models/` + `textures/` subdirs); **unlike `library/`, Godot scans and imports it**, so a
 model resolves at `res://x-shared-assets/models/<name>.glb`. The location defaults to a sibling
-`x-shared-assets/` folder next to your game and **may start empty** — the framework just needs to
+`x-shared-assets/` folder next to your game and **may start empty**, the framework just needs to
 know where it is; override it with the `assetLibrary` key in `.xenodot.json` or the
 `XENODOT_ASSET_LIBRARY` env var (same precedence as the engine block). In the web UI's **Get
-Assets** modal, pick the **Place** — Game (`assets/`) or Shared (`x-shared-assets/`) — when you
+Assets** modal, pick the **Place**, Game (`assets/`) or Shared (`x-shared-assets/`), when you
 supply a file; the `asset-advisor` → `godot-dev` loop verifies and wires it either way.
 
 **Growing the framework.** A new skill/agent/tool starts **game-local** in `<game>/.claude/`
 and is usable immediately. When one proves broadly useful, promote it into the plugin so every
-game gets it — the orchestrator offers this; the executor is:
+game gets it, the orchestrator offers this; the executor is:
 
 ```bash
 npm run promote -- skills <name>     # or: agents <name> | tools <file>
@@ -200,7 +191,7 @@ npm start                    # opens http://localhost:3117
 
 `npm run new` (or `npm run setup`) already saved your game's path to `.xenodot.json`
 (gitignored), so `npm start` finds it with no arguments. The framework only
-**reads** your project — it stays in its own repo.
+**reads** your project, it stays in its own repo.
 
 You can point at any project, no setup needed:
 
@@ -212,7 +203,7 @@ GAME_DIR=/path/to/project npm start    # via environment variable
 **Path resolution order** (first match wins): CLI argument → `GAME_DIR` env var →
 saved `.xenodot.json` → default sibling `../game`.
 
-**Troubleshooting — opens but shows no sessions or files?** The UI is pointed at
+**Troubleshooting, opens but shows no sessions or files?** The UI is pointed at
 a folder with no `project.godot`. The server prints a warning on start and the
 sidebar shows how to fix it. Point it at your game and restart:
 
@@ -225,7 +216,7 @@ npm run setup -- /path/to/your/game
 - **Small slices.** A design doc is done when a single agent task can implement it and verification plus one human look can confirm it.
 - **Push-back is the product.** The framework should refuse to silently fill vague briefs with its own assumptions. If the scope isn't clear, it asks.
 - **Verification is mandatory.** Godot exits 0 on script parse errors and silently drops unknown `.tscn` properties. `tools/verify_scene.gd` exists because bugs that should have been caught shipped "verified" without it.
-- **You stay the designer.** The framework keeps the loop fast and honest — it does not replace your judgement on what game to build.
+- **You stay the designer.** The framework keeps the loop fast and honest, it does not replace your judgement on what game to build.
 
 ## Releases & versioning
 
@@ -238,7 +229,7 @@ When you commit **in a terminal**, the pre-commit hook asks whether to cut a
 release. Pick a type and it bumps `package.json` and tags the commit; press enter
 to skip. Agent/CI commits (no TTY) are never prompted.
 
-Tags are created **locally** — push them yourself:
+Tags are created **locally**, push them yourself:
 
 ```bash
 git push origin main
@@ -256,33 +247,33 @@ git commit -m "…"          # post-commit creates the tag
 the git tag (npm versions must be valid 3-part semver).
 
 > **The plugin is the framework.** Changes under `plugin/` (agents, skills, tools, the
-> knowledge base) ARE framework changes — list them in release notes as normal. Game-specific
+> knowledge base) ARE framework changes, list them in release notes as normal. Game-specific
 > capabilities stay game-local until you `npm run promote` them into the plugin.
 
 ## Status
 
-⚠️ **Proof of concept.** Shared so you can fork it and experiment with your own game. APIs, file layouts, and agent prompts will change without notice.
+⚠️ **Proof of concept.** Shared so you can clone it and experiment with your own game. APIs, file layouts, and agent prompts will change without notice.
 
-**Not accepting contributions for now** — issues and PRs are unlikely to be reviewed. Fork freely; it's MIT.
+**Not accepting contributions for now**, issues and PRs are unlikely to be reviewed. Fork freely; it's MIT.
 
 ## Inspirations
 
 This project doesn't exist in a vacuum. These people and projects shaped how it thinks about AI-assisted workflows, skill design, and Godot tooling.
 
-**[Matt Pocock](https://github.com/mattpocock/skills/)** — the idea that skills should be _procedures_, not references. One canonical path, observable outcomes, no ambiguity about what "done" means.
+**[Matt Pocock](https://github.com/mattpocock/skills/)**, the idea that skills should be _procedures_, not references. One canonical path, observable outcomes, no ambiguity about what "done" means.
 
 **[Eduardo Schildt](https://www.youtube.com/@eduardoschildt)** - Game designer and artist who loves making games and sharing what I learn through game dev tutorials.
 
 - [Donation page](https://ko-fi.com/eduardoschildt)
 - [Demo Projects](https://pixelagegames.itch.io/)
 
-**[Brackeys](https://www.youtube.com/@Brackeys)** — Top-quality game development tutorials on everything from Unity, Godot and programming to game design. A reminder that clarity and enthusiasm aren't mutually exclusive.
+**[Brackeys](https://www.youtube.com/@Brackeys)**, Top-quality game development tutorials on everything from Unity, Godot and programming to game design. A reminder that clarity and enthusiasm aren't mutually exclusive.
 
 - [Donation Page](paypal.com/donate/?hosted_button_id=VCMM2PLRRX8GU)
 - [Discord](discord.gg/brackeys)
 - [Games](https://brackeysgames.itch.io/)
 
-**[Jan Mesarč — GodotPrompter](https://github.com/jame581/GodotPrompter)** — the most complete Godot × Claude Code library out there: ~48 skills covering 2D, 3D, UI, audio, multiplayer, C#, optimization and more, plus 9 specialized agents. Parts of this project's plugin scaffolding are adapted from it (MIT, with thanks). If you want broad Godot coverage for Claude Code today, use GodotPrompter — it's excellent.
+**[Jan Mesarč, GodotPrompter](https://github.com/jame581/GodotPrompter)**, the most complete Godot × Claude Code library out there: ~48 skills covering 2D, 3D, UI, audio, multiplayer, C#, optimization and more, plus 9 specialized agents. Parts of this project's plugin scaffolding are adapted from it (MIT, with thanks). If you want broad Godot coverage for Claude Code today, use GodotPrompter, it's excellent.
 
 This project is not a competitor on breadth. The differences are in philosophy:
 
@@ -292,9 +283,9 @@ This project is not a competitor on breadth. The differences are in philosophy:
 | Skill style  | Reference: variants + trade-offs, GDScript and C# | Procedure: one canonical path, GDScript only                          |
 | Entry point  | Skills you invoke directly                        | Designer interview gates what gets built                              |
 | Verification | Code-review checklists                            | Observable runtime gates + error→fix tables                           |
-| Growth rule  | —                                                 | One skill at a time, adopted after passing its gate on a real project |
+| Growth rule  | n/a                                               | One skill at a time, adopted after passing its gate on a real project |
 
-If you want broad coverage now, go use GodotPrompter. If you want to experiment with the pipeline model on your own project, fork this.
+If you want broad coverage now, go use GodotPrompter. If you want to experiment with the pipeline model on your own project, clone this.
 
 ## Framework UI
 
