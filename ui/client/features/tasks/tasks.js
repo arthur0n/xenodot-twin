@@ -26,6 +26,9 @@ const dismissed = new Set();
 /** id -> active retire timer, so re-renders never stack timers.
  * @type {Map<string, ReturnType<typeof setTimeout>>} */
 const retiring = new Map();
+/** ids whose answer was just submitted and are waiting for orchestrator pickup.
+ * @type {Set<string>} */
+const pendingAnswers = new Set();
 
 /** @param {string} id @returns {HTMLElement | undefined} */
 const findRow = (id) =>
@@ -69,6 +72,8 @@ function submitAnswer(id, answer) {
   const text = answer.trim();
   if (!text) return;
   send({ type: "task_update", op: "update", id, answer: text });
+  pendingAnswers.add(id);
+  findRow(id)?.classList.add("answering");
 }
 
 /** Inline answer affordance for an async question (mcp__ui__ask): one-click option
@@ -204,6 +209,11 @@ function updateRow(row, t) {
   if (answerBox && t.kind === "question" && t.answer && answerBox.dataset.answered !== "1") {
     answerBox.dataset.answered = "1";
     answerBox.replaceChildren(el("div", "task-answer-done", `✓ ${t.answer}`));
+  }
+  // Server confirmed the answer — clear the in-flight spinner.
+  if (pendingAnswers.has(t.id) && (t.answer || t.status === "done")) {
+    pendingAnswers.delete(t.id);
+    row.classList.remove("answering");
   }
 }
 

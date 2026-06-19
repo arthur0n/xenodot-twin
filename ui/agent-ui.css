@@ -2527,6 +2527,29 @@ input.cmd::placeholder {
   }
 }
 
+/* Answer submitted — spin the tick while waiting for the orchestrator to pick it up. */
+.task-row.answering .task-tick {
+  color: transparent;
+  position: relative;
+  overflow: visible;
+}
+
+.task-row.answering .task-tick::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1.5px solid transparent;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: task-spin 0.7s linear infinite;
+}
+
+@keyframes task-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .task-body {
   min-width: 0;
 }
