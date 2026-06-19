@@ -93,6 +93,18 @@ const checks = [
     hard: true,
     label: "tools/ materialized into the game (gitignored)",
   },
+  {
+    ok: Boolean(ENGINE.bin),
+    hard: false,
+    label: ENGINE.bin
+      ? `${ENGINE_LABEL} binary resolved ($GODOT=${ENGINE.bin})`
+      : `${ENGINE_LABEL} binary not found — set GODOT=/path/to/${ENGINE.name} (agents will re-derive it per call)`,
+  },
+  {
+    ok: existsSync(path.join(PROJECT_DIR, ".xenodot", "manifest.json")),
+    hard: false,
+    label: "facts manifest generated (.xenodot/manifest.json)",
+  },
   { ok: libraryLinked(), hard: false, label: "library/ symlinked to the plugin" },
   {
     ok: assetLibraryLinked(),

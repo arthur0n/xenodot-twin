@@ -29,6 +29,7 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveEngineBin } from "../core/engine-bin.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url)); // ui/server/cli
 const FRAMEWORK_DIR = path.join(here, "..", "..", "..");
@@ -129,7 +130,7 @@ try {
   });
 
   // ---- Tier 2: guarded headless Godot boot ----
-  const godot = resolveGodot();
+  const godot = resolveEngineBin();
   if (godot) {
     execFileSync(godot, ["--headless", "--path", game, "--import"], { stdio: "pipe" });
     const out = execFileSync(godot, ["--headless", "--path", game, "--quit-after", "3"], {
@@ -148,22 +149,4 @@ try {
   console.log(`\nonboarding: ${passed} checks passed.`);
 } finally {
   rmSync(work, { recursive: true, force: true });
-}
-
-/** First resolvable Godot binary, or null. @returns {string | null} */
-function resolveGodot() {
-  const candidates = [
-    process.env.GODOT,
-    "/Applications/Godot.app/Contents/MacOS/Godot",
-    "godot",
-  ].filter((c) => typeof c === "string" && c.length > 0);
-  for (const c of candidates) {
-    try {
-      execFileSync(/** @type {string} */ (c), ["--version"], { stdio: "ignore" });
-      return /** @type {string} */ (c);
-    } catch {
-      // try next candidate
-    }
-  }
-  return null;
 }

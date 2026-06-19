@@ -30,7 +30,7 @@ If a stateless CLI can cover the need at all, it wins.
 
 In this order — stop when you can write the definition:
 
-1. **Do we already have it?** Read CLAUDE.md ("## Skills", "## Project conventions"), `tools/CAPABILITIES.md`, glob `tools/` and `library/tools/`. If an existing tool or skill covers the gap, say so and stop — that is a successful result, not a failure. A previous verdict can be revisited only if the gap explains what changed.
+1. **Do we already have it?** Start with the generated manifest — `tools/forge-facts capabilities` lists the materialized tools (and points at `tools/CAPABILITIES.md`), and `tools/forge-facts` carries the engine/render/input/layout facts — so you answer "do we have a tool for this?" and read the project conventions in one cheap read instead of re-globbing. Then, only if the manifest doesn't settle it, read `tools/CAPABILITIES.md` for the full invocation docs, glob `tools/` and `library/tools/`, and read CLAUDE.md ("## Skills", "## Project conventions"). If an existing tool or skill covers the gap, say so and stop — that is a successful result, not a failure. A previous verdict can be revisited only if the gap explains what changed.
 2. **Can we build it thin ourselves?** Most stateless capabilities are a few lines wrapping the Godot binary headless (`$GODOT --headless --script ...`) or an existing op script (e.g. `tools/verify_render.gd`). Prefer this — owned, no dependency, in our grain.
 3. **Is there an MIT tool to lift?** Only if building thin is genuinely more than a thin wrapper. The license gate is hard: **MIT or it is not a candidate** (no license = all-rights-reserved = out). Rewrite the slice we need into our convention with attribution — never vendor wholesale.
 

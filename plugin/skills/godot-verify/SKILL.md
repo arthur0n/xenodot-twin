@@ -9,14 +9,14 @@ Three-layer verification, all required. Run from project root (where `project.go
 
 `tools/validate.sh` bundles layers 1–2 plus format/lint/parse (skill: godot-code-rules) — when you've run it, only layer 3 remains.
 
-Godot binary: `/Applications/Godot.app/Contents/MacOS/Godot` (not on PATH). Define once: `GODOT=/Applications/Godot.app/Contents/MacOS/Godot`.
+Godot binary: **`$GODOT` is already set for you** — the framework resolves the engine binary once and exports it into every session, so just run `$GODOT …` directly. Do NOT re-derive it (`GODOT=/Applications/…`, `which godot`); that path is a per-call token tax the framework already paid. (Outside a framework session, `tools/validate.sh` still resolves it from `$GODOT`/PATH.)
 
 ## Why three layers
 
 - **Exit codes lie.** Godot exits 0 even on `SCRIPT ERROR:` parse failures. Never trust `$?`; grep output.
 - **Unknown properties silently drop.** A `.tscn` with `energy_multiplier = 1.5` on `DirectionalLight3D` loads with zero warnings — property vanishes. Only layer 1 catches this.
 - **Valid scenes can render pure black with zero errors.** Transposed `Transform3D` basis aimed camera away from level — every property name valid, no errors, black screen. Only layer 3 catches this. Editor viewport doesn't catch it either (uses editor camera).
-- **Render config has one ground truth: project.godot.** When reasoning about effective render resolution, stretch, aspect, or renderer, read `[display]` (`window/size/viewport_*`, `window/stretch/*`) and `config/features` in project.godot. NEVER infer the effective render resolution from a node's properties (a SubViewport's `stretch_shrink`/`size`, a Viewport's size) — those are one rig's local setting, not the window/stretch pipeline, and a number read off them (e.g. "213×120") is a fabrication that can drive a wrong plan.
+- **Render config has one ground truth: project.godot.** For the effective render resolution, stretch, aspect, or renderer, prefer the precomputed `render` block — `tools/forge-facts render.renderer` / `render.viewport_width` etc. (parsed once from project.godot into `.xenodot/manifest.json`) — instead of re-reading `[display]`/`config/features` every time. If the manifest is stale or absent, read `[display]` (`window/size/viewport_*`, `window/stretch/*`) and `config/features` in project.godot directly. NEVER infer the effective render resolution from a node's properties (a SubViewport's `stretch_shrink`/`size`, a Viewport's size) — those are one rig's local setting, not the window/stretch pipeline, and a number read off them (e.g. "213×120") is a fabrication that can drive a wrong plan.
 
 ## Layer 1 — property validation (catches silent drops)
 

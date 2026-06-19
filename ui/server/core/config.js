@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseJSON } from "../../lib/json.js";
+import { resolveEngineBin } from "./engine-bin.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** The ui/ directory (this file lives in ui/server/core/). */
@@ -94,6 +95,29 @@ export const ENGINE = {
 /** Capitalized engine name for UI/CLI copy, e.g. "Godot", "Redot", "Blazium". */
 export const ENGINE_LABEL = ENGINE.name.charAt(0).toUpperCase() + ENGINE.name.slice(1);
 
+/** Merge a resolved engine binary into `.xenodot.json` so the lookup is one-time, not
+ * per-boot — every other saved field (projectDir, hermes, …) is preserved. Best-effort:
+ * a write failure is non-fatal (the in-memory `$GODOT` still works for this run).
+ * @param {string} bin */
+function persistEngineBin(bin) {
+  /** @type {Record<string, unknown>} */
+  let saved = {};
+  try {
+    saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
+  } catch {
+    /* absent/invalid — start fresh */
+  }
+  const prev = /** @type {EngineConfig} */ (saved.engine ?? {});
+  try {
+    writeFileSync(
+      CONFIG_FILE,
+      JSON.stringify({ ...saved, engine: { ...prev, bin } }, null, 2) + "\n",
+    );
+  } catch {
+    /* non-fatal — $GODOT is still set in-process for this run */
+  }
+}
+
 /** The game's res:// mount name for the external shared-asset library — a symlink
  * materialize.js creates (`<game>/x-shared-assets` → ASSET_LIBRARY), so a model resolves
  * at `res://x-shared-assets/models/<name>.glb`. One literal, shared across config /
@@ -113,12 +137,23 @@ export const ASSET_LIBRARY = path.resolve(
     path.join(FRAMEWORK_DIR, "..", RES_ASSET_MOUNT),
 );
 
-// When an engine binary is configured, propagate it as $GODOT so the verify gate
-// uses it. The Claude Code session the SDK spawns inherits this process's env, so
-// every `$GODOT` call (tools/validate.sh, the godot-verify skill) hits the chosen
-// fork binary with no per-shell setup. A binary set in the shell already (without
-// an explicit engine.bin) is left untouched. Load-time side effect, by design.
-if (ENGINE.bin) process.env.GODOT = ENGINE.bin;
+// Resolve the engine binary ONCE and propagate it as $GODOT so the verify gate and every
+// agent shell use it with no per-call setup. The Claude Code session the SDK spawns inherits
+// this process's env, so every `$GODOT` call (tools/validate.sh, the godot-verify skill) hits
+// the chosen binary — killing the per-shell `GODOT=…` re-derivation that otherwise repeats on
+// every Bash call. Precedence: an explicit engine.bin (env/.xenodot.json) wins untouched; else,
+// when nothing is configured, auto-probe and PERSIST the result so the lookup is truly one-time.
+// Load-time side effect, by design.
+if (ENGINE.bin) {
+  process.env.GODOT = ENGINE.bin;
+} else {
+  const resolved = resolveEngineBin(ENGINE.name);
+  if (resolved) {
+    ENGINE.bin = resolved;
+    process.env.GODOT = resolved;
+    persistEngineBin(resolved);
+  }
+}
 
 // Expose the plugin and its knowledge base to the spawned session so framework agents
 // can locate the library (and the framework itself, for promotion / self-improvement)
@@ -130,6 +165,13 @@ process.env.XENODOT_LIBRARY = path.join(FRAMEWORK_PLUGIN_DIR, "library");
 // its agents (asset-advisor reads/verifies the sourced file here) and validate.sh can locate
 // it regardless of cwd; the game reaches the same bytes via the res://x-shared-assets symlink.
 process.env.XENODOT_ASSET_LIBRARY = ASSET_LIBRARY;
+
+/** The generated per-game facts manifest (engine bin/version, render config, commands,
+ * capability registry) — written by gen-manifest.js inside prepareGame(). Exported so the
+ * spawned session and `tools/forge-facts` can read deterministic project facts instead of
+ * re-deriving them (re-reading project.godot, re-globbing tools/) on every task. */
+export const MANIFEST_FILE = path.join(PROJECT_DIR, ".xenodot", "manifest.json");
+process.env.XENODOT_MANIFEST = MANIFEST_FILE;
 
 /** Whether PROJECT_DIR actually holds an engine project (Godot or a fork) —
  * drives the startup warning and the UI's empty-state banner. */

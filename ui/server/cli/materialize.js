@@ -17,6 +17,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   copyFileSync,
   chmodSync,
   statSync,
@@ -28,6 +29,7 @@ import {
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { FRAMEWORK_PLUGIN_DIR, ASSET_LIBRARY, RES_ASSET_MOUNT } from "../core/config.js";
+import { generateManifest } from "./gen-manifest.js";
 
 const TOOLS_SRC = path.join(FRAMEWORK_PLUGIN_DIR, "tools");
 const LIB_SRC = path.join(FRAMEWORK_PLUGIN_DIR, "library");
@@ -45,7 +47,8 @@ export function materializeTools(projectDir) {
 
 /** Recursively copy srcDir → dstDir, overwriting a file only when the source is newer or the
  * destination is missing (additive: never deletes). Recurses into subdirectories so the runtime
- * stdlib in tools/lib/ is materialized too. `.sh` files are made executable.
+ * stdlib in tools/lib/ is materialized too. Executable scripts — `.sh` or any extensionless file
+ * with a `#!` shebang (e.g. `forge-facts`) — are made runnable.
  * @param {string} srcDir @param {string} dstDir @param {{copied:number, fresh:number}} tally */
 function copyTreeAdditive(srcDir, dstDir, tally) {
   mkdirSync(dstDir, { recursive: true });
@@ -62,8 +65,18 @@ function copyTreeAdditive(srcDir, dstDir, tally) {
       continue;
     }
     copyFileSync(s, d);
-    if (entry.name.endsWith(".sh")) chmodSync(d, 0o755);
+    if (entry.name.endsWith(".sh") || isShebangScript(s)) chmodSync(d, 0o755);
     tally.copied++;
+  }
+}
+
+/** Whether a file begins with a `#!` shebang — used to give extensionless tool scripts (e.g.
+ * `tools/forge-facts`) the executable bit on materialize. @param {string} file @returns {boolean} */
+function isShebangScript(file) {
+  try {
+    return readFileSync(file, "utf8").startsWith("#!");
+  } catch {
+    return false;
   }
 }
 
@@ -129,7 +142,15 @@ export function prepareGame(projectDir) {
   const tools = materializeTools(projectDir);
   const lib = ensureLibraryLink(projectDir);
   const assets = ensureAssetLibraryLink(projectDir);
-  return { tools, lib, assets };
+  // Tools are now in place, so the manifest's capability list reflects them. Generate after
+  // copy. Best-effort: a manifest failure must not break the materialize/doctor/new path.
+  let manifest = null;
+  try {
+    manifest = generateManifest(projectDir);
+  } catch {
+    /* non-fatal — agents fall back to re-deriving facts if the manifest is absent */
+  }
+  return { tools, lib, assets, manifest };
 }
 
 // CLI: `node ui/server/cli/materialize.js [projectDir]`

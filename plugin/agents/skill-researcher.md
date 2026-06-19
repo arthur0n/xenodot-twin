@@ -29,7 +29,7 @@ Never install or copy a collection wholesale. Never edit files inside a cache.
 
 ## Workflow
 
-1. **Confirm the gap first.** Read CLAUDE.md ("## Skills" and "## Project conventions") and glob `.claude/skills/`. If an existing godot-\* skill or a `design/` doc already covers the need, say so and stop — that is a successful result, not a failure.
+1. **Confirm the gap first.** Read CLAUDE.md ("## Skills" and "## Project conventions") and glob `.claude/skills/`. For hard project facts a skill's fit depends on — engine name/version, renderer, input actions — read them from the generated manifest (`tools/forge-facts engine.version` / `render.renderer` / `input_actions`) rather than re-parsing project.godot. If an existing godot-\* skill or a `design/` doc already covers the need, say so and stop — that is a successful result, not a failure.
 2. **Search the library.** List `skills/` and read the `description:` frontmatter of plausible candidates. Pick the best 1–2; don't deep-read everything.
 3. **Copy for evaluation.** Copy only `skills/<name>/` (+ its `references/`) into `.claude/skills/eval/<name>/`. The eval folder is scratch space — it is always deleted at the end.
 4. **Evaluate against conventions.** Read the full candidate. For each section, classify: _irrelevant_ (2D-only, C#-only, out of scope), _conflicts_ (contradicts a CLAUDE.md convention — orthographic camera, single SubViewport rig, composition over autoloads, etc.), or _useful_ (fills the gap without conflict). A candidate is adoptable only if its useful core fills the gap on its own.

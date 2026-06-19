@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# tools/forge-facts — print one deterministic project fact from the generated manifest, so an
+# agent reads a value instead of re-deriving it (re-reading project.godot, re-globbing tools/).
+# The manifest is written by the framework (gen-manifest.js) at .xenodot/manifest.json and its
+# absolute path is also exported as $XENODOT_MANIFEST.
+#
+#   tools/forge-facts                      # print the whole manifest (JSON)
+#   tools/forge-facts engine.bin           # /Applications/Godot.app/Contents/MacOS/Godot
+#   tools/forge-facts commands.validate    # tools/validate.sh
+#   tools/forge-facts render.renderer      # Forward Plus
+#   tools/forge-facts input_actions        # JSON array
+#
+# Note: $GODOT is already exported into every framework session — you do NOT need
+# `tools/forge-facts engine.bin` just to run the engine; plain `$GODOT …` works.
+set -euo pipefail
+
+manifest="${XENODOT_MANIFEST:-.xenodot/manifest.json}"
+if [ ! -f "$manifest" ]; then
+	echo "forge-facts: no manifest at $manifest — run \`npm run doctor\` (or materialize) to generate it." >&2
+	exit 1
+fi
+
+key="${1:-}"
+if [ -z "$key" ]; then
+	cat "$manifest"
+	exit 0
+fi
+
+# Walk the dotted key with Node (a hard framework dependency); JSON-print objects/arrays, raw-print scalars.
+node -e '
+  const fs = require("fs");
+  const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const v = process.argv[2].split(".").reduce((o, k) => (o == null ? undefined : o[k]), m);
+  if (v === undefined) { console.error("forge-facts: no key " + process.argv[2]); process.exit(2); }
+  process.stdout.write((typeof v === "object" ? JSON.stringify(v, null, 2) : String(v)) + "\n");
+' "$manifest" "$key"
