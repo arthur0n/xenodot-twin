@@ -2,12 +2,13 @@
 name: godot-combat
 description: Godot 4.6 COMBAT builder for the DiceOfFate project — enemies, weapons, projectiles, and combat juice. Use for any hands-on combat task: a shootable enemy (health/death/score), enemy AI (patrol/chase/aggro/line-of-sight), a travelling projectile weapon with fire-rate, the hit/kill-confirm contract, or one-shot combat VFX (muzzle/impact/death bursts, shockwave). NOT player movement/cameras (godot-player), NOT general scene/level scaffolding (godot-dev).
 model: sonnet
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
   - agent-report
   - caveman
   - godot-code-rules
   - godot-composition
+  - godot-docs
   - godot-enemy-ai
   - godot-fps-enemy-combat
   - godot-oneshot-vfx

@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { parseJSON } from "../../lib/json.js";
 import { resolveEngineBin } from "./engine-bin.js";
 
@@ -46,6 +47,9 @@ const args = process.argv.slice(2);
 /** Persisted Codex block (see getCodexConfig). Just an on/off switch — auth is owned by
  * the local `codex` CLI (`codex login`), so there is no key or URL to store here.
  * @typedef {{ enabled?: boolean }} CodexConfig */
+/** Persisted Godot-docs MCP block (see getDocsConfig). Just an on/off switch — the docs
+ * server is a stateless public-docs proxy (the bundled `@nuskey8/godot-docs-mcp`), so there is
+ * no key or URL to store here. @typedef {{ enabled?: boolean }} DocsConfig */
 
 /** Parsed `.xenodot.json` (written by `npm run setup`), or `{}` if absent/invalid.
  * Read once: it carries both the saved project path and the engine block. */
@@ -360,6 +364,69 @@ export function saveCodexConfig(patch) {
   }
 }
 
+/** Absolute path to the docs MCP server's launchable entry, or null if the package isn't
+ * installed. We resolve the dnt-compiled `esm/` build and run it with `node` directly: the
+ * package's `bin` wrongly points at raw `src/index.ts`, which Node refuses to type-strip under
+ * node_modules (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING), so `npx`-ing the bin fails. The
+ * package is a framework dependency, so this normally resolves; the null guard keeps a missing
+ * install from spawning `node undefined` (the toggle then simply mounts nothing). */
+export const DOCS_MCP_ENTRY = (() => {
+  try {
+    return createRequire(import.meta.url).resolve("@nuskey8/godot-docs-mcp/esm/index.js");
+  } catch {
+    return null;
+  }
+})();
+
+/** Effective Godot-docs MCP config, resolved fresh on every call (env `DOCS_ENABLED` →
+ * `.xenodot.json` `docs` block → disabled), so toggling it from the UI or the CLI takes
+ * effect WITHOUT a server restart (session.js re-reads it when a new session starts). The
+ * docs MCP is the official-docs source of truth (`@nuskey8/godot-docs-mcp`, run via npx over
+ * stdio); there is no secret — it queries the public docs site.
+ * @returns {{ enabled: boolean }} */
+export function getDocsConfig() {
+  /** @type {DocsConfig} */
+  let saved = {};
+  try {
+    saved =
+      /** @type {{ docs?: DocsConfig }} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8"))).docs ??
+      {};
+  } catch {
+    /* absent/invalid — treat as no saved block */
+  }
+  const env = process.env;
+  const enabled = env.DOCS_ENABLED != null ? env.DOCS_ENABLED === "true" : Boolean(saved.enabled);
+  return { enabled };
+}
+
+/** Browser-safe view of the Godot-docs config for /api/state: just `enabled` (there are no
+ * secrets). @returns {{ enabled: boolean }} */
+export function docsPublicConfig() {
+  return { enabled: getDocsConfig().enabled };
+}
+
+/** Merge a partial Godot-docs block into `.xenodot.json`, preserving every other field
+ * (projectDir, engine, hermes, codex, …). @param {DocsConfig} patch @returns {{ ok: true } | { error: string }} */
+export function saveDocsConfig(patch) {
+  /** @type {Record<string, unknown>} */
+  let saved = {};
+  try {
+    saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
+  } catch {
+    /* absent/invalid — start fresh */
+  }
+  const prev = /** @type {DocsConfig} */ (saved.docs ?? {});
+  /** @type {DocsConfig} */
+  const next = { ...prev };
+  if (patch.enabled != null) next.enabled = patch.enabled;
+  try {
+    writeFileSync(CONFIG_FILE, JSON.stringify({ ...saved, docs: next }, null, 2) + "\n");
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "write failed" };
+  }
+}
+
 // Bare tool names auto-allowed (no permission prompt) for the whole session — the
 // read/research/exec toolset background sub-agents need. This is the ONE lever that
 // reaches a backgrounded (headless) sub-agent: it has no interactive approver, so
@@ -375,7 +442,20 @@ export function saveCodexConfig(patch) {
 // what silently broke background edits. Authoring under `.claude/` stays a foreground,
 // human-approved act (orchestrator rule). Bash is safe here because the
 // destructive-git/-shell PreToolUse hooks gate it independently of the permission layer.
-export const AUTO_ALLOW_TOOLS = ["Read", "Glob", "Grep", "Bash", "WebSearch", "WebFetch"];
+export const AUTO_ALLOW_TOOLS = [
+  "Read",
+  "Glob",
+  "Grep",
+  "Bash",
+  "WebSearch",
+  "WebFetch",
+  // Godot-docs MCP tools (mounted only when getDocsConfig().enabled — see session.js).
+  // Listed unconditionally: allowing a tool that isn't mounted is a harmless no-op, and a
+  // bare full tool id is the one allow-lever that reaches a backgrounded (headless) sub-agent.
+  "mcp__godot-docs__godot_docs_search",
+  "mcp__godot-docs__godot_docs_get_page",
+  "mcp__godot-docs__godot_docs_get_class",
+];
 
 // The main loop is an orchestrator: pinned model (not the user's default) and a
 // routing-focused system prompt, editable in ui/orchestrator.md.
@@ -390,6 +470,7 @@ export const EFFORT = /** @type {import("@anthropic-ai/claude-agent-sdk").Effort
 export const ORCHESTRATOR_PROMPT = readFileSync(path.join(UI_DIR, "orchestrator.md"), "utf8");
 export const HERMES_BLOCK = readFileSync(path.join(UI_DIR, "hermes-block.md"), "utf8");
 export const CODEX_BLOCK = readFileSync(path.join(UI_DIR, "codex-block.md"), "utf8");
+export const DOCS_BLOCK = readFileSync(path.join(UI_DIR, "docs-block.md"), "utf8");
 
 // Claude Code's own transcript store for this project — every session here is
 // listed and resumable, terminal ones included.

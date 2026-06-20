@@ -13,6 +13,8 @@
 /** Browser-safe Codex config (no secrets — auth lives in the local `codex` CLI). `vendored` =
  * the optional plugin has been cloned on disk. @typedef {{ enabled: boolean, vendored: boolean }} CodexPublicConfig */
 /** Verdict from probing the local Codex install (`POST /api/codex/check`). @typedef {{ ok: boolean, enabled: boolean, cli: boolean, version?: string, authOk: boolean, authMode?: string, authMethod?: "chatgpt" | "apiKey", model?: string, vendored: boolean, caveat?: string, error?: string }} CodexCheck */
+/** Browser-safe Godot-docs MCP config (no secrets — it queries the public docs site).
+ * @typedef {{ enabled: boolean }} DocsPublicConfig */
 /**
  * @typedef {object} ProjectState
  * @property {string} name
@@ -26,6 +28,7 @@
  * @property {string[]} skills
  * @property {HermesPublicConfig} hermes - external Hermes researcher config (key-free)
  * @property {CodexPublicConfig} codex - optional Codex reviewer config (secret-free)
+ * @property {DocsPublicConfig} docs - optional Godot-docs MCP config (secret-free)
  */
 
 /** @typedef {{ id: string, title: string, when: string }} RecentSession */

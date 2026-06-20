@@ -222,6 +222,8 @@ async function open() {
   $("hermes-status").className = "settings-status";
   $("codex-status").textContent = "";
   $("codex-status").className = "settings-status";
+  $("docs-status").textContent = "";
+  $("docs-status").className = "settings-status";
   try {
     const [state, skillsData, agentSkills] = await Promise.all([
       /** @type {Promise<import("../../../lib/types.js").ProjectState>} */ (
@@ -246,6 +248,7 @@ async function open() {
       $("codex-status").textContent =
         "Switched on, but the plugin isn't vendored — run npm run codex:setup.";
     }
+    $input("docs-enabled").checked = state.docs.enabled;
     const builtinSkills = skillsData.builtins.map((name) => ({ name, description: "" }));
     renderSkillToggles(
       /** @type {HTMLElement} */ ($("skills-builtins-list")),
@@ -284,6 +287,7 @@ async function save() {
   };
   if (key) hermes.apiKey = key; // blank → server keeps the saved key
   const codex = { enabled: $input("codex-enabled").checked };
+  const docs = { enabled: $input("docs-enabled").checked };
 
   // Collect skill overrides from both built-in and workspace toggle lists.
   const overrides = {
@@ -296,7 +300,9 @@ async function save() {
     const agentChanges = collectAgentSkillChanges();
     /** @type {Promise<{ error?: string }>[]} */
     const posts = [
-      /** @type {Promise<{ error?: string }>} */ (postJSON("/api/settings", { hermes, codex })),
+      /** @type {Promise<{ error?: string }>} */ (
+        postJSON("/api/settings", { hermes, codex, docs })
+      ),
       /** @type {Promise<{ error?: string }>} */ (postJSON("/api/skills", { overrides })),
     ];
     if (agentChanges.length)

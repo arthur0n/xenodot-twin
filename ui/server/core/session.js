@@ -4,17 +4,10 @@
 // stays well under the complexity/size limits.
 import { createWriteStream, existsSync } from "node:fs";
 import path from "node:path";
-import { createSdkMcpServer, query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { parseJSON } from "../../lib/json.js";
 import { sessionHistory } from "../features/transcripts/transcripts.js";
-import { makeFormTool } from "../mcp-tools/form-tool.js";
-import { makeTaskTool } from "../mcp-tools/task-tool.js";
-import { makeAssetTool } from "../mcp-tools/asset-tool.js";
-import { makeAskTool } from "../mcp-tools/ask-tool.js";
-import { makePromoteTool } from "../mcp-tools/promote-tool.js";
-import { makeHermesTool, makeHermesFeedbackTool } from "../mcp-tools/hermes-tool.js";
-import { makeAutonomousTool } from "../mcp-tools/autonomous-tool.js";
-import { makeSetSkillTool } from "../mcp-tools/set-skill-tool.js";
+import { buildUiServer } from "../mcp-tools/ui-server.js";
 import { uiControlAllow } from "./ui-control.js";
 import { emitContextUsage } from "./stream.js";
 import { readPromotions, decide, markPromoted } from "../features/promotions/promotions-store.js";
@@ -44,12 +37,15 @@ import {
   ORCHESTRATOR_PROMPT,
   HERMES_BLOCK,
   CODEX_BLOCK,
+  DOCS_BLOCK,
   getHermesConfig,
   POLICIES,
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
   CODEX_PLUGIN_DIR,
   getCodexConfig,
+  getDocsConfig,
+  DOCS_MCP_ENTRY,
   ASSET_LIBRARY,
   LOG_DIR,
 } from "./config.js";
@@ -472,26 +468,26 @@ function runSession({
               (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
               (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR)
                 ? "\n\n" + CODEX_BLOCK
-                : ""),
+                : "") +
+              (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : ""),
           },
           canUseTool,
           abortController: abort,
           mcpServers: {
-            ui: createSdkMcpServer({
-              name: "ui",
-              version: "0.1.0",
-              tools: [
-                makeFormTool(waitFor, formAgentQueue),
-                makeTaskTool(send),
-                makeAssetTool(send),
-                makeAskTool(send),
-                makePromoteTool(send),
-                makeHermesTool(send, inbox.push),
-                makeHermesFeedbackTool(send),
-                makeAutonomousTool(send, checkLoop.disarm),
-                makeSetSkillTool(),
-              ],
+            ui: buildUiServer({
+              waitFor,
+              formAgentQueue,
+              send,
+              hermesPush: inbox.push,
+              disarm: checkLoop.disarm,
             }),
+            // Godot docs as a source of truth — the official-docs MCP, mounted only when the
+            // user enabled it (Settings toggle / DOCS_ENABLED / .xenodot.json `docs` block) AND
+            // the bundled package resolved. Launched as the compiled esm/ build via node (its bin
+            // is broken — see DOCS_MCP_ENTRY); surfaces as mcp__godot-docs__*.
+            ...(getDocsConfig().enabled && DOCS_MCP_ENTRY
+              ? { "godot-docs": { type: "stdio", command: "node", args: [DOCS_MCP_ENTRY] } }
+              : {}),
           },
         },
       });

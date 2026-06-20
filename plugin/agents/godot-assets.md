@@ -2,12 +2,13 @@
 name: godot-assets
 description: Godot 4.6 ASSETS builder for the DiceOfFate project — importing and procedurally generating placeholder art. Use to import + wire a sourced .glb model or pixel-art texture (NEAREST filter, no mipmaps, colliders, Make-Unique materials), or to generate placeholder textures/models procedurally via the headless gen_textures.gd / gen_models.gd tools. NOT art direction (art-director decides the look), NOT asset SOURCING/classification (asset-advisor), NOT the rendering rig (godot-visuals).
 model: sonnet
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
   - caveman
   - godot-code-rules
   - godot-composition
   - godot-verify
+  - godot-docs
   - tasks-mcp
   - agent-report
   - godot-mesh-import-pixel-art

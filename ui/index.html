@@ -506,6 +506,24 @@ codex login             # ChatGPT account (incl. Free) or API key</pre
 
         <hr class="settings-divider" />
         <p class="modal-sub">
+          <strong>Godot Docs</strong> — mount the official
+          <a href="https://docs.godotengine.org/en/stable/" target="_blank" rel="noreferrer"
+            >Godot documentation</a
+          >
+          as a <strong>source of truth</strong> MCP server. When on, builder agents verify API
+          signatures against the live docs (no more guessed Godot 3 → 4 renames), and the
+          <code>godot-docs-evangelist</code> agent answers deeper API questions with exact
+          signatures + doc links. Runs a small bundled docs server (needs network for the live
+          docs); no account, no billing.
+        </p>
+        <label class="form-label settings-toggle">
+          <input type="checkbox" id="docs-enabled" />
+          Enable Godot docs MCP
+        </label>
+        <div class="settings-status" id="docs-status"></div>
+
+        <hr class="settings-divider" />
+        <p class="modal-sub">
           <strong>Skills</strong> — game sessions default to framework-only skills. Opt in
           workspace and built-in skills below; changes take effect on the next session start.
         </p>

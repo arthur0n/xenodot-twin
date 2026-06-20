@@ -2,12 +2,13 @@
 name: godot-refactor
 description: Mechanical modularization agent for this Godot project. Extracts existing behavior into component nodes/scenes per the godot-composition skill — no design decisions, no behavior changes, no new features. Use when a script has grown past one job, when a second entity needs behavior that already exists in another, or when the user says "modularize", "extract", or "componentize". Do NOT use for designing new mechanics or implementing features.
 model: haiku
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__ui__tasks
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
   - caveman
   - godot-composition
   - godot-code-rules
   - godot-verify
+  - godot-docs
   - tasks-mcp
   - agent-report
 effort: low

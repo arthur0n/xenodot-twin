@@ -2,12 +2,13 @@
 name: godot-dev
 description: Godot 4.6 CORE/general builder for the DiceOfFate project — project setup, the main scene + level loading, tile-based level geometry (GridMap), export, and general glue code. The default builder for scaffolding and anything not owned by a specialist. Route DOMAIN work to the specialist instead — combat → godot-combat, player/camera/animation → godot-player, the visual look/lighting/VFX → godot-visuals, asset import/procedural art → godot-assets.
 model: sonnet
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
   - caveman
   - godot-code-rules
   - godot-composition
   - godot-verify
+  - godot-docs
   - tasks-mcp
   - agent-report
   - godot-project-conventions
