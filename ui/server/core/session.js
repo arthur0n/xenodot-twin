@@ -9,7 +9,7 @@ import { parseJSON } from "../../lib/json.js";
 import { sessionHistory } from "../features/transcripts/transcripts.js";
 import { buildUiServer } from "../mcp-tools/ui-server.js";
 import { uiControlAllow } from "./ui-control.js";
-import { emitContextUsage } from "./stream.js";
+import { emitContextUsage, runningChip, emitRunning } from "./stream.js";
 import { readPromotions, decide, markPromoted } from "../features/promotions/promotions-store.js";
 import { promoteOne } from "../features/promotions/promote-run.js";
 import { readAutonomous } from "../features/autonomous/autonomous-store.js";
@@ -55,6 +55,7 @@ import {
 /** @typedef {import("../../lib/types.js").ClientMsg} ClientMsg */
 /** @typedef {import("../../lib/types.js").WaitFor} WaitFor */
 /** @typedef {import("../../lib/types.js").Task} Task */
+/** @typedef {import("../../lib/types.js").RunningAgentWire} RunningChip */
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKUserMessage} SDKUserMessage */
 /** @typedef {Map<number, { type: string, resolve: (value: Reply) => void }>} Pending */
 /** Per-connection mutable session state, shared between runSession and the client-message
@@ -247,10 +248,10 @@ function bridgeSettle(t, { bgBoard, send }) {
  * AND background sub-agents, so this deterministically restores the inline close
  * that the background change removed for foreground work — no LLM cooperation
  * needed. @param {string | undefined} taskId
- * @param {{ runningByTask: Map<string, string>, send: (obj: OutMsg) => void }} deps */
+ * @param {{ runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps */
 function settleAgentTasks(taskId, { runningByTask, send }) {
   if (!taskId) return;
-  const label = runningByTask.get(taskId);
+  const label = runningByTask.get(taskId)?.label;
   runningByTask.delete(taskId);
   if (!label) return;
   send({ type: "tasks", tasks: closeOpenByAgent(label) });
@@ -260,9 +261,9 @@ function settleAgentTasks(taskId, { runningByTask, send }) {
  * running — a foreground straggler whose task_notification never arrived (e.g. a
  * hard interrupt). Live sub-agents (incl. background workers) and the
  * orchestrator's own cross-turn board are preserved.
- * @param {{ runningByTask: Map<string, string>, send: (obj: OutMsg) => void }} deps */
+ * @param {{ runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps */
 function sweepStragglers({ runningByTask, send }) {
-  const list = closeStragglerTasks(new Set(runningByTask.values()));
+  const list = closeStragglerTasks(new Set([...runningByTask.values()].map((v) => v.label)));
   if (list) send({ type: "tasks", tasks: list });
 }
 
@@ -308,15 +309,18 @@ function surfaceDenial(message, { agentByTool, send }) {
  * background workers onto the board, deterministically close each sub-agent's own
  * tasks when it finishes, surface auto-denials, and sweep stragglers at turn end.
  * @param {import("@anthropic-ai/claude-agent-sdk").SDKMessage} message
- * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, string>, send: (obj: OutMsg) => void }} deps
+ * @param {{ agentByTool: Map<string, string>, bgSpawns: Set<string>, bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps
  */
 function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, send }) {
   if (message.type === "assistant") {
     trackToolUses(message, { agentByTool, bgSpawns });
   } else if (message.type === "system" && message.subtype === "task_started") {
-    // Remember which sub-agent owns this spawn, so settleAgentTasks can close
-    // exactly its tasks when its notification arrives.
-    if (message.task_id) runningByTask.set(message.task_id, message.subagent_type ?? "");
+    // Record this sub-agent as live (label + display fields): settleAgentTasks closes its
+    // tasks on notification, and the running snapshot carries it to the strip.
+    if (message.task_id) {
+      runningByTask.set(message.task_id, runningChip(message, bgSpawns));
+      emitRunning(runningByTask, send);
+    }
     bridgeStart(
       { taskId: message.task_id, toolUseId: message.tool_use_id, desc: message.description },
       { bgSpawns, bgBoard, send },
@@ -324,6 +328,7 @@ function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, 
   } else if (message.type === "system" && message.subtype === "task_notification") {
     bridgeSettle({ taskId: message.task_id, status: message.status }, { bgBoard, send });
     settleAgentTasks(message.task_id, { runningByTask, send });
+    emitRunning(runningByTask, send);
   } else if (message.type === "system" && message.subtype === "permission_denied") {
     surfaceDenial(message, { agentByTool, send });
   } else if (message.type === "result") {
@@ -335,7 +340,7 @@ function trackMessage(message, { agentByTool, bgSpawns, bgBoard, runningByTask, 
  * subprocess — and thus every in-flight background worker — is gone), remove each
  * bridged background board task and close each still-running sub-agent's tasks, so
  * the board doesn't keep a dead worker as in_progress forever.
- * @param {{ bgBoard: Map<string, string>, runningByTask: Map<string, string>, send: (obj: OutMsg) => void }} deps */
+ * @param {{ bgBoard: Map<string, string>, runningByTask: Map<string, RunningChip>, send: (obj: OutMsg) => void }} deps */
 function settleAllBackground({ bgBoard, runningByTask, send }) {
   for (const taskId of [...bgBoard.keys()]) {
     bridgeSettle({ taskId, status: "stopped" }, { bgBoard, send });
@@ -382,8 +387,8 @@ function runSession({
   const bgSpawns = new Set(); // tool_use ids spawned with run_in_background
   /** @type {Map<string, string>} */
   const bgBoard = new Map(); // sdk task_id -> bridged board task id
-  /** @type {Map<string, string>} */
-  const runningByTask = new Map(); // sdk task_id -> subagent_type (in-flight sub-agents)
+  /** @type {Map<string, RunningChip>} */
+  const runningByTask = new Map(); // sdk task_id -> live sub-agent chip (authoritative running set)
   // `busy.value` lets the check loop skip ticks mid-turn; stash loop on session
   // so the control handler + autonomous tool can arm/disarm it.
   const busy = { value: false };
@@ -393,6 +398,7 @@ function runSession({
     try {
       send({ type: "policy", value: policy });
       send({ type: "tasks", tasks: readTasks() });
+      emitRunning(runningByTask, send); // reset the strip on (re)connect — set starts empty
       send({ type: "promotions", items: readPromotions() });
       // Repaint the Autonomous flag + re-arm the check loop if a goal survived the reconnect.
       const autoState = readAutonomous();

@@ -25,6 +25,8 @@ export function reduce(s, msg) {
   switch (msg.type) {
     case "tasks":
       return { ...s, tasks: msg.tasks }; // SNAPSHOT — replace
+    case "running":
+      return foldRunningSnapshot(s, msg.agents); // SNAPSHOT — reconcile by id
     case "promotions":
       return { ...s, promotions: msg.items }; // SNAPSHOT — replace
     case "policy":
@@ -199,6 +201,75 @@ function foldTaskStarted(s, m) {
     return { ...r, taskId, background: true };
   });
   return changed ? { ...s, running } : s;
+}
+
+// Grace window for the spawn→snapshot race: a chip is created by the spawn tool_use
+// fold (foldSpawn) a beat before the server's task_started lands it in the authoritative
+// running snapshot. Keep an unmatched chip this new so the reconcile never culls a
+// just-spawned agent before the server has acknowledged it.
+const RUNNING_GRACE_MS = 4000;
+
+/** Reconcile the running strip against the server's authoritative live set (its
+ * `runningByTask` map). Snapshot membership wins: a chip absent from it is dropped — the
+ * stale-card fix, since a missed task_notification can no longer strand a chip — UNLESS it
+ * was spawned within the grace window. A matched chip keeps its client-only fields
+ * (started, stopping, desc) and gains the server's taskId/background; a chip the client
+ * never folded (missed spawn) is added. Identity-preserving on an equivalent result, so a
+ * no-op snapshot doesn't repaint the strip. @param {State} s
+ * @param {import("../../lib/types.js").RunningAgentWire[]} agents @returns {State} */
+function foldRunningSnapshot(s, agents) {
+  const now = Date.now();
+  /** @type {Map<string, import("../../lib/types.js").RunningAgentWire>} */
+  const byTool = new Map();
+  /** @type {Map<string, import("../../lib/types.js").RunningAgentWire>} */
+  const byTask = new Map();
+  for (const a of agents) {
+    if (a.toolUseId) byTool.set(a.toolUseId, a);
+    if (a.taskId) byTask.set(a.taskId, a);
+  }
+  /** @type {RunningAgent[]} */
+  const next = [];
+  const taken = new Set();
+  for (const r of s.running) {
+    const a = byTool.get(r.id) ?? (r.taskId ? byTask.get(r.taskId) : undefined);
+    if (a) {
+      taken.add(a.toolUseId);
+      next.push({ ...r, taskId: a.taskId, background: a.background });
+    } else if (now - r.started < RUNNING_GRACE_MS) {
+      next.push(r); // spawned a beat ago — its task_started hasn't landed in the snapshot yet
+    }
+    // else: the authoritative set no longer holds it → drop the stale chip
+  }
+  for (const a of agents) {
+    if (taken.has(a.toolUseId)) continue;
+    if (next.some((r) => r.id === a.toolUseId || (r.taskId && r.taskId === a.taskId))) continue;
+    next.push({
+      id: a.toolUseId,
+      label: a.label,
+      desc: a.desc,
+      started: a.started,
+      background: a.background,
+      taskId: a.taskId,
+    });
+  }
+  return sameRunning(s.running, next) ? s : { ...s, running: next };
+}
+
+/** Equivalent iff same length and, position-for-position, equal identity fields. The
+ * reconcile rebuilds chip objects, so this content compare (not ref equality) is what lets
+ * a no-op snapshot keep the slice reference and skip a repaint.
+ * @param {readonly RunningAgent[]} a @param {readonly RunningAgent[]} b @returns {boolean} */
+function sameRunning(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((x, i) => {
+    const y = b[i];
+    return (
+      x.id === y?.id &&
+      x.taskId === y?.taskId &&
+      x.background === y?.background &&
+      x.stopping === y?.stopping
+    );
+  });
 }
 
 /** A backgrounded worker settled: drop its chip and post a result banner.

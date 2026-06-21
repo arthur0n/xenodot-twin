@@ -34,6 +34,19 @@ const toolResult = (toolUseId) => ({
   },
 });
 
+/** @param {import("./lib/types.js").RunningAgentWire[]} agents @returns {ServerMsg} */
+const running = (agents) => ({ type: "running", agents });
+
+/** @param {Partial<import("./client/core/store.js").RunningAgent>} [over] @returns {import("./client/core/store.js").RunningAgent} */
+const chip = (over = {}) => ({
+  id: "tu",
+  label: "w",
+  desc: "build",
+  started: 0,
+  background: true,
+  ...over,
+});
+
 check("tasks snapshot replaces tasks but keeps the chat ref (identity invariant)", () => {
   const s0 = initialState();
   const s1 = reduce(s0, {
@@ -175,6 +188,63 @@ check("a foreground permission_denied logs to activity only (no banner)", () => 
   });
   assert.equal(s.activity.at(-1)?.kind, "deny");
   assert.equal(s.chat.length, 0);
+});
+
+check("running snapshot drops a stale chip absent from the authoritative set", () => {
+  const s0 = { ...initialState(), running: [chip({ taskId: "task-1" })] };
+  const s1 = reduce(s0, running([])); // server: nothing live → the stale-card fix
+  assert.equal(s1.running.length, 0);
+  assert.notEqual(s1.running, s0.running);
+});
+
+check("running snapshot keeps a just-spawned chip not yet in the set (grace window)", () => {
+  const s0 = { ...initialState(), running: [chip({ started: Date.now() })] };
+  const s1 = reduce(s0, running([])); // its task_started hasn't landed in the snapshot yet
+  assert.equal(s1.running.length, 1);
+});
+
+check("running snapshot keeps a matched chip's client fields and merges server taskId", () => {
+  const s0 = { ...initialState(), running: [chip({ started: 123, stopping: true })] };
+  const s1 = reduce(
+    s0,
+    running([
+      { taskId: "task-1", toolUseId: "tu", label: "w", desc: "x", started: 999, background: true },
+    ]),
+  );
+  assert.equal(s1.running.length, 1);
+  assert.equal(s1.running[0]?.taskId, "task-1"); // gained from the server
+  assert.equal(s1.running[0]?.started, 123); // client-only field preserved
+  assert.equal(s1.running[0]?.stopping, true); // client-only field preserved
+});
+
+check("running snapshot adds a server chip the client never spawned", () => {
+  const s1 = reduce(
+    initialState(),
+    running([
+      { taskId: "task-1", toolUseId: "tu2", label: "w", desc: "b", started: 5, background: true },
+    ]),
+  );
+  assert.equal(s1.running.length, 1);
+  assert.equal(s1.running[0]?.id, "tu2");
+  assert.equal(s1.running[0]?.label, "w");
+});
+
+check("an equivalent running snapshot is identity-preserving (no repaint)", () => {
+  const s0 = { ...initialState(), running: [chip({ started: 123, taskId: "task-1" })] };
+  const s1 = reduce(
+    s0,
+    running([
+      {
+        taskId: "task-1",
+        toolUseId: "tu",
+        label: "w",
+        desc: "build",
+        started: 123,
+        background: true,
+      },
+    ]),
+  );
+  assert.equal(s1.running, s0.running); // same ref → per-slice notify skips it
 });
 
 console.log(`\n${passed} checks passed`);

@@ -131,6 +131,10 @@
 
 // ---------- WebSocket messages ----------
 /** @typedef {{ role: "user" | "assistant", text: string }} HistoryItem */
+/** One in-flight sub-agent in the authoritative running-strip snapshot. The server
+ * owns this set (its `runningByTask` map); the client reconciles `state.running`
+ * against it so a missed lifecycle event self-heals on the next snapshot.
+ * @typedef {{ taskId: string, toolUseId: string, label: string, desc: string, started: number, background: boolean }} RunningAgentWire */
 /**
  * Server -> browser. Discriminated on `type`.
  * @typedef {(
@@ -142,6 +146,7 @@
  *   | { type: "policy", value: string }
  *   | { type: "history", items?: HistoryItem[] }
  *   | { type: "tasks", tasks: Task[] }
+ *   | { type: "running", agents: RunningAgentWire[] }
  *   | { type: "promotions", items: Promotion[] }
  *   | { type: "permission_denied", toolName: string, agent?: string, reason?: string, background?: boolean }
  *   | { type: "context", percentage: number, totalTokens: number, maxTokens: number }
