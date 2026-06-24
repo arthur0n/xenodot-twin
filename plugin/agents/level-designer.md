@@ -6,6 +6,7 @@ tools: Read, Glob, Grep, Write, Skill, mcp__ui__form, mcp__ui__tasks
 skills:
   - caveman
   - gd-utilities-level-design
+  - godot-greybox
   - tasks-mcp
 effort: medium
 ---

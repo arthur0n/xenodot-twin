@@ -48,6 +48,19 @@ var _gravity: float = 0.0                    # private: _ prefix
 - `class_name`: required for entity/component scripts other scripts reference by type. Omit for `main.gd` and `tools/` SceneTree scripts.
 - Indentation: tabs. Line length ≤100.
 - Naming: snake*case funcs/vars/signals, PascalCase classes/enums, UPPER_SNAKE consts, `*`prefix = private. Signal handlers:`_on_<Source>\_<signal>`.
+- Author data/config assets as typed `.tres` Resources.
+
+## Inspector `@export` hints (complex systems)
+
+Complex-system Resources/components (e.g. `CastData`, `HealthComponent`) SHOULD annotate tunables so the Inspector constrains them — prevents out-of-range/typo bugs and self-documents:
+
+- `@export_range(min, max[, step])` on numeric tunables (health, damage, radius, speeds, durations) — slider + bounds.
+- `@export_group("Name")` to structure a Resource/component with many fields into collapsible sections.
+- `@export_enum("a","b")` / `@export_flags("a","b")` where a field is a fixed set / bitmask (`@export_flags` fits future ability/AoE layer-mask fields).
+
+Keep plain `@export var x: Type` when no hint adds value — do not over-annotate. Use `@export_category` sparingly: it bleeds into child nodes in the Inspector.
+
+**`@tool`** ONLY when edit-time behavior is genuinely needed; ALWAYS guard editor-time code with `Engine.is_editor_hint()` and assume no game state at edit time — an unguarded `@tool` script can crash the editor. Strict typing still applies.
 
 ## Escape hatches — exactly two greppable markers
 
@@ -120,6 +133,9 @@ Steps: 1 format (`gdformat --check`) → 2 lint (`gdlint`) → 3 parse + analyze
 | Step 5 fails on engine WARNING unrelated to change                                                       | Still failure — investigate; smoke grep is deliberately strict                                                                                                                                                                                                                                                                                                                             |
 | Step 5 smoke (or step 3 parse) FAILs on a `push_warning`/`push_error` I added in `_ready()`              | The smoke/parse grep flags every WARNING/ERROR line, including deliberate ones fired at scene load. Move the diagnostic to the real failure branch (a guard that only fires on bad input), not `_ready()`; for an always-on note use a `#` comment. Do NOT widen the `validate.sh` exclusion list.                                                                                         |
 | `@warning_ignore("unsafe_method_access")` above `if x.has_method(...)` still errors                      | The directive binds to the NEXT statement; the unsafe call is the bare call INSIDE the guard, not the `if` line. Put the `# SEAM:` comment + `@warning_ignore` directly above the call itself (an early-return guard, then the ignored bare call), not above the `has_method` check.                                                                                                       |
+| New `class_name` script / `.tres` has no `.uid` (missing sidecar after a headless write)                 | The editor importer generates `.uid` sidecars — a headless write without an import leaves them missing. Run `$GODOT --headless --path . --import` to generate them (`validate.sh` step 3 already does this). NEVER hand-author a `.uid` file.                                                                                                                                              |
+| Out-of-range / typo value silently accepted on a complex-system tunable (negative health, absurd radius) | Annotate the numeric tunable `@export_range(min, max[, step])` so the Inspector bounds it; group many fields with `@export_group`. See Inspector `@export` hints above.                                                                                                                                                                                                                    |
+| `@tool` script crashes/errors in the editor (null game state at edit time)                               | Guard all editor-time code with `if Engine.is_editor_hint():`; assume no scene/game state exists. Only use `@tool` when edit-time behavior is genuinely needed.                                                                                                                                                                                                                            |
 
 ## Warnings reference (ground truth = project.godot [debug])
 

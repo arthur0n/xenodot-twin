@@ -8,9 +8,12 @@ skills:
   - caveman
   - godot-code-rules
   - godot-composition
+  - godot-data-driven-effect-composition
+  - godot-data-driven-enemy
   - godot-docs
   - godot-enemy-ai
   - godot-fps-enemy-combat
+  - godot-looping-particle-vfx
   - godot-oneshot-vfx
   - godot-travelling-projectile-3d
   - godot-verify

@@ -74,12 +74,21 @@ function buildInstructions(persona, context) {
     "You are running headless for the Xenodot Hive: there is no interactive human in this run. " +
     "Your FINAL message IS your entire deliverable — put your complete, self-contained findings " +
     "there (a partial answer or a question back is lost). Work to a conclusion, then stop.\n\n" +
-    "--- Your own brain ---\n" +
-    "Use and grow your own memory and skills freely: if you work out a reusable research workflow, " +
-    "save it as a skill, and remember durable facts about this team and its stack — this is your " +
-    "private brain (~/.hermes) and it makes your next investigation faster. But you NEVER edit the " +
-    "caller's game or codebase, run their build, or write their files; you only investigate and " +
-    "report. Adopting anything into their project is a separate human-gated step you take no part in.";
+    "--- Your own brain (persist before you finish) ---\n" +
+    "You have a private brain (~/.hermes) — your own memory and skills — and growing it makes your " +
+    "next investigation faster. The background self-improvement review only fires periodically, so " +
+    "don't rely on it: before you write your final message, if this run produced a durable, reusable " +
+    "fact about this team/stack or a repeatable research workflow, SAVE it now.\n" +
+    "- Skills: before creating one, list your existing skills and PATCH the closest match instead of " +
+    "spawning a near-duplicate — an overlapping, bloated library is worse than a lean one. Give every " +
+    "skill a sharp, trigger-rich description (when to use it); that one line is what makes future-you " +
+    "re-select it.\n" +
+    "- Memory: keep durable conventions and stack facts in memory; when it nears capacity (the header " +
+    "shows the percentage), CONSOLIDATE or replace stale entries rather than appending, so writes " +
+    "don't fail at the cap.\n" +
+    "But you NEVER edit the caller's game or codebase, run their build, or write their files; you only " +
+    "investigate and report. Adopting anything into their project is a separate human-gated step you " +
+    "take no part in.";
   const extra = context?.trim();
   return persona.brief + headless + (extra ? `\n\n--- Task context ---\n${extra}` : "");
 }

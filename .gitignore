@@ -18,3 +18,6 @@ graphify-out/
 # Detached `npm run start:bg` process records (PID + log per game) — runtime, machine-local.
 .xenodot-run/
 
+# Sub-agent handoff documents written under the plugin at runtime — machine-local, not shipped.
+plugin/.xenodot/
+

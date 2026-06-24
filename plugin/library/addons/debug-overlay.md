@@ -1,27 +1,16 @@
-# Debug Overlay (FPS / Performance)
+# Debug Overlay / In-Game Playtest HUD
 
-**Request** — In-game FPS, frame time, and memory/draw-call stats overlay for Godot 4.3, without building from scratch.
-**Verdict** — parked — adopt was picked by an automated smoke test, confirm before installing (recommendation: adopt godot-debug-menu)
+**Request** — Playtester needs live readouts (FPS, player pos/vel, enemy FSM states, wave counts, trap-floor events) as on-screen overlay to report bugs accurately.
+**Verdict** — rejected — build it ourselves
 
-## Candidates
+**Candidates**
+| Addon | Source | License | Godot | Language | Last activity | Notes |
+|---|---|---|---|---|---|---|
+| godot-debug-menu | [github](https://github.com/godot-extended-libraries/godot-debug-menu) | MIT | 4.x | GDScript | Dec 2023 (v1.2.0) | FPS/frametime/GPU graphs only; adds `DebugMenu` autoload; F3 toggle; 4.3 FPS discrepancy w/ MT rendering (cosmetic); no 4.6 breakage |
+| PankuConsole | [github](https://github.com/Ark2000/PankuConsole) | MIT | 4.x | GDScript | Jul 2024 (v1.7.9) | REPL + log overlay + draggable windows; <256 KB; adds autoload; 1.4k stars; active |
 
-| Addon                   | Source                                                       | License | Godot             | Language | Last activity            | Notes                                                          |
-| ----------------------- | ------------------------------------------------------------ | ------- | ----------------- | -------- | ------------------------ | -------------------------------------------------------------- |
-| godot-debug-menu        | https://github.com/godot-extended-libraries/godot-debug-menu | MIT     | 4.2+ (tested 4.3) | GDScript | Nov 2025                 | Asset Library #1902; maintained by Calinou (Godot contributor) |
-| godot-fps-graph-overlay | https://github.com/SanderVanhove/godot-fps-graph-overlay     | MIT     | unspecified       | GDScript | ~4 commits, low activity | FPS graph only; adds autoload; sparse docs                     |
+**Why** — Neither addon surfaces enemy FSM states, WaveManager wave/spawn counts, or trap-floor events — custom wiring required regardless. godot-debug-menu is FPS-metrics only. PankuConsole adds REPL/windowing complexity unneeded for a playtest HUD. Conventions favor lightweight game-local solutions with no stray autoloads; ~50-line CanvasLayer + RichTextLabel + ring buffer covers every required readout, zero external deps, zero convention violations.
 
-## Why
+**Install** — n/a (build it ourselves)
 
-godot-debug-menu is the clear choice. MIT license, GDScript throughout, maintained by a Godot core contributor (Calinou) with a commit as recent as November 2025. The addon is a single `CanvasLayer`-based scene registered as an autoload `DebugMenu` — one stray autoload, but it is self-contained and purely additive (no node injection into your scene tree, no dependency on SubViewport). It shows FPS, frame time, CPU/GPU time graphs in compact or detailed mode, toggled with F3. Works across Forward+, Mobile, and Compatibility renderers. The code is clean: `extends CanvasLayer`, `@export` refs, no inheritance abuse. The autoload convention conflict is minor — it can be disabled in export builds via `DebugMenu.style = DebugMenu.Style.HIDDEN` and is dev-only tooling, not game logic.
-
-## Install
-
-- **Pinned source:** `https://github.com/godot-extended-libraries/godot-debug-menu/archive/ff124615a7da981722b3927343b9965a6a156718.zip`
-- **Target path:** `addons/debug_menu/`
-- **Enable steps:** Project Settings → Plugins → "Debug Menu" → Enable. The plugin registers `DebugMenu` autoload automatically. Toggle in-game with F3.
-- **godot-dev task:** Download and unzip the archive above into `addons/debug_menu/`, then enable the plugin in Project Settings. Verify by running the project (F5) and pressing F3 — compact overlay should appear showing FPS and frame time.
-- **What godot-verify should observe:** `DebugMenu` node present in autoloads, F3 toggles a CanvasLayer overlay with FPS/frametime values updating each frame.
-
-## Later
-
-- `godot-fps-graph-overlay` (MIT, GDScript) — FPS graph only, low maintenance, no draw-call stats. Worth revisiting only if a purely visual FPS sparkline is wanted without the full DebugMenu overlay.
+**Later** — PankuConsole: revisit if runtime expression evaluator useful for balance tweaks. godot-debug-menu: layer on top of custom overlay if GPU profiling needed.
