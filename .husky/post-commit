@@ -1,2 +1,6 @@
+# Optional untracked local extensions (personal automation). Runs FIRST so a local step
+# that amends the commit lands before the release tag below points at it.
+[ -f "$(dirname "$0")/post-commit.local" ] && . "$(dirname "$0")/post-commit.local"
+
 # If a release was staged in pre-commit, create the annotated tag on this commit.
 node ui/server/cli/release-tag.js
