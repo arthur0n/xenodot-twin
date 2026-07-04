@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — new-onset motion sickness (FPS, Blast Court) — 2026-06-23"
+description: "Grounds Hermes motion-sickness findings against real repo code — resolves its 6 open questions and maps each mitigation to concrete files."
+timestamp: 2026-06-24T18:13:57+01:00
+---
+
 # Verdict — new-onset motion sickness (FPS, Blast Court) — 2026-06-23
 
 Input: Hermes findings `.xenodot/handoffs/hermes-motion-sickness.md` (run run_d85e737934e647d397a7903d1895d702), grounded against real repo code by skill-researcher. Hermes could not read the repo; this verdict resolves its 6 open questions and maps each mitigation to concrete files.

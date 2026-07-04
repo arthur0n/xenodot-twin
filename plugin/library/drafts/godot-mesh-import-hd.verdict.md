@@ -1,3 +1,10 @@
+---
+type: draft
+title: "Verdict — HD mesh-import skill"
+description: "GAP: builders have no canonical workflow for importing/shading a sourced standard-HD .glb. Existing godot-mesh-import-pixel-art bakes NEAREST/flat + Requires the retired SubViewport rig."
+timestamp: 2026-06-27T18:29:54+01:00
+---
+
 # Verdict — HD mesh-import skill
 
 **GAP**: builders have no canonical workflow for importing/shading a sourced standard-HD `.glb`. Existing `godot-mesh-import-pixel-art` bakes NEAREST/flat + Requires the retired SubViewport rig.

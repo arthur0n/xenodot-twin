@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Cyclops Level Builder"
+description: "parked — runtime coupling is the blocker; revisit if/when a bake-to-static-body command ships"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # Cyclops Level Builder
 
 **Request** — evaluate the Cyclops Level Builder addon as a replacement for hand-typing Transform3D matrices when building 3D blockout levels (the hand-built path only; the draw-grid pipeline is separate).

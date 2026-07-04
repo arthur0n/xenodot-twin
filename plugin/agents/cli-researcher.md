@@ -54,6 +54,14 @@ In this order — stop when you can write the definition:
 One doc per capability: `library/tools/<slug>.md`
 
 ```markdown
+---
+type: tool-definition
+title: "<capability> — tool definition"
+description: "build thin — <what it wraps> | lift from <MIT source> | needs MCP — parked"
+timestamp: <verdict date, ISO 8601>
+resource: <lift-source URL, only for a lift verdict>
+---
+
 # <capability> — tool definition
 
 **Problem** — the gap an agent flagged: what it needed to do/see, what it tried, why what we had fell short.
@@ -65,6 +73,11 @@ One doc per capability: `library/tools/<slug>.md`
 **Build** — the one-line task for godot-dev/tooling, and what godot-verify should observe.
 **Consumers** — which agents/skills call it and how they learn it exists.
 ```
+
+The frontmatter is the record's machine face (OKF-style — the UI sidebar and the kind index
+read it; `library/README.md` documents the convention). Keep `description` a one-line verdict.
+After writing the doc, append its line to `library/tools/index.md` (sorted by filename):
+`- [<title>](<slug>.md) — <description>`.
 
 Keep it under a page. A registry nobody can query is research nobody reuses.
 

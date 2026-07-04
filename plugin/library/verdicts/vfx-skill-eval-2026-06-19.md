@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — VFX for the FPS POC (Hermes findings eval)"
+description: "Recommend-only eval of Hermes VFX findings — FPS combat juice gaps (muzzle, hit/death, rescue feedback); decision gate pending user."
+timestamp: 2026-06-19T08:25:00+01:00
+---
+
 # Verdict — VFX for the FPS POC (Hermes findings eval)
 
 Date: 2026-06-19 · Agent: skill-researcher · Input: Hermes VFX findings (run c47cfbbd…)

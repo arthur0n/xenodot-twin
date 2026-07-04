@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — Greybox FPS 'traps' (Hermes findings, 2026-06-26)"
+description: "REJECT a new godot-traps skill. REJECT the TrapZone.tscn enum component as a system."
+timestamp: 2026-06-26T21:58:01+01:00
+---
+
 # Verdict — Greybox FPS "traps" (Hermes findings, 2026-06-26)
 
 ## VERDICT (on top of buckets)

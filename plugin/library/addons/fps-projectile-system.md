@@ -1,3 +1,10 @@
+---
+type: addon
+title: "FPS Projectile & Weapon Firing System"
+description: "rejected — build it ourselves (skill-researcher: godot-projectile)"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # FPS Projectile & Weapon Firing System
 
 **Request** — Before building A3 (projectile spawn → move → despawn, Area3D hit detection, fire-rate Timer) from scratch, evaluate whether a free Godot 4 addon already covers it and can be adopted.

@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Health / Damage Component"
+description: "rejected — build it ourselves (tools/lib/health_component.gd)"
+timestamp: 2026-06-24T18:13:57+01:00
+---
+
 # Health / Damage Component
 
 **Request** — Replace fragmented copy-paste `apply_damage`/`_health` in `enemy.gd`, `target.gd`, `npc.gd` with a shared component; unify enemy + player health handling. Raised by orchestrator / Hermes research pass.

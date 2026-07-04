@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Behaviour Tree Addon — Buy vs Build"
+description: "REJECTED — build trait-mixing via godot-enemy-archetype (behaviour-node"
+timestamp: 2026-07-04T19:34:45+01:00
+---
+
 # Behaviour Tree Addon — Buy vs Build
 
 **Request** — evaluate whether converting a flat-flag `EnemyArchetype` Resource into a

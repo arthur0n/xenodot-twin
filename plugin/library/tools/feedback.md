@@ -1,3 +1,10 @@
+---
+type: tool-definition
+title: "scene feedback (render frame + capture run output) — tool definition"
+description: "build thin. ~80% already exists in tools/verify_render.gd (boots a scene, warms up frames, calls img.save_png(...)). The build is a thin wrapper + small lifts, NOT a new renderer:"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # scene feedback (render frame + capture run output) — tool definition
 
 **Problem** — the gap an agent flagged: after a `godot-dev`/`godot-refactor`/asset-wiring change to a scene, material, or texture-import, the agent cannot **see** whether it rendered correctly. CLAUDE.md forbids trusting the editor viewport (it uses the editor camera, hiding camera/lighting/material bugs), so today the only confirmation is a human pressing F5 and eyeballing it. godot-verify layer 3 (`verify_render.gd`) already boots a scene, renders ~20 frames, and even saves a frame — but it is a **flat-color pass/fail gate**: it only writes the frame to a fixed, "do-not-read" path (`.godot/verify_render_last.png`), only on the success branch, and it surfaces _no_ run log. There is no single agent-invokable call that says "boot this scene, hand me back a frame I (or the orchestrator) can look at, and the runtime debug/error output of that run" — regardless of whether the render passed. That perception step is what stalls the build→verify loop on a human.

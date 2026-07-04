@@ -1,3 +1,10 @@
+---
+type: tool-definition
+title: "tscn sibling name clash lint — tool definition"
+description: "Build thin. No MIT tool exists for this. The parse is ~30 lines of Python:"
+timestamp: 2026-06-26T21:58:01+01:00
+---
+
 # tscn sibling name clash lint — tool definition
 
 **Problem** — Recurring editor error "An incoming node's name clashes with [node] already in the

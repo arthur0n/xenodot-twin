@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Sprint View-Model 'Running Feel' — Digest"
+description: "Request — Add a sprint running-feel to an FPS view-model: the weapon lowers + swings to the"
+timestamp: 2026-06-19T00:02:27+01:00
+---
+
 # Sprint View-Model "Running Feel" — Digest
 
 **Request** — Add a sprint running-feel to an FPS view-model: the weapon lowers + swings to the

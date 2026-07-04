@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Cast System — Buy vs. Build Verdict"
+description: "Build our own. No adoptable candidate. v1 already cleaner architecture than all GDScript options."
+timestamp: 2026-06-24T18:13:57+01:00
+---
+
 # Cast System — Buy vs. Build Verdict
 
 **Request** — Evaluate open-source ability/spell/cast systems for Godot 4.x; decide adopt vs. grow our own Cast System v1.

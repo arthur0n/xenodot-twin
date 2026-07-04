@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Skill eval — enemy hit/death/kill-confirm combat contract (2026-06-17)"
+description: "Researcher record. Gap surfaced by bug-triage (Track H): no durable contract for"
+timestamp: 2026-07-04T19:59:56.818Z
+---
+
 # Skill eval — enemy hit/death/kill-confirm combat contract (2026-06-17)
 
 Researcher record. Gap surfaced by bug-triage (Track H): no durable contract for

@@ -1,3 +1,10 @@
+---
+type: source-list
+title: "Model Sources — free low-poly / CC0 3D models (interim sourcing loop)"
+description: "adopt the web-link + human-in-the-loop loop below as the interim"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # Model Sources — free low-poly / CC0 3D models (interim sourcing loop)
 
 **Request** — 3D props the agent pipeline can't author itself: discrete furniture and

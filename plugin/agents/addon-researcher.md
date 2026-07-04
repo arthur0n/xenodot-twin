@@ -55,6 +55,14 @@ In this order — stop when you have 2–3 solid candidates:
 One doc per investigated need: `library/addons/<slug>.md`
 
 ```markdown
+---
+type: addon
+title: "<Need title>"
+description: "adopted <name> — <deciding reason> | rejected — build it ourselves | parked"
+timestamp: <verdict date, ISO 8601>
+resource: <source URL of the adopted/lead candidate, when there is one>
+---
+
 # <Need title>
 
 **Request** — one sentence: what we needed and who asked.
@@ -66,6 +74,11 @@ One doc per investigated need: `library/addons/<slug>.md`
 **Install** — only when adopted: pinned URL (tag/commit), target `addons/<name>/`, enable steps, the one-line godot-dev task, what to verify.
 **Later** — runner-up candidates worth remembering, one line each.
 ```
+
+The frontmatter is the record's machine face (OKF-style — the UI sidebar and the kind index
+read it; `library/README.md` documents the convention). Keep `description` a one-line verdict.
+After writing the doc, append its line to `library/addons/index.md` (sorted by filename):
+`- [<title>](<slug>.md) — <description>`.
 
 Keep the doc under a page. A catalog nobody reads is research nobody reuses.
 

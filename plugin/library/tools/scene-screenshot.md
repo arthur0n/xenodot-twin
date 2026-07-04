@@ -1,3 +1,10 @@
+---
+type: tool-definition
+title: "scene-screenshot — tool definition"
+description: "build thin. verify_render.gd already contains the correct warmup loop and save_png call, but samples root.get_texture() (the window viewport) rather than the render target that actually holds the 3D …"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # scene-screenshot — tool definition
 
 **Problem** — `tools/verify_render.gd` (godot-verify layer 3) reports only average luminance + spread — a "something rendered" statistic that is blind to geometry errors. When three sourced `.glb` furniture models were wired into a level scene, every verify pass reported `VERIFY-RENDER: OK` (luminance ~0.63), yet the user reported a mis-scaled prop, a wrong model, and a prop that failed to render entirely. The headless luminance check cannot show model placement, scale, floating/sinking, silhouette, or lighting quality. Agents and humans need an actual PNG image of the rendered scene so visual judgment is possible.

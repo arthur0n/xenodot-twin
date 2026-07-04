@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — automated runtime testing (input-bot + log capture)"
+description: "No library candidate — both runtime-testing recommendations are GdUnit4-free hand-rolled patterns; the home is the existing godot-runtime-smoke skill family."
+timestamp: 2026-06-20T21:58:32+01:00
+---
+
 # Verdict — automated runtime testing (input-bot + log capture)
 
 Date: 2026-06-19. Input: Hermes findings (run run_297a46a27ff54268a945f1cca925f1ab).

@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — Hermes 'reusable-systems contract' findings (2026-06-19)"
+description: "Scope: Hermes recommendations on contract/data/typing patterns for DiceOfFate (Godot 4.6,"
+timestamp: 2026-06-19T08:25:00+01:00
+---
+
 # Verdict — Hermes "reusable-systems contract" findings (2026-06-19)
 
 Scope: Hermes recommendations on contract/data/typing patterns for DiceOfFate (Godot 4.6,

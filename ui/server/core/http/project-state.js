@@ -11,6 +11,7 @@ import {
   codexPublicConfig,
   docsPublicConfig,
 } from "../config.js";
+import { parseFrontmatter } from "../../../lib/frontmatter.js";
 
 /**
  * @param {string} dir
@@ -95,20 +96,26 @@ export function projectState() {
     designDocs: walk(path.join(dir, "design"), [".md"], [], dir)
       .filter((f) => !f.endsWith("README.md"))
       .map((f) => ({ path: f, title: firstHeading(path.join(dir, f)) })),
-    // Addon research catalog (written by addon-researcher) — the verdict line
-    // makes adopt/reject visible from the sidebar without opening docs.
+    // Research record catalog (addon/tool/skill researchers) — records carry OKF-style
+    // YAML frontmatter (type/title/description, gated by `npm run check:library`), so the
+    // sidebar shows the verdict without opening docs. index.md files are generated
+    // navigation, not records.
     library: walk(path.join(dir, "library"), [".md"], [], dir)
-      .filter((f) => !f.endsWith("README.md"))
+      .filter((f) => !f.endsWith("README.md") && !f.endsWith("index.md"))
       .map((f) => {
         const full = path.join(dir, f);
-        let verdict = null;
+        /** @type {import("../../../lib/frontmatter.js").FrontmatterData | null} */
+        let fm = null;
         try {
-          verdict =
-            readFileSync(full, "utf8")
-              .match(/^\*\*Verdict\*\*\s*[—-]\s*(.+)$/m)?.[1]
-              ?.trim() ?? null;
+          fm = parseFrontmatter(readFileSync(full, "utf8")).data;
         } catch {}
-        return { path: f, title: firstHeading(full), verdict };
+        return {
+          path: f,
+          title: typeof fm?.title === "string" && fm.title ? fm.title : firstHeading(full),
+          type: typeof fm?.type === "string" && fm.type ? fm.type : null,
+          description:
+            typeof fm?.description === "string" && fm.description ? fm.description : null,
+        };
       }),
     scenes: walk(dir, [".tscn"], [], dir),
     scripts: walk(dir, [".gd"], [], dir),

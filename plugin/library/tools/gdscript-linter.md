@@ -1,3 +1,10 @@
+---
+type: tool-definition
+title: "GDScript linter — gdstyle (in-editor) over gdlint (gate)"
+description: "Verdict: Adopt gdstyle as the in-editor, config-driven GDScript linter (the"
+timestamp: 2026-06-17T23:44:12+01:00
+---
+
 # GDScript linter — gdstyle (in-editor) over gdlint (gate)
 
 **Verdict:** Adopt **gdstyle** as the in-editor, config-driven GDScript linter (the

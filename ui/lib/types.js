@@ -6,7 +6,7 @@
 
 // ---------- /api/state (project inventory) ----------
 /** @typedef {{ path: string, title: string }} DesignDoc */
-/** @typedef {{ path: string, title: string, verdict: string | null }} LibraryEntry */
+/** @typedef {{ path: string, title: string, type: string | null, description: string | null }} LibraryEntry */
 /** @typedef {{ name: string, model: string | null }} AgentEntry */
 /** Browser-safe Hermes config (no API key — `hasKey` only). @typedef {{ enabled: boolean, apiUrl: string | null, model: string, hasKey: boolean, models: string[] }} HermesPublicConfig */
 /** Verdict from probing a Hermes gateway (`POST /api/hermes/check`). @typedef {{ ok: boolean, reachable: boolean, authOk: boolean, status?: number, models?: string[], tools?: string[], error?: string }} HermesCheck */

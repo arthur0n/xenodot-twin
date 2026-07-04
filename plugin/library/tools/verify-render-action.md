@@ -1,3 +1,10 @@
+---
+type: tool-definition
+title: "input-driven render assertion — tool definition"
+description: "build thin. Pattern is a direct extension of capture_screenshot.gd (already"
+timestamp: 2026-06-17T23:44:12+01:00
+---
+
 # input-driven render assertion — tool definition
 
 **Problem** — Layer 3 (`verify_render.gd`) samples one frame at startup with no input. This class

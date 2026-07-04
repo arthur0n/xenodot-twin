@@ -1,3 +1,10 @@
+---
+type: source-list
+title: "External skill sources"
+description: "Canonical registry of the external skill collections the skill-researcher agent"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # External skill sources
 
 Canonical registry of the external skill collections the **skill-researcher** agent

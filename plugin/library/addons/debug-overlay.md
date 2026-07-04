@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Debug Overlay / In-Game Playtest HUD"
+description: "rejected — build it ourselves"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # Debug Overlay / In-Game Playtest HUD
 
 **Request** — Playtester needs live readouts (FPS, player pos/vel, enemy FSM states, wave counts, trap-floor events) as on-screen overlay to report bugs accurately.

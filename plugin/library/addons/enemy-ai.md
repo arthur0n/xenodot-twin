@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Stealth Enemy AI — Vision, Hearing, FSM, Architecture"
+description: "ADOPT VisionCone3D for vision; BUILD hearing + FSM ourselves; use node-FSM architecture."
+timestamp: 2026-07-01T20:34:24+01:00
+---
+
 # Stealth Enemy AI — Vision, Hearing, FSM, Architecture
 
 **Request** — Before building stealth enemy AI (vision cone, hearing, patrol, aggro/de-aggro), evaluate buy-vs-build for each component and settle the architecture approach (node-FSM vs utility vs GOAP vs neural/ML).

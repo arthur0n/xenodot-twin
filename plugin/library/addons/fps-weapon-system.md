@@ -1,3 +1,10 @@
+---
+type: addon
+title: "FPS Weapon System"
+description: "rejected — build it ourselves"
+timestamp: 2026-06-18T20:05:52+01:00
+---
+
 # FPS Weapon System
 
 **Request** — Evaluate Jeh3no "Godot Simple FPS Weapon System" as adopt/fix-in-place vs reject/build-custom for an FPS POC (Godot 4.6). Verdict revisited after an integration experiment on a throwaway branch.

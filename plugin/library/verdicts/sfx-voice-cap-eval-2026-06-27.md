@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "SFX voice-cap / anti-spike limiter — skill eval"
+description: "Anti-spike SFX voice-cap (same-frame copies of one sound) — no godot-* skill covers it; gate pending human adopt/reject."
+timestamp: 2026-06-27T19:01:36+01:00
+---
+
 # SFX voice-cap / anti-spike limiter — skill eval
 
 **Date** 2026-06-27 · **Agent** skill-researcher · **Gate** pending human adopt/reject

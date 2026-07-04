@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Raytraced Audio — Wall Occlusion / Muffling / Reverb"
+description: "adopted raytraced_audio (recommended — conditional; see Why)"
+timestamp: 2026-06-27T19:01:36+01:00
+---
+
 # Raytraced Audio — Wall Occlusion / Muffling / Reverb
 
 **Request** — Evaluate the "Raytraced Audio" GDExtension addon (by Who Stole My Coffee, MIT) for automatic wall-occlusion/muffling/reverb via audio raycasts, to replace our naked-pass-through `AudioStreamPlayer3D` enemy-ambient audio.

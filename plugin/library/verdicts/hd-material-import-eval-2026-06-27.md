@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "HD PBR material / texture-import skill — eval & verdict (2026-06-27)"
+description: "Status ADOPTED 2026-06-27 → plugin/skills/godot-hd-material-import/SKILL.md"
+timestamp: 2026-06-27T18:29:54+01:00
+---
+
 # HD PBR material / texture-import skill — eval & verdict (2026-06-27)
 
 **Status** ADOPTED 2026-06-27 → `plugin/skills/godot-hd-material-import/SKILL.md`

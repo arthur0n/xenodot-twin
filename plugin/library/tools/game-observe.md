@@ -1,3 +1,10 @@
+---
+type: tool-definition
+title: "game-observe — tool definition suite"
+description: "Build thin — a three-line shell wrapper capturing a running game frame + log for agent observation."
+timestamp: 2026-06-27T19:01:36+01:00
+---
+
 # game-observe — tool definition suite
 
 **Problem** — `tools/validate.sh` runs Godot `--headless` with the DUMMY renderer. It catches

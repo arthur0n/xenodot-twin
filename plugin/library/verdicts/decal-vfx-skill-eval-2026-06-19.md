@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Decal VFX skill-gap evaluation — 2026-06-19"
+description: "Adopt-a-subset by rewrite — keep only the decal projection concept from the candidate skill; drop the rest."
+timestamp: 2026-06-20T21:58:32+01:00
+---
+
 # Decal VFX skill-gap evaluation — 2026-06-19
 
 **Agent:** skill-researcher · **Mode:** recommend-only (board question filed, no skill written)

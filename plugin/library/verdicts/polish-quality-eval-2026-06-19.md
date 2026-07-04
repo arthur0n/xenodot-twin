@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — Hermes 'polish & quality layer' findings (2026-06-19)"
+description: "Scope: Hermes recommendations to stand up a quality + polish layer (quality-gate layering, review"
+timestamp: 2026-06-20T21:58:32+01:00
+---
+
 # Verdict — Hermes "polish & quality layer" findings (2026-06-19)
 
 Scope: Hermes recommendations to stand up a quality + polish layer (quality-gate layering, review

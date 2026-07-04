@@ -1,3 +1,10 @@
+---
+type: source-list
+title: "Asset Sources — free pixel-art generators (interim sourcing loop)"
+description: "adopt the web-link + human-in-the-loop loop below as the interim"
+timestamp: 2026-06-15T22:28:18+01:00
+---
+
 # Asset Sources — free pixel-art generators (interim sourcing loop)
 
 **Request** — Pixel-art textures the agent pipeline can't author itself: grass-blade

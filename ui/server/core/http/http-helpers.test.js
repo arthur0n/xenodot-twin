@@ -24,8 +24,12 @@ writeFileSync(path.join(scratch, "design", "README.md"), "# Skip Me\n");
 mkdirSync(path.join(scratch, "library"), { recursive: true });
 writeFileSync(
   path.join(scratch, "library", "jolt.md"),
-  "# Jolt Physics\n\n**Verdict** — adopt: fast\n",
+  '---\ntype: addon\ntitle: "Jolt Physics"\ndescription: "adopt: fast"\n---\n\n# Jolt\n',
 );
+// Legacy record without frontmatter — title falls back to the H1, fields stay null.
+writeFileSync(path.join(scratch, "library", "legacy.md"), "# Old Record\n\nprose\n");
+// Generated navigation, not a record — filtered like README.md.
+writeFileSync(path.join(scratch, "library", "index.md"), "# index\n");
 writeFileSync(path.join(scratch, "main.tscn"), "[gd_scene]\n");
 writeFileSync(path.join(scratch, "player.gd"), "extends Node\n");
 mkdirSync(path.join(scratch, ".hidden"), { recursive: true });
@@ -48,9 +52,13 @@ test("projectState: inventories the fixture game — name, docs, verdicts, scene
   assert.equal(s.found, true);
   assert.equal(s.dir, path.resolve(scratch));
   assert.deepEqual(s.designDocs, [{ path: "design/overview.md", title: "Big Picture" }]); // README filtered
-  assert.deepEqual(s.library, [
-    { path: "library/jolt.md", title: "Jolt Physics", verdict: "adopt: fast" },
-  ]);
+  assert.deepEqual(
+    [...s.library].sort((a, b) => a.path.localeCompare(b.path)), // readdir order is not guaranteed
+    [
+      { path: "library/jolt.md", title: "Jolt Physics", type: "addon", description: "adopt: fast" },
+      { path: "library/legacy.md", title: "Old Record", type: null, description: null },
+    ],
+  );
   assert.ok(s.scenes.includes("main.tscn"));
   assert.ok(!s.scenes.some((f) => f.includes("secret"))); // dot-dirs are skipped by the walk
   assert.ok(s.scripts.includes("player.gd"));

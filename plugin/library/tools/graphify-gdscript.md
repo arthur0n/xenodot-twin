@@ -1,3 +1,10 @@
+---
+type: tool-definition
+title: "graphify for GDScript — tool definition"
+description: "use as-is for design/concept graph; GDScript AST coverage is partial (symbols"
+timestamp: 2026-06-24T18:13:57+01:00
+---
+
 # graphify for GDScript — tool definition
 
 **Problem** — agents need to query codebase structure for code-quality targets (god scripts,

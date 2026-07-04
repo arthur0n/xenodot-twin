@@ -1,3 +1,10 @@
+---
+type: addon
+title: "Jehno Simple FPS Weapon System — how it works / correct setup"
+description: "Digest for configuring the installed addon (game/addons/JehenoSimpleFPSWeaponSystem/) so we"
+timestamp: 2026-06-18T18:32:13+01:00
+---
+
 # Jehno Simple FPS Weapon System — how it works / correct setup
 
 Digest for configuring the installed addon (`game/addons/JehenoSimpleFPSWeaponSystem/`) so we

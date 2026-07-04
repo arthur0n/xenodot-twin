@@ -1,3 +1,10 @@
+---
+type: finding
+title: "Skill-researcher finding — id-keyed Resource registry"
+description: "candidate is a THIN seed (~⅓ of required surface: registration strategies only). Useful core fills the registration third; collision + fail-fast + coexistence + typed-getter authored fresh to …"
+timestamp: 2026-06-26T21:58:01+01:00
+---
+
 # Skill-researcher finding — id-keyed Resource registry
 
 **Gap** — no `godot-*` skill covers id-indexed retrieval of typed Resources. Today every ref is a direct typed `@export` slot (`wave_manager.spawn_archetype`); no `get_archetype("grunt")` accessor, no dir-scan/preload table, no collision/missing-id fail-fast.

@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — godot-greybox skill (arena blockout quality)"
+description: "ADOPT a new godot-greybox skill, split from level-designer — a spatial-craft layer that emits an ArenaLayout .tres and runs a checkable self-audit."
+timestamp: 2026-06-24T18:13:57+01:00
+---
+
 # Verdict — godot-greybox skill (arena blockout quality)
 
 Date 2026-06-23 · researcher: skill-researcher · input: Hermes run run_eb62deb87dee4918a69b64cc7214e47c (`.xenodot/handoffs/greybox-skill-research.md`).

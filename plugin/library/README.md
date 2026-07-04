@@ -17,11 +17,28 @@ Every framework artifact is one of four roles. The role decides the home; each h
 
 Decide by what the thing _does_: **run it (headless) → `tools/`; reuse it as a function the game preloads at runtime → `tools/lib/`; load it to learn → `.claude/skills/`; remember a decision → `library/<kind>/`; a fetch-list → `library/sources/`; always-on → `CLAUDE.md`.** The form follows the role — a skill is multi-file so it is a folder; an index is a flat list so it is one file; records are many small docs so they are a folder of them.
 
+## Record format — OKF frontmatter + kind index
+
+Every record opens with YAML frontmatter in the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) v0.1 subset — flat scalars plus inline `[a, b]` arrays, nothing nested:
+
+```yaml
+---
+type: addon | tool-definition | verdict | finding | source-list | draft
+title: "<human name — what the sidebar and index show>"
+description: "<one-line verdict/summary — the line that saves opening the doc>"
+timestamp: <ISO 8601, when the verdict landed>
+resource: <external URL the record is about, when there is one>
+tags: [optional, categorical]
+---
+```
+
+`type`, `title`, `description` are required (gated); the rest are optional. The UI sidebar and each kind's generated `index.md` render `title` + `description`, so keep `description` a real verdict, not metadata. Each kind folder carries an `index.md` (one line per record) so the next agent navigates from one cheap read; regenerate with `npm run check:library -- --write` (in the forge), or append your record's line by hand. `npm run validate` fails on missing frontmatter or a stale index. Conforming to OKF keeps these records readable by any OKF consumer, no framework required.
+
 ## What's in this folder
 
 **Records** — one doc per thing we evaluated; never re-researched once a verdict exists. Foldered by kind:
 
-- `addons/<slug>.md` — addon buy-vs-build verdicts (**addon-researcher**; template in `.claude/agents/addon-researcher.md`). The UI sidebar reads each doc's `**Verdict**` line, so keep that line.
+- `addons/<slug>.md` — addon buy-vs-build verdicts (**addon-researcher**; template in `.claude/agents/addon-researcher.md`). The UI sidebar reads each doc's frontmatter `description`, so keep it the verdict line.
 - `tools/<slug>.md` — CLI tool-definitions: the build spec + registry entry (**cli-researcher**; template in `.claude/agents/cli-researcher.md`). The runnable tool itself lands in `tools/` and registers in `tools/CAPABILITIES.md` — the definition here is the _why/spec_, the tool there is the _what you run_.
 - **Transcript digests are NOT here — they live game-local** at `design/library/transcripts/<slug>.md`
   (**transcript-researcher**; template in `.claude/agents/transcript-researcher.md`). A digest maps a

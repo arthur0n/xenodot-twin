@@ -1,3 +1,10 @@
+---
+type: verdict
+title: "Verdict — godot-greybox-to-asset (greybox→asset MIGRATION skill)"
+description: "ADOPTED 2026-06-27 — greybox-to-asset migration skill owning the level-scale replace workflow between godot-greybox and mesh-import."
+timestamp: 2026-06-27T18:29:54+01:00
+---
+
 # Verdict — godot-greybox-to-asset (greybox→asset MIGRATION skill)
 
 **Date** 2026-06-27 · **Researcher** skill-researcher · **Status** ADOPTED 2026-06-27 → `plugin/skills/godot-greybox-to-asset/SKILL.md`
