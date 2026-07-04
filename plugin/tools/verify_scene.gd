@@ -12,6 +12,54 @@ extends SceneTree
 ##
 ## Exit code: 0 = clean, 1 = problems found (lines prefixed VERIFY-FAIL).
 
+# Indexed-array property whitelist.
+# Godot 4.x serialises some resource/node arrays as "prefix/N/subkey" where N
+# is an integer index.  A fresh ClassDB.instantiate() or an empty Skeleton3D
+# has zero entries, so get_property_list() never surfaces these keys — the
+# checker would flag every one as unknown.  The tables below declare which
+# (class, prefix, subkey) triples are canonical so they are accepted without
+# a live-instance property-list hit.
+# Key: class name (exact ClassDB string). Value: Dictionary{prefix -> Set[subkey]}.
+const _INDEXED_ARRAY_PROPS: Dictionary = {
+	"Animation":
+	{
+		"tracks":
+		{
+			"type": true,
+			"path": true,
+			"interp": true,
+			"loop_wrap": true,
+			"imported": true,
+			"enabled": true,
+			"keys": true,
+			"method_library": true,
+			"capture_mode": true,
+		},
+	},
+	"Skin":
+	{
+		"bind":
+		{
+			"name": true,
+			"bone": true,
+			"pose": true,
+		},
+	},
+	"Skeleton3D":
+	{
+		"bones":
+		{
+			"name": true,
+			"parent": true,
+			"rest": true,
+			"enabled": true,
+			"position": true,
+			"rotation": true,
+			"scale": true,
+		},
+	},
+}
+
 var failures := 0
 
 
@@ -69,6 +117,7 @@ func _verify(path: String) -> void:
 func _check_text_properties(path: String, root_node: Node) -> void:
 	var current: Object = null
 	var current_label := ""
+	var current_class := ""
 	for raw_line: String in FileAccess.get_file_as_string(path).split("\n"):
 		var line := raw_line.strip_edges()
 		if line.begins_with("[node"):
@@ -81,22 +130,29 @@ func _check_text_properties(path: String, root_node: Node) -> void:
 				node_path = parent + "/" + node_name
 			current = root_node if node_path == "." else root_node.get_node_or_null(node_path)
 			current_label = "node " + node_name
+			current_class = _attr(line, "type")
 			if current == null:
 				_fail(path, current_label, 'could not resolve node (parent="%s")' % parent)
+			elif current_class == "":
+				# Inherited type — ask the live object.
+				current_class = current.get_class()
 		elif line.begins_with("[sub_resource"):
 			var type := _attr(line, "type")
 			current = ClassDB.instantiate(type) if ClassDB.can_instantiate(type) else null
 			current_label = "sub_resource " + type
+			current_class = type
 		elif line.begins_with("[ext_resource"):
 			var rpath := _attr(line, "path")
 			if rpath != "" and not ResourceLoader.exists(rpath):
 				_fail(path, "ext_resource", "missing file: " + rpath)
 			current = null
+			current_class = ""
 		elif line.begins_with("["):
 			current = null
+			current_class = ""
 		elif current != null:
 			var prop := _prop_name(line)
-			if prop != "" and not _has_property(current, prop):
+			if prop != "" and not _has_property(current, current_class, prop):
 				_fail(
 					path, current_label, 'unknown property "%s" (silently dropped by Godot)' % prop
 				)
@@ -131,7 +187,7 @@ func _prop_name(line: String) -> String:
 	return prop
 
 
-func _has_property(obj: Object, prop: String) -> bool:
+func _has_property(obj: Object, obj_class: String, prop: String) -> bool:
 	# shader_parameter/* is dynamic (depends on the assigned shader) and
 	# can't be checked on a fresh instance; metadata/* is always legal.
 	# item/* is dynamic on MeshLibrary — items are stored under item/N/* keys that
@@ -143,10 +199,55 @@ func _has_property(obj: Object, prop: String) -> bool:
 		or prop.begins_with("item/")
 	):
 		return true
+	# Indexed-array properties (e.g. tracks/0/type on Animation, bones/2/rest on
+	# Skeleton3D, bind/1/pose on Skin) are not present on a fresh empty instance
+	# returned by ClassDB.instantiate() — the arrays are empty.  Accept them
+	# when the class and subkey are both in the canonical whitelist.
+	if _is_whitelisted_indexed_prop(obj_class, prop):
+		return true
 	for p: Dictionary in obj.get_property_list():
 		if p["name"] == prop:
 			return true
 	return false
+
+
+## Returns true if prop matches a canonical indexed-array pattern for obj_class.
+## Pattern: "<prefix>/<non-negative-integer>/<subkey>" where both prefix and
+## subkey appear in _INDEXED_ARRAY_PROPS[obj_class].  Unknown class, unknown
+## prefix, or unknown subkey all return false — keeping the check strict.
+func _is_whitelisted_indexed_prop(obj_class: String, prop: String) -> bool:
+	if not _INDEXED_ARRAY_PROPS.has(obj_class):
+		return false
+	# Also accept parent classes: walk the ClassDB inheritance chain once.
+	var class_name_to_check := obj_class
+	var prefixes: Dictionary = {}
+	while class_name_to_check != "":
+		if _INDEXED_ARRAY_PROPS.has(class_name_to_check):
+			@warning_ignore("unsafe_cast")
+			var entry := _INDEXED_ARRAY_PROPS[class_name_to_check] as Dictionary
+			for k: String in entry:
+				if not prefixes.has(k):
+					prefixes[k] = entry[k]
+		class_name_to_check = ClassDB.get_parent_class(class_name_to_check)
+	if prefixes.is_empty():
+		return false
+	# Decompose "prefix/N/subkey".
+	var parts := prop.split("/")
+	if parts.size() != 3:
+		return false
+	var prefix: String = parts[0]
+	var index_str: String = parts[1]
+	var subkey: String = parts[2]
+	# Index segment must be a non-negative integer.
+	for ch: int in range(index_str.length()):
+		var c := index_str.unicode_at(ch)
+		if c < 48 or c > 57:
+			return false
+	if not prefixes.has(prefix):
+		return false
+	@warning_ignore("unsafe_cast")
+	var subkeys := prefixes[prefix] as Dictionary
+	return subkeys.has(subkey)
 
 
 func _fail(path: String, where: String, message: String) -> void:
