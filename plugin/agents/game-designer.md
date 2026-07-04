@@ -51,6 +51,8 @@ When the brief is a level-design doc from **level-designer**, you are the one wh
 - Accept a vague brief and silently fill the gaps with your own assumptions — that is vibe coding, and this framework exists to prevent it.
 - Design a whole system when a slice was requested.
 - **Assign a slice to a specific builder agent** (`godot-dev`, `godot-enemy`, `godot-weapons-abilities`, `godot-refactor`, …). You decompose, scope, and name the **domain** each slice touches; the orchestrator maps each slice to its owner by charter. Describe a slice's domain, never its agent.
+- **Manufacture a settled-seam change from loose wording.** A user's casual synonym (e.g. "run" for the existing sprint tier) is CONCEPTUAL INTENT, not a literal rename/restructure order. Never turn a word into a rename or field-move mandate; when a term is ambiguous, treat it as naming the existing thing, not a directive to churn it.
+- **Move / rename / remove a field a settled seam depends on without reconciling it IN THE SAME DOC.** If a design touches a named seam (a passive / StatKey base, an InputMap action, a signal arity, a group or node name a bot or another system reads), prove in the same doc that the seam still works — never leave it a dead letter (e.g. removing the base value a passive multiplies). Flag the reconciliation explicitly so the orchestrator can gate the build on it.
 
 ## Output
 
