@@ -42,13 +42,21 @@ const SIBLING_GAME = /\.\.\/game\b/;
 // Provenance tying a technique to ONE specific repo/game instead of stating it agnostically.
 const PROVENANCE =
   /\b(?:proven|verified|tested|shipped)\s+(?:on|in)\s+this\s+(?:repo|game|project)\b/i;
+// Mapping language — a shipped RECORD judging content against ONE game's stack ("valid for our
+// game/stack") is game-coupled by construction; digests that map a source belong game-local
+// (design/library/transcripts/), only agnostic records ship. RECORDS-ONLY (opts.checkMapping):
+// an agent/skill prompt saying "our stack" is agnostic — it resolves to whatever game the
+// session points at — so this signal must never run over the promotable kinds.
+const OUR_MAPPING = /\bour\s+(?:game|stack|project|repo|codebase)\b/i;
 
 /** @typedef {{ signal: string, match: string, hint: string }} Contamination */
 
 /** Scan one text blob for contamination signals.
  * @param {string} text
- * @param {{ checkRes?: boolean }} [opts] checkRes: also flag non-universal res:// refs — pass for
- *   TOOLS only (skills/agents cite res:// convention paths as legitimate illustrative examples).
+ * @param {{ checkRes?: boolean, checkMapping?: boolean }} [opts] checkRes: also flag non-universal
+ *   res:// refs — pass for TOOLS only (skills/agents cite res:// convention paths as legitimate
+ *   illustrative examples). checkMapping: also flag one-game mapping language ("our game/stack") —
+ *   pass for shipped RECORDS only (library/), never the promotable kinds.
  * @returns {Contamination[]} */
 export function scanText(text, opts = {}) {
   /** @type {Contamination[]} */
@@ -74,6 +82,15 @@ export function scanText(text, opts = {}) {
       match: prov[0],
       hint: "provenance tied to a specific repo/game — state the technique agnostically (the game's own record lives game-local).",
     });
+  if (opts.checkMapping) {
+    const map = text.match(OUR_MAPPING);
+    if (map)
+      hits.push({
+        signal: "one-game-mapping",
+        match: map[0],
+        hint: "one-game mapping language in a shipped record — a digest that judges content against THIS game's stack lives game-local (design/library/transcripts/), only agnostic records ship in the plugin library.",
+      });
+  }
   const lower = text.toLowerCase();
   for (const term of GAME_CODENAMES)
     if (lower.includes(term))
@@ -110,8 +127,8 @@ export function filesUnder(p) {
 
 /** Scan a path (a file, or every file under a directory) for contamination.
  * @param {string} p
- * @param {{ checkRes?: boolean, all?: boolean }} [opts] all: return every hit per file (default: the
- *   first hit per file — enough for a promote hard-block).
+ * @param {{ checkRes?: boolean, checkMapping?: boolean, all?: boolean }} [opts] all: return every
+ *   hit per file (default: the first hit per file — enough for a promote hard-block).
  * @returns {Array<Contamination & { file: string }>} */
 export function scanPath(p, opts = {}) {
   /** @type {Array<Contamination & { file: string }>} */

@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 0 · later: 8 · skip: 1**
+**open (fix-now): 0 · later: 7 · skip: 1**
 
 _Last audit:_ 2026-07-01 — fix-now backlog cleared; last applied: D7-loop-index (added docs/process/self-improvement.md mapping the self-improvement command loop + the shared ledger, indexed from the ledger README). Only later/skip findings parked; next cold scan pending.
 
@@ -16,9 +16,8 @@ _none_
 
 _none_
 
-## Bucket 5 — later (8) · system / parked
+## Bucket 5 — later (7) · system / parked
 
-- **D2-transcript-contamination** · `D2` · _open_ — game-coupled digests in the shipped library: 8/38 plugin/library/transcripts/ reference the reference game's concrete classes/paths (PlayerHealth, RunState, %LevelHost, kill_plane_seam, FeedbackConfig, fall_zone.gd) — violates the D2 agnostic-library rule. STRUCTURAL: transcript-researcher is designed to map a source against 'our stack' (reads the game's design/, CLAUDE.md) and then writes the inherently game-coupled digest into the ships-to-every-game library. Fix direction: relocate game-coupled digests game-local + extend the contamination gate to transcripts/, or make the researcher scrub digests to engine-generic form at write time. Design decision needed (which half moves), so not a no-brainer.
 - **D5-agent-restatement** · `D5` · _open_ — 3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once.
 - **D2-engine-version** · `D2` · _open_ — engine version drift across skills: 'Godot 4.6' (greybox, enemy-ai, godot-assets) vs '4.3+' (pixel-lighting) — framework-wide consistency pass.
 - **D9-gdscript-shadow-lint** · `D9` · _open_ — recurring runtime GDScript::reload warnings the gate never caught: SHADOWED*GLOBAL_IDENTIFIER (range, sign — ability_data.gd, directional_force_effect.gd, aim_line_resolver.gd) + CONFUSABLE_LOCAL_DECLARATION (next_pos — guard.gd). Harden: add a deterministic lint check (gdstyle rule / check*\* in tools/lib/checks.sh). Verify first whether gdstyle already covers it.
