@@ -50,6 +50,12 @@ estSavingTok, landed, moved, deltaTok, deltaCost, result}`. This is the PERMANEN
    - **Forward-looking fix** (the effect only shows in FUTURE sessions — e.g. memoizing an MCP docs
      lookup so later runs stop re-fetching): capture the global baseline
      `node ui/server/cli/token-history.js snapshot --global` — the trend line the next audit checks.
+   - **Instrumented / countable-signal fix** (forward-looking, but the replacement emits a per-event
+     marker — e.g. a `policy:"<name>"` line logged on each blocked/deduped repeat): no baseline
+     snapshot needed. Note the marker string + its per-event token unit now — the AFTER is a direct
+     COUNT of that marker in future logs × the unit, a deterministic actual rather than a trend.
+     PREFER building the fix this way when you can (see `/token-audit` step 4): a counted proof beats
+     hoping global drift moves.
 
 4. **Apply the deterministic replacement.** Make the change the opportunity named — script / `tools/`
    entry / hook / MCP config. Keep it minimal and deterministic; this is the whole point (no model in
@@ -66,6 +72,11 @@ estSavingTok, landed, moved, deltaTok, deltaCost, result}`. This is the PERMANEN
      (revert or rethink) instead of assuming success.
    - Forward-looking: `... land --opp <id> --moved pending --result "applied <what>; Δ confirmed on the next /token-audit run"`.
      The next audit's `global` snapshot is the confirmation; a later run flips `pending → true|false`.
+   - Instrumented / countable-signal: land it `pending` now (the marker hasn't fired in real sessions
+     yet), recording the marker + per-event unit in the result so the next audit knows what to tally:
+     `... land --opp <id> --moved pending --result "emits policy:\"<name>\" per denial; next audit tallies count × <unit> tok"`.
+     A later `/token-audit` run counts the marker across the covered logs and flips it to a hard
+     actual (`land --moved true --delta-tok <count×unit>`) — a deterministic count, not global drift.
 
 7. **Self-critique.** Improve the loop, not just the fix. Note anything that tripped the apply — a
    mis-scoped opportunity, a measure that wasn't actually computable, an adapt the history should make
