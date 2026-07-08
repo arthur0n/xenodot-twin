@@ -9,6 +9,8 @@
 // Usage: npm run new -- ../mygame           (scaffold an empty folder, or wire an existing Godot project)
 //        npm run new -- ../mytwin --viewer   (scaffold a digital-twin VIEWER from starter-viewer/
 //                                             and save projectType "viewer")
+//        npm run new -- ../mygame --game     (wire a GAME explicitly — the way back after a
+//                                             viewer: projectType is sticky otherwise)
 import { existsSync, cpSync, readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
@@ -18,14 +20,15 @@ const here = path.dirname(fileURLToPath(import.meta.url)); // ui/server/cli
 const FRAMEWORK_DIR = path.join(here, "..", "..", "..");
 
 const argv = process.argv.slice(2);
-// `--viewer` is the ONE flag this command takes; any other (`--help`/`--project`) must fail
-// loudly, not silently scaffold the default sibling path (or, resolved raw, a literal `--help/`
-// dir).
+// `--viewer` / `--game` are the ONLY flags this command takes; any other (`--help`/`--project`)
+// must fail loudly, not silently scaffold the default sibling path (or, resolved raw, a literal
+// `--help/` dir). `--game` exists as the explicit way back from a sticky "viewer" projectType.
 const viewer = argv.includes("--viewer");
-const flagArg = argv.find((a) => a.startsWith("-") && a !== "--viewer");
+const game = argv.includes("--game");
+const flagArg = argv.find((a) => a.startsWith("-") && a !== "--viewer" && a !== "--game");
 if (flagArg) {
   console.error(
-    `new: ${flagArg} is not a project path. Usage: npm run new -- ../mygame [--viewer]`,
+    `new: ${flagArg} is not a project path. Usage: npm run new -- ../mygame [--viewer|--game]`,
   );
   process.exit(1);
 }
@@ -86,7 +89,7 @@ ensureIgnores(target);
 
 // 2. Remember the path (+ projectType — a viewer session loads plugin-twin and the viewer
 //    orchestrator; see config.js getProjectType). Writes .xenodot.json.
-node(path.join(here, "setup.js"), target, ...(viewer ? ["--viewer"] : []));
+node(path.join(here, "setup.js"), target, ...(viewer ? ["--viewer"] : game ? ["--game"] : []));
 
 // 3. Materialize the plugin's per-game files: tools/ copied, library/ symlinked.
 node(path.join(here, "materialize.js"), target);
