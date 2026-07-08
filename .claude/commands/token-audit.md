@@ -40,8 +40,9 @@ and critiques itself. You won't get it right the first time — that's expected.
    count (e.g. `4`); a session-tag analyzes exactly that session. If nothing is uncovered,
    say so and stop — don't invent work.
 
-3. **Analyze each log — don't slurp it into context.** These files reach several MB. Use
-   `rtk grep` + `jq` to pull only what you need. Look for:
+3. **Analyze each log — don't slurp it into context.** These files reach several MB. Filter
+   with `jq select(...)` directly — do NOT pipe `rtk grep` into `jq` (rtk's grep filter mangles
+   JSON and breaks the parse). Look for:
    - **Repeated identical tool calls** — the same `Read`/`Grep`/`Glob`/`Bash` input across
      many turns (context the model keeps re-fetching).
    - **Agent dispatch for mechanical work** — a `Task`/`Agent` spawn whose job was a
@@ -56,32 +57,66 @@ select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter ma
    the `jq` parse. Each log line is `{type:"event", message:{…}}`, so select on `.message.type`:
    - costliest turns: `jq -c 'select(.type=="event" and .message.type=="result") | .message | {cost:.total_cost_usd, u:.usage}' "$LOGS/<file>"`
    - tool-call frequency: `jq -r 'select(.type=="event" and .message.type=="assistant") | .message.message.content[]? | select(.type=="tool_use") | .name' "$LOGS/<file>" | sort | uniq -c | sort -rn`
+   - **result-bytes by tool (the primary sweep — surfaces the real offender that raw freq counts hide):** map `tool_use_id`→name from assistant events, then sum tool*result char-length per tool. A tool with few calls but huge avg payload (e.g. an MCP docs lookup dumping 20k chars of \_immutable* reference per call) is the prize. Also: freq counts of Bash `.input.command` are unreliable — multi-line heredocs make `uniq -c` count physical lines, not commands; trust the byte-by-tool aggregate instead.
+     `jq -rc 'select(.type=="event" and .message.type=="assistant")|.message.message.content[]?|select(.type=="tool_use")|[.id,.name]|@tsv' "$LOGS/<file>" > /tmp/ids.tsv`
+     `jq -rc 'select(.type=="event" and .message.type=="user")|.message.message.content[]?|select(.type=="tool_result")|[.tool_use_id,(((.content//"")|if type=="array" then (map(.text?//"")|join("")) else tostring end)|length)]|@tsv' "$LOGS/<file>" > /tmp/res.tsv`
+     `awk -F'\t' 'NR==FNR{n[$1]=$2;next}{k=n[$1];k=(k==""?"?":k);t[k]+=$2;c[k]++}END{for(x in t)printf "%-30s calls=%-5d chars=%d avg=%d\n",x,c[x],t[x],t[x]/c[x]}' /tmp/ids.tsv /tmp/res.tsv | sort -t= -k3 -rn`
 
 4. **Judge opportunities.** For each pattern, ask: _could this run without a model?_ If yes,
    name it concretely — the operation, its rough token/$ cost over the sessions seen, and the
    deterministic replacement (script / `tools/` entry / hook). Discard anything that genuinely
    needs judgment; a false "make it deterministic" is worse than silence.
+   - **Check the token MECHANISM, not just the call count.** Tokens are the PAYLOAD that enters
+     context, not the number of calls. Fewer calls ≠ fewer tokens if each call returns the same
+     bytes — a memo/cache that re-returns an identical payload saves latency, NOT tokens. To move
+     the metric the replacement must shrink the payload (smaller/filtered result), DEDUP it (return
+     a stub on a repeat), or stop it re-entering context. (Learned from `godot-docs-memoize`:
+     "memoize get_class" was mis-scoped — a cache hit still re-dumps 20k chars; the real fix was a
+     canUseTool dedup that denies the repeat.)
 
-5. **Record — super brief.** Append ONE entry to `LEDGER.md` (template at the top of that
-   file) and add each analyzed tag to `Covered sessions`. Most-important offenders only;
-   keep it scannable. No essays.
+5. **Record — super brief (prose) + deterministic numbers.**
+   - Prose: append ONE entry to `LEDGER.md` (template at the top of that file) and add each
+     analyzed tag to `Covered sessions`. Most-important offenders only; scannable; no essays.
+   - Numbers: capture the run in the PERMANENT time-series — the numbers come from the SCRIPT,
+     not a prose guess:
+     `node ui/server/cli/token-history.js append --sessions <tag,tag,…> --offender "<top offender>" --opp <opp-id>:<estTok> --note "<one line>"`
+     (repeat `--opp` per opportunity; `--date` defaults to today). This writes `history.json` and
+     regenerates `history.md`. See `.claude/token-audits/README.md` for the loop + file roles.
 
 6. **File a task per real opportunity.** `mcp__ui__tasks` with
    `{ "op": "add", "tasks": [ { "title": "<deterministic fix in one line>", "owner": "user", "note": "<the agent call it replaces + rough saving>" } ] }`.
    `owner: "user"` so it persists for the human (don't `complete_open` these). Put the
-   returned task id in the ledger entry's `Opportunity` line.
+   returned task id in the ledger entry's `Opportunity` line — and use that SAME id as the
+   `--opp <id>` in step 5 so the task, the ledger, and `history.json` all key off one id (the
+   human later applies it with `/token-audit-fix <id>`). **Fallback:** `mcp__ui__tasks` only
+   exists inside a forge web session — from a plain terminal run it's unavailable. Then record
+   the task inline in the ledger entry (a `**TASK (owner:user)**:` line) and say so.
 
-7. **Critique the process.** This is self-improvement — improve the loop, not just the game.
-   Suggest fixes to THIS command or the ledger format: confusing wording, a missing
-   reference, a better signal to grep for, a step that didn't pay off. Record it as the
-   entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
+7. **Adapt on the trend, then critique the process.** This is self-improvement — improve the
+   loop, not just the game.
+   - Adapt: read the last few `history.json` records (or `history.md`). Note the `global.hitRate`
+     / `$/turn` trend, and for any prior opportunity now `landed` check whether it `moved` — a
+     `moved:false` says the last fix didn't pay off; factor that into what you propose next. This
+     is the loop learning from its own objective signal, independent of the framework.
+   - Critique: suggest fixes to THIS command, the CLI, or the ledger/history format (confusing
+     wording, a missing reference, a better signal, a step that didn't pay off). Record it as the
+     entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
 
-8. **Return.** Super-brief to the user: sessions covered, the single top offender, tasks filed.
+8. **Return.** Super-brief to the user: sessions covered, the single top offender, tasks filed,
+   and one line on the trend. To APPLY an opportunity, point them at `/token-audit-fix <id>`.
+
+## Domain separation (positive rule)
+
+- Token findings live ONLY in the token loop: `LEDGER.md` + `history.json` + `mcp__ui__tasks`.
+  The two self-improvement loops link by REFERENCE, never auto-route.
+- If a session reveals a framework-quality issue (a convention/agent/skill defect, not a spend
+  pattern), hand it to the human to file on `.claude/framework-audits/LEDGER.json` — manual only.
 
 ## Never
 
 - Re-analyze a session already in `Covered sessions`.
-- Read whole multi-MB logs into context — always filter with `rtk grep`/`jq` first.
+- Read whole multi-MB logs into context — always filter with `jq select(...)` first (never
+  pipe `rtk grep` into `jq` — it mangles JSON).
 - Implement the deterministic fix here — this command recommends and files tasks; the human
   decides. (Step 7's process tweaks to the command/ledger are the one exception.)
 - Write a long ledger entry. Brevity is the point — the next run reads this first.

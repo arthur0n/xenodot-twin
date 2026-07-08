@@ -34,7 +34,7 @@ Tier-2/3 (not adoptable): EnhancedStat (dormant), godot_gameplay_attributes (C++
 
 BananaHolograma is the closest (MIT, GDScript, active, 4.0+), but it bundles regen + invuln frames + overflow/shield that we don't use, and its `damage()` name still requires a shim. The component's value is ~50 lines of well-tested logic we can replicate trivially.
 
-**Player–lives mismatch.** Player has no HP — it has a `_lives` int in `WaveManager` (`lose_life()`/`add_life()`). Adding a `HealthComponent` to the player would be a **design change** (lives model → HP model), not a drop-in. Integration cost: new `player.gd` signals, `WaveManager` must subscribe to `player_health_comp.died` instead of `touched_player`, health pickups reroute. This is non-trivial and orthogonal to the enemy dedup problem. Keep player on lives model until the design says otherwise.
+**Player–lives mismatch.** Player has no HP — it has a `_lives` int in `SpawnManager` (`lose_life()`/`add_life()`). Adding a `HealthComponent` to the player would be a **design change** (lives model → HP model), not a drop-in. Integration cost: new `player.gd` signals, `SpawnManager` must subscribe to `player_health_comp.died` instead of `touched_player`, health pickups reroute. This is non-trivial and orthogonal to the enemy dedup problem. Keep player on lives model until the design says otherwise.
 
 **Composition fit.** A `tools/lib/health_component.gd` node (child component, signals up) matches our conventions exactly: enemy/target/npc parents keep `apply_damage(amount)` as a thin forwarder, the component owns `_health`, emits `died` and `health_changed`, parent connects. No autoloads, no inheritance, no framework.
 
@@ -67,7 +67,7 @@ func get_health_percent() -> float:
     return float(_current) / float(max_health)
 ```
 
-Parent (e.g. `Enemy`) child-has `HealthComponent`, connects `_health_comp.died` → `_on_died()`, delegates `apply_damage` → `_health_comp.apply_damage(amount)`. Enemy keeps its own `signal died(enemy: Enemy)` re-emission so external listeners (`WaveManager`) are unchanged.
+Parent (e.g. `Enemy`) child-has `HealthComponent`, connects `_health_comp.died` → `_on_died()`, delegates `apply_damage` → `_health_comp.apply_damage(amount)`. Enemy keeps its own `signal died(enemy: Enemy)` re-emission so external listeners (`SpawnManager`) are unchanged.
 
 ---
 
@@ -75,7 +75,7 @@ Parent (e.g. `Enemy`) child-has `HealthComponent`, connects `_health_comp.died` 
 
 1. **Overflow-as-shield**: BananaHolograma supports shield HP that absorbs overflow damage. Do we want this for a tank/boss variant? Affects whether the component needs a shield layer.
 2. **Typed damage near-term?** If damage types (fire/physical/poison) land before next milestone, re-evaluate `cluttered-code/godot-health-hitbox-hurtbox` v5 — its modifier pipeline would be worth the name-seam cost. Build our own component in a way that makes typed dispatch easy to add (pass a `type: int = 0` param, ignore for now).
-3. **Player lives vs HP**: Keep `WaveManager._lives` model for player, or migrate player to HP-based health with lives as a separate counter? Determines whether `HealthComponent` applies to player at all.
+3. **Player lives vs HP**: Keep `SpawnManager._lives` model for player, or migrate player to HP-based health with lives as a separate counter? Determines whether `HealthComponent` applies to player at all.
 
 ---
 

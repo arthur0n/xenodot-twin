@@ -1,0 +1,48 @@
+{
+  "_doc": "PERMANENT token-spend time-series (the token wiki). Append-only — never prune; this is history. Edit via `npm run token-history` (append/land), never by hand. history.md is generated. Separate domain from .claude/framework-audits (linked by reference only).",
+  "records": [
+    {
+      "date": "2026-07-08",
+      "sessions": [
+        "2026-07-03T10-35-55-045Z",
+        "2026-07-03T18-42-56-256Z",
+        "2026-07-04T22-05-02-866Z",
+        "2026-07-05T14-52-32-766Z",
+        "2026-07-06T07-39-33-283Z",
+        "2026-07-07T07-15-06-288Z",
+        "2026-07-08T06-40-55-221Z"
+      ],
+      "covered": {
+        "input": 36458,
+        "output": 271251,
+        "cacheCreate": 1580358,
+        "cacheRead": 30968455,
+        "cost": 3315.3861,
+        "total": 32856522,
+        "turns": 7345,
+        "hitRate": 95,
+        "costPerSession": 473.6266,
+        "costPerTurn": 0.4514
+      },
+      "global": {
+        "cost": 6507.5291,
+        "total": 72685303,
+        "hitRate": 97,
+        "sessionCount": 17
+      },
+      "topOffender": "godot_docs_get_class re-fetches immutable Godot API docs — ~11 redundant 20.7k-char class dumps ≈ 55k+ tok",
+      "opportunities": [
+        {
+          "id": "godot-docs-memoize",
+          "estSavingTok": 55000,
+          "landed": true,
+          "moved": "pending",
+          "deltaTok": null,
+          "deltaCost": null,
+          "result": "Applied in-session dedup: ui-control.js docsDedupDecision denies a repeat get_class with a scroll-up stub (~20k→~30 chars/repeat), wired in makeCanUseTool; verified in session.test.js. Δ confirmed on next audit global snapshot. Permanent dated-trimmed cross-session cache = framework tech-debt D9-docs-cache-dated."
+        }
+      ],
+      "processNote": "First run. Costliest turns = cache_read on standing orchestrator context (inherent). Applied result-bytes-by-tool sweep to token-audit.md step 3."
+    }
+  ]
+}

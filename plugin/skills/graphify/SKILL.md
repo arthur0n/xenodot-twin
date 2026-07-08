@@ -7,7 +7,7 @@ description: Query the game's knowledge graph for codebase / architecture / file
 # graphify — query the game's knowledge graph
 
 Thin wrapper over the **`graphify` CLI** (the engine). The game's graph lives in
-`graphify-out/` in the game dir (cwd): `graph.json`, `GRAPH_REPORT.md`, `wiki/index.md`.
+`graphify-out/` in the game dir (cwd): `graph.json`, `GRAPH_REPORT.md`.
 
 ## When to use
 
@@ -24,8 +24,7 @@ graphify path "NODE_A" "NODE_B"                 # how two things relate
 graphify explain "NODE"                         # plain-language node summary
 ```
 
-For broad navigation read `graphify-out/wiki/index.md` or `GRAPH_REPORT.md` instead of
-browsing source.
+For broad navigation read `GRAPH_REPORT.md` instead of browsing source.
 
 ## Build / refresh
 

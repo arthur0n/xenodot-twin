@@ -4,3 +4,8 @@ package-lock.json
 
 # Hand-tuned markup — keep prettier off it for now (mirrors lint-staged).
 *.html
+
+# CLI-authored token history (npm run token-history) — sole author is token-history.js;
+# prettier would re-pad the trend table that the CLI un-pads on the next render (churn loop).
+.claude/token-audits/history.json
+.claude/token-audits/history.md

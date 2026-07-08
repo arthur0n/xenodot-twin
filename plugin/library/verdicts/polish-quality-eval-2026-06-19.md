@@ -8,7 +8,7 @@ timestamp: 2026-06-20T21:58:32+01:00
 # Verdict — Hermes "polish & quality layer" findings (2026-06-19)
 
 Scope: Hermes recommendations to stand up a quality + polish layer (quality-gate layering, review
-layer, four new skills, Godot 4.6 perf follow-ups) for DiceOfFate (Godot 4.6.3 stable, Forward+,
+layer, four new skills, Godot 4.6 perf follow-ups) for the game (Godot 4.6.3 stable, Forward+,
 composition-dominant FPS POC). Researcher = skill-researcher. NOT a GodotPrompter library adoption
 — these are framework/skill/agent recommendations. Verdict is per-recommendation. Decision gated on
 user (board question filed). Companion deliverable: `design/polish_quality_plan.md`.
@@ -97,7 +97,7 @@ These are godot-dev tasks, distinct from skills.
 
 ## First slice (highest ROI) after approval
 
-`godot-runtime-smoke` skill + `tools/smoke_combat.gd` + validate.sh wiring: boot firing_yard.tscn,
+`godot-runtime-smoke` skill + `tools/smoke_combat.gd` + validate.sh wiring: boot level.tscn,
 `weapon.try_fire()`, assert fire-signal arity + enemy `died` payload + recoil state changed. Reuses
 the proven `test_combat_integration.gd` pattern; converts the most regression-prone seam (combat
 contract — touched by 6 recent commits) from F5-only to every-commit. No new dependency.

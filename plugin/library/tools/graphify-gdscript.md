@@ -26,7 +26,7 @@ Tested against `graphify-out/graph.json` (post `graphify update .`).
 
 | Capability                      | Status | Evidence                                                                                        |
 | ------------------------------- | ------ | ----------------------------------------------------------------------------------------------- |
-| .gd class/method names as nodes | YES    | 251 `file_type=code` nodes, e.g. `ArenaBuilder._emit_pieces \| entities/arena/arena_builder.gd` |
+| .gd class/method names as nodes | YES    | 251 `file_type=code` nodes, e.g. `LevelBuilder._emit_pieces \| entities/level/level_builder.gd` |
 | signal declarations as nodes    | YES    | `Npc.died (signal)`, `BulletAmmoTracker.ammo_changed` — from .gd source                         |
 | `contains` edges (file→symbol)  | NO     | 0 contains edges with .gd source                                                                |
 | `calls` edges .gd→.gd           | NO     | 0 cross-.gd calls edges                                                                         |
@@ -50,9 +50,9 @@ These commands tested and return useful results on our graph.
 
 ```bash
 # Top connected nodes = highest-leverage change points
-graphify query "WaveManager"
-# Returns 37-node BFS cluster; WaveManager=13 edges = #1 god node
-# Action: scope any WaveManager change via this cluster before editing
+graphify query "SpawnManager"
+# Returns 37-node BFS cluster; SpawnManager=13 edges = #1 god node
+# Action: scope any SpawnManager change via this cluster before editing
 ```
 
 ```bash
@@ -65,10 +65,10 @@ graphify query "Enemy archetype behaviour composition"
 
 ```bash
 # Path between two concepts = change impact chain
-graphify path "Enemy" "WaveManager"
-# Returns: Enemy <--references-- Verify: Enemy Spawning + Navmesh --references--> WaveManager
+graphify path "Enemy" "SpawnManager"
+# Returns: Enemy <--references-- Verify: Enemy Spawning + Navmesh --references--> SpawnManager
 
-graphify path "HealthComponent" "ArenaHud"
+graphify path "HealthComponent" "Hud"
 # Surfaces intermediary nodes = files that need review
 ```
 
@@ -86,10 +86,10 @@ graphify query "project conventions skills quality"
 ```bash
 # Signal declarations ARE nodes; trace downstream
 graphify query "Npc.died signal"
-# Returns connections to WaveManager, ArenaHud etc. via .md edges
+# Returns connections to SpawnManager, Hud etc. via .md edges
 
 graphify query "ammo_changed signal"
-# Traces BulletAmmoTracker → WeaponController → ArenaHud chain
+# Traces BulletAmmoTracker → WeaponController → Hud chain
 ```
 
 ### 5. Dead/orphan detection (partial)
@@ -105,10 +105,10 @@ graphify query "isolated orphan unused"
 
 ```bash
 # High edge-count nodes in GRAPH_REPORT.md god-nodes list are the targets:
-# WaveManager (13 edges), Enemy base (12 edges), CastData (10 edges)
-graphify query "WaveManager spawn wave reset"
+# SpawnManager (13 edges), Enemy base (12 edges), CastData (10 edges)
+graphify query "SpawnManager spawn wave reset"
 # Cluster shows: spawn logic, level progression, health, arena builder all coupled
-# → WaveManager is a split candidate (spawn + reset + wave-counter = 3 jobs)
+# → SpawnManager is a split candidate (spawn + reset + wave-counter = 3 jobs)
 ```
 
 ---

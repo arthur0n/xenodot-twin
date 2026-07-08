@@ -5,9 +5,12 @@
 // (ui/server/features/promotions/contamination.js), so there is one definition and no drift. Mirrors
 // gen-skill-scope.js: bare-node; wired into `npm run validate`, the pre-commit hook, and CI.
 //
-// Scans the PROMOTABLE kinds (skills/agents/tools) plus library/transcripts/ (shipped records:
-// digests are game-mapping docs and belong game-local — design/library/transcripts/ — so any
-// transcript left in the plugin library must read agnostic; one-game mapping language fails it).
+// Scans the PROMOTABLE kinds (skills/agents/tools) plus EVERY shipped library record kind
+// (verdicts/findings/addons/tools/sources/drafts/transcripts): a record pins one game the moment it
+// names that game's scenes/codenames or judges content against "our stack", and the library ships
+// to every game — so records get the same codename/path/provenance scan plus the records-only
+// one-game-mapping signal (checkMapping). archive/ subdirs hold consumed RAW source backups (not
+// framework-authored records) and are skipped.
 //   node ui/server/cli/gen-contamination.js     # exits 1 on any contamination
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -38,13 +41,28 @@ for (const root of ROOTS) {
     if (!existsSync(kindRoot)) continue;
     hits.push(...scanPath(kindRoot, { checkRes, all: true }));
   }
-  // Shipped transcript records: top-level digests only — transcripts/archive/ holds consumed RAW
-  // video text (source backups, not framework-authored records) and must not be judged as records.
-  const transcripts = path.join(root, "library", "transcripts");
-  if (existsSync(transcripts))
-    for (const e of readdirSync(transcripts, { withFileTypes: true }))
-      if (e.isFile() && e.name.endsWith(".md"))
-        hits.push(...scanPath(path.join(transcripts, e.name), { checkMapping: true, all: true }));
+  // Shipped library records — every kind, not just transcripts: a verdict/finding/addon/tool
+  // record that names one game's scenes or codenames pins the library to that game. Same scan as
+  // the promotable kinds plus the records-only one-game-mapping signal (checkMapping). Skip each
+  // kind's archive/ (consumed RAW source backups, e.g. transcripts/archive/ video text — not
+  // framework-authored records). scanPath recurses, so nested record dirs (addons/<pack>/) are covered.
+  const RECORD_KINDS = [
+    "verdicts",
+    "findings",
+    "addons",
+    "tools",
+    "sources",
+    "drafts",
+    "transcripts",
+  ];
+  for (const kind of RECORD_KINDS) {
+    const kindRoot = path.join(root, "library", kind);
+    if (!existsSync(kindRoot)) continue;
+    for (const e of readdirSync(kindRoot, { withFileTypes: true })) {
+      if (e.name === "archive" || e.name === "index.md") continue;
+      hits.push(...scanPath(path.join(kindRoot, e.name), { checkMapping: true, all: true }));
+    }
+  }
 }
 
 const labels = ROOTS.map((r) => path.basename(r)).join(" + ");
@@ -61,4 +79,4 @@ if (hits.length) {
   );
   process.exit(1);
 }
-console.log(`ok  contamination: ${labels} skills/agents/tools are agnostic`);
+console.log(`ok  contamination: ${labels} skills/agents/tools + library records are agnostic`);

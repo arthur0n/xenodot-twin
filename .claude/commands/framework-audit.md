@@ -30,9 +30,9 @@ properties the promotion rubric (`plugin/docs/process/promotion.md`) demands.
 - **Agents:** `plugin/agents/*.md` — frontmatter `skills:` list + the prompt body.
 - **Skills:** `plugin/skills/*/SKILL.md` — frontmatter `name`/`description`/`agents` + body.
 - **Orchestrator:** `ui/orchestrator.md`.
-- **Commands:** `plugin/commands/*.md` and ALL forge-local self-improvement commands
-  (`.claude/commands/*.md`: this file, `framework-audit-fix.md`, `harvest-sessions.md`,
-  `framework-feedback.md`).
+- **Commands:** `plugin/commands/*.md` and ALL forge-local self-improvement commands —
+  glob `.claude/commands/*.md`, never a hardcoded list (it goes stale; token-audit.md was
+  silently missed by one).
 - **Library (AGNOSTIC records only — ships to every game):** `plugin/library/{transcripts,verdicts,findings}/`. A game's specific FACTS live GAME-LOCAL (the game repo), never here.
 - **Ledger:** `.claude/framework-audits/LEDGER.json` — the SOURCE OF TRUTH (a `findings[]` array);
   read FIRST, append findings AFTER (push objects to `findings[]`, dedup by `id`). `LEDGER.md` /
@@ -130,8 +130,8 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
      skill; philosophy/tone that dilutes routing. Propose the move/trim.
 
    - **D7 — The framework's own commands.** Audit `plugin/commands/*.md` AND all forge-local
-     self-improvement commands (`.claude/commands/*.md`: this file, `framework-audit-fix.md`,
-     `harvest-sessions.md`, `framework-feedback.md`) for stale references
+     self-improvement commands (glob `.claude/commands/*.md` — never assume a fixed list) for
+     stale references
      (paths/files that moved), scope creep, dead steps, and whether each command still
      self-critiques. Apply D2/D3/D5 lenses to commands too. **Enumeration drift:** flag any command
      that hardcodes a list of sibling files where a glob (`.claude/commands/*.md`) would stay
@@ -139,7 +139,8 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
 
    - **D8 — Verification flow completeness.** Does the verify/grade story hold end-to-end across
      builders, skills, and tools? Trace it (graphify D8): design **Acceptance** → builder gate
-     (`tools/validate.sh` composing `tools/lib/checks.sh`) → evaluator rubric (`tools/playgrade.sh`
+     (`plugin/tools/validate.sh` composing `plugin/tools/lib/checks.sh`; games see them
+     materialized as `tools/`) → evaluator rubric (`plugin/tools/playgrade.sh`
      - `godot-playgrade` / `godot-playtester`). Flag a break: a builder listing `godot-verify` with
        no `## Verification (mandatory)` block; a gate step a skill claims but `validate.sh`/`checks.sh`
        doesn't run (or a check function nothing composes); a `tools/` script that ships but nothing
@@ -204,7 +205,8 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
 ## Never
 
 - Re-audit a dimension already covered recently (unless its area changed) — check the ledger.
-- Slurp whole files; filter with `rtk grep` / `wc` / sub-agents first.
+- Slurp whole files; filter with the Grep tool / full-path `rg` / `wc` / sub-agents first
+  (never bash `grep`/`rtk grep` for match content — see the search warning above).
 - Auto-apply fixes or write under `plugin/`. This command reports; `/framework-audit-fix`
   applies the agreed ids; the human decides. (Step 7's tweaks to this command / ledger are the
   one exception.)

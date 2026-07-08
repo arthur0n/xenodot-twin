@@ -59,8 +59,8 @@ the routing map, never a per-effect singleton.
 ### 1. The one-shot rig — `entities/vfx/vfx_base.tscn` + `VfxOneShot.gd`
 
 Scene: `VfxOneShot` (Node3D, script below) → `Particles` (GPUParticles3D). On
-the GPUParticles3D set `one_shot = true`, `emitting = false` (the script flips
-it), `explosiveness = 1.0` (whole burst at once), a draw-pass mesh + a
+the GPUParticles3D set `one_shot = true`, `emitting = false` (the script's
+`start()` flips it AFTER placement), `explosiveness = 1.0` (whole burst at once), a draw-pass mesh + a
 `ParticleProcessMaterial`, and `local_coords = false` so particles stay in world
 space where the burst spawned (true would drag them with the node — only use
 true for an attached trailing effect).
@@ -75,10 +75,15 @@ extends Node3D
 func _ready() -> void:
 	_particles.one_shot = true
 	_particles.local_coords = false
+	_particles.emitting = false  # ARM only — _ready() runs DURING add_child, before placement
 	if not _particles.finished.is_connected(_on_finished):
 		_particles.finished.connect(_on_finished)
-	_particles.restart()  # reset before emit so a reused/pooled rig re-fires
-	_particles.emitting = true
+	# Do NOT restart()/emit here: global_transform is not set until AFTER add_child, so
+	# emitting now seeds every particle at the pre-placement origin (0,0,0).
+
+## Call AFTER global_transform is set on this node — emits from the correct world point.
+func start() -> void:
+	_particles.restart()  # reset + emit; seeds particle origins at the now-correct world pos
 
 func _on_finished() -> void:
 	queue_free()
@@ -109,8 +114,11 @@ func _spawn_vfx(scene: PackedScene, at: Transform3D) -> void:
 	if root == null:
 		return
 	var fx: Node3D = scene.instantiate() as Node3D
-	root.add_child(fx)            # reparent under survivor BEFORE owner frees
-	fx.global_transform = at      # place after reparent
+	root.add_child(fx)            # into tree BEFORE placement (arms the rig, does NOT emit)
+	fx.global_transform = at      # place AFTER add_child — a pre-tree transform silently no-ops
+	if fx.has_method("start"):
+		@warning_ignore("unsafe_method_access")
+		fx.start()                # emit LAST, from the now-correct world point
 
 func on_hit(target: Node3D) -> void:
 	_spawn_vfx(FX_IMPACT, target.global_transform)
@@ -175,13 +183,14 @@ func _ready() -> void:
 
 ## Error → Fix
 
-| Symptom                                           | Fix                                                                                                               |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Effect invisible (emits but nothing drawn)        | GPUParticles3D has no draw-pass mesh — assign a mesh to Draw Pass 1.                                              |
-| Node never frees / leaks in remote tree           | `one_shot` is false, or `finished` not connected — set `one_shot = true` and connect `finished` → `queue_free`.   |
-| Burst at wrong spot (origin / dragged with owner) | `local_coords` wrong — set `false` for a world burst; set `global_transform` AFTER reparenting under `VfxRoot`.   |
-| Burst cut short when projectile/enemy frees       | Owner freed before the effect — reparent the effect under a surviving `VfxRoot` BEFORE the owner `queue_free()`s. |
-| Trail empty / no trail renders                    | Running Compatibility renderer — trails are Forward+/Mobile only; switch to Forward+.                             |
-| Re-used rig won't re-fire second time             | Call `restart()` before setting `emitting = true` on a reused/pooled rig.                                         |
+| Symptom                                           | Fix                                                                                                                                                                                                |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Effect invisible (emits but nothing drawn)        | GPUParticles3D has no draw-pass mesh — assign a mesh to Draw Pass 1.                                                                                                                               |
+| Node never frees / leaks in remote tree           | `one_shot` is false, or `finished` not connected — set `one_shot = true` and connect `finished` → `queue_free`.                                                                                    |
+| Burst at wrong spot (origin / dragged with owner) | `local_coords` wrong — set `false` for a world burst; set `global_transform` AFTER reparenting under `VfxRoot`.                                                                                    |
+| Burst flashes at world origin (0,0,0) on spawn    | Emission fires in `_ready()` (which runs DURING `add_child`, before `global_transform` is set) — split emit into `start()` and call it AFTER placement; `_ready()` only arms (`emitting = false`). |
+| Burst cut short when projectile/enemy frees       | Owner freed before the effect — reparent the effect under a surviving `VfxRoot` BEFORE the owner `queue_free()`s.                                                                                  |
+| Trail empty / no trail renders                    | Running Compatibility renderer — trails are Forward+/Mobile only; switch to Forward+.                                                                                                              |
+| Re-used rig won't re-fire second time             | Call `start()` (which `restart()`s) after placement; toggling `emitting` alone won't re-fire a `one_shot` mid-cycle.                                                                               |
 
 Adapted from GodotPrompter (https://github.com/jame581/GodotPrompter), MIT License, Copyright (c) GodotPrompter Contributors.

@@ -1,7 +1,7 @@
 ---
 type: verdict
 title: "Verdict — Greybox FPS 'traps' (Hermes findings, 2026-06-26)"
-description: "REJECT a new godot-traps skill. REJECT the TrapZone.tscn enum component as a system."
+description: "REJECT a new godot-traps skill. REJECT the trap_zone.tscn enum component as a system."
 timestamp: 2026-06-26T21:58:01+01:00
 ---
 
@@ -9,7 +9,7 @@ timestamp: 2026-06-26T21:58:01+01:00
 
 ## VERDICT (on top of buckets)
 
-**REJECT a new `godot-traps` skill. REJECT the `TrapZone.tscn` enum component as a system.**
+**REJECT a new `godot-traps` skill. REJECT the `trap_zone.tscn` enum component as a system.**
 Recommendation: **convention-only + two one-line gotcha notes baked into existing skills.**
 Our existing architecture already covers every trap type Hermes named, with code that matches
 his "correct" pattern — including the velocity-zero step he flagged as critical-and-easily-missed,
@@ -23,7 +23,7 @@ Gap status: **NO gap.** A successful result = stop, don't author.
 
 - **Fall trap (the headline pattern).** `FallZone` Area3D (`collision_layer=0`, `collision_mask=2`
   = player layer) is already the greybox convention (`godot-greybox` SKILL.md L42; emitted by
-  `entities/arena/arena_builder.gd:_emit_fall_zones`). The level connects its `body_entered`.
+  `entities/level/level_builder.gd:_emit_fall_zones`). The level connects its `body_entered`.
 - **The "critical, easily-missed" velocity-zero step is ALREADY in code.** `tools/lib/players.gd`
   → `Players.reset_to(player, pos, rot_y)` teleports AND zeros velocity:
   `(player as CharacterBody3D).velocity = Vector3.ZERO`. Exactly Hermes' fix. Not missing.
@@ -51,7 +51,7 @@ Gap status: **NO gap.** A successful result = stop, don't author.
 1. **From the idea** — author "traps" (fall pit, spikes/lava kill, teleport pad, crusher) for the
    greybox FPS arena, data-driven and editor-authored.
 
-2. **From the candidate** — a `TrapZone.tscn` (Area3D + CollisionShape3D + Marker3D) with
+2. **From the candidate** — a `trap_zone.tscn` (Area3D + CollisionShape3D + Marker3D) with
    `@export enum TrapType {FALL_RESPAWN, DAMAGE, KILL, TELEPORT}` + Marker3D refs + optional
    `TrapConfig` Resource, plus per-type patterns (hybrid fall pit, crusher via AnimatableBody3D,
    moving-platform gap, damage floor).
@@ -77,7 +77,7 @@ Gap status: **NO gap.** A successful result = stop, don't author.
    any current skill, and would justify a `godot-moving-hazard` framework skill THEN. Park in the
    framework "Later" list; do NOT build for this POC (no moving traps in scope).
 
-6. **Skip** — the new `godot-traps` skill; the `TrapZone` enum component; the `TrapConfig`
+6. **Skip** — the new `godot-traps` skill; the `trap_zone` enum component; the `TrapConfig`
    Resource; the runtime-instancing bug workaround (#66468) — all skip (banned or redundant here).
 
 ---
@@ -92,4 +92,4 @@ a framework change, not a game file): the velocity-zero / collision-mask gotcha 
 
 "Build trap X as a static hand-authored Area3D in the level `.tscn`: fall → FallZone + connect
 `body_entered` to `Players.reset_to`; damage/kill → Area3D `body_entered` → existing Cast/Effect
-damage apply. No new TrapZone component, no runtime geometry."
+damage apply. No new trap_zone component, no runtime geometry."

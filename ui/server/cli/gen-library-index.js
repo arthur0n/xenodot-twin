@@ -7,6 +7,9 @@
 // Mirrors gen-contamination.js: bare-node; wired into `npm run validate` and CI.
 //   node ui/server/cli/gen-library-index.js            # verify — exits 1 on any violation/drift
 //   node ui/server/cli/gen-library-index.js --write    # regenerate each kind's index.md
+// Frontmatter PRESENCE is an ERROR (exits 1); chunk QUALITY (over-long, multi-topic, near-dup
+// description) is a WARN-only signal — it never fails the build, it just points curation at the
+// records worth re-chunking. Mechanizes "fix chunking, don't ask the model to sift".
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR } from "../core/config.js";
@@ -37,6 +40,47 @@ function records(dir, out = []) {
   return out;
 }
 
+// Warn-only chunk-quality heuristics (D2). A library record is a retrieval chunk: one topic,
+// small enough to read whole. These flag the records that drift from that shape.
+const MAX_RECORD_LINES = 120; // body lines; longer → probably several topics, split it
+const DUP_DESC_JACCARD = 0.8; // ≥ this word-overlap between two descriptions → near-duplicate
+
+/** Body line count + count of top-level (`#`) headings that sit OUTSIDE code fences (a fenced
+ * `# comment` is not a topic). >1 real H1 ⇒ multi-topic record.
+ * @param {string} body @returns {{ lines: number, h1s: number }} */
+function bodyStats(body) {
+  let h1s = 0;
+  let fenced = false;
+  const rows = body.replace(/\n$/, "").split("\n");
+  for (const raw of rows) {
+    const line = raw.trim();
+    if (line.startsWith("```") || line.startsWith("~~~")) fenced = !fenced;
+    else if (!fenced && /^# \S/.test(raw)) h1s++;
+  }
+  return { lines: body.trim() ? rows.length : 0, h1s };
+}
+
+/** Significant word set of a description, for near-duplicate comparison (drops short stopword-ish
+ * tokens). @param {string} s @returns {Set<string>} */
+function descWords(s) {
+  return new Set(
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(" ")
+      .filter((w) => w.length > 2),
+  );
+}
+
+/** Jaccard overlap of two word sets. @param {Set<string>} a @param {Set<string>} b */
+function jaccard(a, b) {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  return inter / (a.size + b.size - inter);
+}
+
 if (!LIBRARIES.length) {
   console.log("ok  library: no library folder");
   process.exit(0);
@@ -44,6 +88,8 @@ if (!LIBRARIES.length) {
 
 /** @type {string[]} */
 const errors = [];
+/** @type {string[]} */
+const warnings = [];
 let drifted = 0;
 /** @type {string[]} */
 const totals = [];
@@ -51,6 +97,8 @@ const totals = [];
 for (const { label, dir: LIBRARY } of LIBRARIES) {
   /** @type {Map<string, Array<{ rel: string, title: string, description: string }>>} */
   const byKind = new Map();
+  /** @type {Array<{ rel: string, lines: number, h1s: number, words: Set<string> }>} */
+  const recs = [];
 
   for (const file of records(LIBRARY)) {
     const rel = path.join(label, "library", path.relative(LIBRARY, file));
@@ -60,7 +108,7 @@ for (const { label, dir: LIBRARY } of LIBRARIES) {
       errors.push(`${rel}: record sits at the library root — records live in library/<kind>/`);
       continue;
     }
-    const { data } = parseFrontmatter(readFileSync(file, "utf8"));
+    const { data, body } = parseFrontmatter(readFileSync(file, "utf8"));
     if (!data) {
       errors.push(`${rel}: no YAML frontmatter (records need type/title/description)`);
       continue;
@@ -71,6 +119,8 @@ for (const { label, dir: LIBRARY } of LIBRARIES) {
         errors.push(`${rel}: frontmatter missing \`${field}\``);
     }
     if (typeof data.title !== "string" || typeof data.description !== "string") continue;
+    const { lines, h1s } = bodyStats(body);
+    recs.push({ rel, lines, h1s, words: descWords(data.description) });
     const list = byKind.get(kind) ?? [];
     list.push({
       rel: kindRel.slice(kind.length + 1),
@@ -79,6 +129,29 @@ for (const { label, dir: LIBRARY } of LIBRARIES) {
     });
     byKind.set(kind, list);
   }
+
+  // Chunk-quality warnings (non-blocking) — over-long, multi-topic, or near-duplicate records.
+  for (const r of recs) {
+    if (r.lines > MAX_RECORD_LINES)
+      warnings.push(
+        `${r.rel}: ${r.lines} lines (> ${MAX_RECORD_LINES}) — long record, split into focused chunks`,
+      );
+    if (r.h1s > 1)
+      warnings.push(
+        `${r.rel}: ${r.h1s} top-level \`#\` topics — multi-topic record, one chunk per topic`,
+      );
+  }
+  for (let i = 0; i < recs.length; i++)
+    for (let j = i + 1; j < recs.length; j++) {
+      const a = recs[i];
+      const b = recs[j];
+      if (!a || !b) continue;
+      const sim = jaccard(a.words, b.words);
+      if (sim >= DUP_DESC_JACCARD)
+        warnings.push(
+          `${a.rel} ~ ${b.rel}: near-duplicate description (${Math.round(sim * 100)}% word overlap) — merge or differentiate`,
+        );
+    }
 
   for (const [kind, list] of [...byKind.entries()].sort()) {
     list.sort((a, b) => a.rel.localeCompare(b.rel));
@@ -104,6 +177,11 @@ for (const { label, dir: LIBRARY } of LIBRARIES) {
   totals.push(
     `${[...byKind.values()].reduce((n, l) => n + l.length, 0)} (${label}, ${byKind.size} kind index(es))`,
   );
+}
+
+if (warnings.length) {
+  console.warn(`⚠  library: ${warnings.length} chunk-quality warning(s) (non-blocking):`);
+  for (const w of warnings) console.warn(`    ${w}`);
 }
 
 if (errors.length) {

@@ -92,3 +92,7 @@ leave the ambiguity for the next run.
    repro), by file reference.
 3. Any Acceptance checks too vague to bind, and any `renders-healthy`/visual surface left to a human
    F5.
+
+## Handoff
+
+For handoffs, follow the preloaded `agent-report` skill: relay only `<path> — playgrade PASS|FAIL`.

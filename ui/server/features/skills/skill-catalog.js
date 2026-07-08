@@ -73,6 +73,7 @@ export function getWorkspaceSkills() {
   try {
     return readdirSync(dir)
       .filter((f) => f.endsWith(".md"))
+      .sort()
       .flatMap((f) => {
         try {
           const text = readFileSync(path.join(dir, f), "utf8");

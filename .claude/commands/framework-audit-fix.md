@@ -78,13 +78,13 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
      or a forge-local `.claude/commands/*.md` (the self-improvement commands audited under D7).
    - **D8 (verification-flow gap):** apply the recorded edit at the named layer — add the missing
      `## Verification (mandatory)` block to the builder, wire the claimed step into
-     `tools/lib/checks.sh` / `tools/validate.sh` (or correct the skill's claim), or replace a
-     re-taught passage with a pointer to the owning skill. A new gate check graduates as a
-     `check_*` function in `tools/lib/checks.sh`.
+     `plugin/tools/lib/checks.sh` / `plugin/tools/validate.sh` (or correct the skill's claim), or
+     replace a re-taught passage with a pointer to the owning skill. A new gate check graduates as a
+     `check_*` function in `plugin/tools/lib/checks.sh`.
    - **D9 (harness simplification):** **strip** — apply the agreed removal/down-tier (edit the
      agent's `model:` / skill list, trim the scaffold, drop the dead gate step), then confirm the
      sample task + full verify still pass (a strip must not regress the gate); or **harden** — draft
-     the named `check_*` / tool into `tools/lib/checks.sh` (or `tools/`).
+     the named `check_*` / tool into `plugin/tools/lib/checks.sh` (or `plugin/tools/`).
 4. **Verify.** If any framework file changed: `rtk npm run validate` (tsc + eslint, zero
    warnings — this also runs the skill-scope check, catching D1/D3/D5 wiring mistakes) and
    `rtk npx prettier --write` on the touched files. Report the result honestly; if validate

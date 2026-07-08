@@ -130,9 +130,9 @@ render check.
   (doubles as a navmesh-baked check — an unbaked navmesh yields an empty path).
 - Caveat: only works if the controller polls `Input` in `_physics_process` (standard
   CharacterBody3D) — if it reads `_unhandled_input`, feed events via `viewport.push_input`.
-- Pattern: `tools/nav_smoke.gd` / a `bot_playthrough.gd` step. Wire it into `validate.sh` as an
-  L2 step alongside the `smoke_*.gd` glob (report the wiring to the verifier — `tools/` is
-  plugin-materialized).
+- Pattern: name it `tools/smoke_nav.gd` — it auto-joins the `smoke_*.gd` glob (`check_smoke_bots`
+  in `tools/lib/checks.sh`) run by `validate.sh`; do NOT hand-wire a new step into `validate.sh`
+  (`tools/` is plugin-materialized — a hand-edit there is gitignored + overwritten).
 
 ## Verification checklist
 

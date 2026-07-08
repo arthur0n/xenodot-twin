@@ -297,7 +297,7 @@ THE HEADLESS / WINDOWED SPLIT (critical — do NOT assume headless catches every
 - Deliberately break the seam (rename `died` arity, comment out the recoil mutation)
   → the matching assert prints `FAIL:` and the script exits 1. (A smoke test that
   can't fail proves nothing.)
-- `tools/validate.sh` now prints `validate: PASS runtime-smoke` between
+- `tools/validate.sh` now prints `validate: PASS smoke-bots (N)` between
   `PASS smoke` and `validate: OK`.
 - The smoke run adds no new leak lines to validate.sh's leak greps (every spawn
   `queue_free`d).
