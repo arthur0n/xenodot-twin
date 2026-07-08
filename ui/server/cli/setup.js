@@ -7,6 +7,8 @@
 //        npm run setup                    (defaults to ../game, the sibling folder)
 //        npm run setup -- ../mytwin --viewer   (mark the project a digital-twin VIEWER —
 //                                               loads plugin-twin + the viewer orchestrator)
+//        npm run setup -- ../game --game       (explicitly mark it a GAME — the way BACK
+//                                               from viewer: type is sticky otherwise)
 //
 // Hermes (external researcher) can be switched on here too — these only touch the
 // `hermes` block, never the project path (use the web UI ⚙ Settings panel for the same):
@@ -68,14 +70,18 @@ if (arg || !hermesArgs) {
   try {
     saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
   } catch {}
-  // Project type: `--viewer` marks a digital-twin viewer; otherwise a previously saved "viewer"
-  // is preserved and everything else normalizes to the "game" default — an old .xenodot.json
-  // without the key keeps working, it just gains an explicit projectType on the next setup.
+  // Project type: `--viewer` marks a digital-twin viewer, `--game` explicitly marks a game
+  // (the way BACK from viewer — without it a previously saved "viewer" is preserved, so a
+  // plain re-setup can't accidentally demote a twin project); everything else normalizes to
+  // the "game" default — an old .xenodot.json without the key keeps working, it just gains
+  // an explicit projectType on the next setup.
   const projectType = flag("viewer")
     ? "viewer"
-    : saved.projectType === "viewer"
-      ? "viewer"
-      : "game";
+    : flag("game")
+      ? "game"
+      : saved.projectType === "viewer"
+        ? "viewer"
+        : "game";
   writeFileSync(
     CONFIG_FILE,
     JSON.stringify({ ...saved, projectDir: target, projectType }, null, 2) + "\n",
