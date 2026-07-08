@@ -7,6 +7,11 @@ extends SceneTree
 ## BoxOccluder3D occluders to big meshes (opt-in: occlusion culling is a per-frame CPU
 ## raster cost, net-NEGATIVE on flat scenes) and visibility ranges by size class.
 ##
+## World placement survives instancing: the MultiMesh buffers carry each instance's GLOBAL
+## transform and the container node is pinned to world identity, so the optimized field lands
+## exactly where the originals did even when the input's root node carries a non-identity
+## transform (no double-apply; the per-chunk custom_aabb's world==local premise holds).
+##
 ## The IFC GlobalId join survives instancing: each MultiMeshInstance3D carries meta
 ## "twin_globalids" (PackedStringArray ordered by instance index — the original node
 ## names) and the report embeds the same map, so data binding can still resolve
@@ -79,6 +84,12 @@ func _run() -> int:
 	var container := Node3D.new()
 	container.name = "TwinInstanced"
 	scene_root.add_child(container)
+	# The MultiMesh buffers below hold each instance's GLOBAL transform, so the chunked field
+	# must render in world space no matter what transform the input's root node carries. Pin the
+	# container to world identity (its local transform absorbs any root transform) — otherwise a
+	# non-identity root DOUBLE-applies (the buffer is already world-space) and breaks the per-chunk
+	# custom_aabb, whose world==local premise assumes the chunk nodes sit at world identity.
+	container.global_transform = Transform3D.IDENTITY
 	var per_group: Array[Dictionary] = []
 	var gid_map := {}
 	var groups_instanced := 0
@@ -288,7 +299,8 @@ func _group_label(g: MeshGroup, gi: int) -> String:
 ## Emits region-chunked MultiMeshInstance3D nodes for one group: the group's world AABB is
 ## gridded chunks x chunks on the XZ plane, instances land in the cell holding their origin,
 ## one MultiMesh per non-empty cell with a correct per-chunk custom_aabb so culling works.
-## Chunk nodes sit at identity; instance transforms are the originals' global transforms.
+## Chunk nodes sit at world identity (the container is pinned to identity in _run, so a
+## transformed input root does not double-apply); instance transforms are the originals' globals.
 ## Returns the number of chunks created; fills gid_map[chunk node name] = ordered GlobalIds.
 func _emit_chunks(container: Node3D, g: MeshGroup, gi: int, gid_map: Dictionary) -> int:
 	var world_aabbs: Array[AABB] = []
@@ -330,7 +342,7 @@ func _emit_chunks(container: Node3D, g: MeshGroup, gi: int, gid_map: Dictionary)
 			gids.append(String(g.nodes[idx].name))
 			chunk_aabb = world_aabbs[idx] if j == 0 else chunk_aabb.merge(world_aabbs[idx])
 		mm.buffer = buf
-		mm.custom_aabb = chunk_aabb  # world == local: the chunk node sits at identity
+		mm.custom_aabb = chunk_aabb  # world == local: chunk node at world identity (container pinned)
 		var mmi := MultiMeshInstance3D.new()
 		@warning_ignore("integer_division")
 		var crow: int = b / chunks
