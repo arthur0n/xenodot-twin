@@ -77,6 +77,10 @@ rtk proxy head -c 13 Duplex_A_20110907.ifc    # must print: ISO-10303-21;
 
 If it prints `<!DOCTYPE` or anything else, the URL served a web page, not a model.
 
+A vetted copy of the Duplex sample (plus an example binding map + viewer config) ships in the
+try-it kit at `plugin-twin/examples/` — see its `README.md` for the copy-in-and-convert
+quickstart and `NOTICE.md` for provenance.
+
 ## Step 2 — load at RUNTIME (no editor import)
 
 The viewer loads the GLB with `GLTFDocument` at runtime — **no editor import step, no
