@@ -152,6 +152,25 @@ the same approvals. Off by default; set/cleared from the Autonomous panel
 - **Godot-docs MCP** — official Godot 4.x docs as an MCP source, powering
   `godot-docs-evangelist`; enabled in Settings.
 
+## Digital-twin viewer (experimental second domain)
+
+The **xenodot-twin** plugin (`plugin-twin/`) turns the same pipeline onto a
+non-game target: a digital-twin 3D **viewer** — an IFC/BIM model rendered in
+Godot with live sensor values bound to the actual building elements and a
+timeline to scrub recorded history.
+
+- **Opt-in only**: activates for projects scaffolded `npm run new -- <path> --viewer`
+  (`projectType: "viewer"`); game projects never load it. `--game` switches back.
+- **Own agents & skills**: `twin-architect` / `scene-optimizer` / `data-binder`,
+  with `twin-import` (IFC → GLB + property sidecar), `twin-optimize` (measured
+  ≥4.4× on repeated-geometry scenes), `twin-bind-data`, `twin-playback`,
+  `twin-verify` — all gated the same way the game side is (join coverage,
+  binding smoke, playback-determinism hash, frame budget).
+- **Try it**: the from-scratch walkthrough is
+  [`docs/tutorials/digital-twin.md`](docs/tutorials/digital-twin.md), with a
+  bundled sample kit (IFC + example binding map + viewer config) in
+  [`plugin-twin/examples/`](plugin-twin/examples/).
+
 ## Growth loop
 
 A new skill/agent/tool starts **game-local** in `<game>/.claude/` and is usable

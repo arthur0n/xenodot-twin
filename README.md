@@ -242,7 +242,10 @@ it, and nothing above changes for games. It only activates for projects scaffold
 `npm run new -- <path> --viewer` (`projectType: "viewer"`), where the web UI loads it as a
 second plugin beside xenodot. Web-UI only for now; capabilities namespace as
 `xenodot-twin:<name>`, viewer promotions land in `plugin-twin/`, and viewer projects mount
-its knowledge base as `library-twin/`.
+its knowledge base as `library-twin/`. Try it end to end with the walkthrough in
+[docs/tutorials/digital-twin.md](docs/tutorials/digital-twin.md) and the bundled try-it
+kit (sample IFC + example binding map + viewer config) in
+[plugin-twin/examples/](plugin-twin/examples/).
 
 ## Using the web UI
 
