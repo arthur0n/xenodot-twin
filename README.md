@@ -235,6 +235,15 @@ and are usable immediately; you **promote** the keepers into the plugin
 (`npm run promote -- skills <name>`). The clone → new → run path is guarded by
 `npm run test:onboarding` (and CI). Full growth loop in [FEATURES.md](FEATURES.md).
 
+**Experimental: the xenodot-twin plugin** (`plugin-twin/`) — a digital-twin 3D **viewer**
+sibling (BIM/IFC import, master-data join by GlobalId, live time-series overlays). **Not part
+of the normal installation**: it is not listed in the marketplace, game projects never load
+it, and nothing above changes for games. It only activates for projects scaffolded with
+`npm run new -- <path> --viewer` (`projectType: "viewer"`), where the web UI loads it as a
+second plugin beside xenodot. Web-UI only for now; capabilities namespace as
+`xenodot-twin:<name>`, viewer promotions land in `plugin-twin/`, and viewer projects mount
+its knowledge base as `library-twin/`.
+
 ## Using the web UI
 
 The web UI runs the same agents from a browser (full feature list in

@@ -1,0 +1,2 @@
+# Marker: when this library is symlinked into a project (as library-twin/), Godot skips scanning it.
+# It holds twin framework knowledge (.md), never engine resources.

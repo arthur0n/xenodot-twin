@@ -11,7 +11,7 @@
 //   node ui/server/cli/gen-contamination.js     # exits 1 on any contamination
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { FRAMEWORK_PLUGIN_DIR } from "../core/config.js";
+import { FRAMEWORK_DIR, FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR } from "../core/config.js";
 import { scanPath } from "../features/promotions/contamination.js";
 
 // res:// is checked for TOOLS only — a tool with a hardcoded game scene breaks other games' gates,
@@ -24,27 +24,35 @@ const DIRS = [
   { dir: "tools", checkRes: true },
 ];
 
+// BOTH plugin roots get the same gate: plugin-twin/ ships to every VIEWER project, so its
+// content must be viewer-domain-generic by the exact same signals (codenames, absolute paths,
+// sibling-game refs, provenance) — one scanner, no twin-specific vocabulary. A missing
+// plugin-twin (a plain fork) is skipped.
+const ROOTS = [FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR].filter((r) => existsSync(r));
+
 /** @type {Array<{ file: string, signal: string, match: string, hint: string }>} */
 const hits = [];
-for (const { dir, checkRes } of DIRS) {
-  const root = path.join(FRAMEWORK_PLUGIN_DIR, dir);
-  if (!existsSync(root)) continue;
-  hits.push(...scanPath(root, { checkRes, all: true }));
+for (const root of ROOTS) {
+  for (const { dir, checkRes } of DIRS) {
+    const kindRoot = path.join(root, dir);
+    if (!existsSync(kindRoot)) continue;
+    hits.push(...scanPath(kindRoot, { checkRes, all: true }));
+  }
+  // Shipped transcript records: top-level digests only — transcripts/archive/ holds consumed RAW
+  // video text (source backups, not framework-authored records) and must not be judged as records.
+  const transcripts = path.join(root, "library", "transcripts");
+  if (existsSync(transcripts))
+    for (const e of readdirSync(transcripts, { withFileTypes: true }))
+      if (e.isFile() && e.name.endsWith(".md"))
+        hits.push(...scanPath(path.join(transcripts, e.name), { checkMapping: true, all: true }));
 }
 
-// Shipped transcript records: top-level digests only — transcripts/archive/ holds consumed RAW
-// video text (source backups, not framework-authored records) and must not be judged as records.
-const TRANSCRIPTS = path.join(FRAMEWORK_PLUGIN_DIR, "library", "transcripts");
-if (existsSync(TRANSCRIPTS))
-  for (const e of readdirSync(TRANSCRIPTS, { withFileTypes: true }))
-    if (e.isFile() && e.name.endsWith(".md"))
-      hits.push(...scanPath(path.join(TRANSCRIPTS, e.name), { checkMapping: true, all: true }));
-
+const labels = ROOTS.map((r) => path.basename(r)).join(" + ");
 if (hits.length) {
   console.error(`✗ contamination: ${hits.length} game-specific ref(s) in the plugin spine:`);
   for (const h of hits) {
     console.error(
-      `    ${path.relative(FRAMEWORK_PLUGIN_DIR, h.file)}: "${h.match}" (${h.signal}) — ${h.hint}`,
+      `    ${path.relative(FRAMEWORK_DIR, h.file)}: "${h.match}" (${h.signal}) — ${h.hint}`,
     );
   }
   console.error(
@@ -53,4 +61,4 @@ if (hits.length) {
   );
   process.exit(1);
 }
-console.log("ok  contamination: plugin skills/agents/tools are agnostic");
+console.log(`ok  contamination: ${labels} skills/agents/tools are agnostic`);

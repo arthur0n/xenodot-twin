@@ -9,6 +9,7 @@ import {
   ASSET_TOOL,
   AUTONOMOUS_TOOL,
   COMPACT_TOOL,
+  DOCS_GET_CLASS_TOOL,
 } from "./config.js";
 
 // These get the calling agent stamped as `_by` so the server can attribute the record
@@ -24,5 +25,31 @@ export function uiControlAllow(toolName, input, agent) {
     return { behavior: /** @type {const} */ ("allow"), updatedInput: { ...input, _by: agent } };
   if (PLAIN_ALLOW_TOOLS.has(toolName))
     return { behavior: /** @type {const} */ ("allow"), updatedInput: input };
+  return null;
+}
+
+/**
+ * Deterministic dedup of the immutable Godot API docs: a `get_class` dump is ~20k chars of
+ * version-pinned reference, so re-fetching a class already pulled THIS SESSION only re-sends the
+ * same payload for no new info. A repeat → DENY with a stub; the first fetch is recorded and flows
+ * through the normal permission policy. In-session dedup arm of token opp `godot-docs-memoize` (the
+ * dated, TRIMMED cross-session cache is tracked as framework tech debt).
+ * @param {string} toolName
+ * @param {unknown} input
+ * @param {Set<string>} seen  per-session fetched-class set (mutated on first fetch)
+ * @returns {{ behavior: "deny", message: string } | null}  deny stub on a repeat, else null
+ */
+export function docsDedupDecision(toolName, input, seen) {
+  if (toolName !== DOCS_GET_CLASS_TOOL) return null;
+  const inp = /** @type {{ className?: unknown }} */ (input);
+  const cls = typeof inp?.className === "string" ? inp.className.trim() : "";
+  if (!cls) return null;
+  if (seen.has(cls)) {
+    return {
+      behavior: /** @type {const} */ ("deny"),
+      message: `Already fetched the full "${cls}" API earlier this session — not re-sent (identical version-pinned docs; saves ~5k tokens). Scroll up to that get_class result; re-fetch only if you genuinely cannot find it.`,
+    };
+  }
+  seen.add(cls);
   return null;
 }

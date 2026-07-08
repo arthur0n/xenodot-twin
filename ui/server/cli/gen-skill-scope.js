@@ -13,13 +13,14 @@
 //   workers      → every agent that manages the board (has the mcp__ui__tasks tool)
 //   builders     → godot-dev, godot-refactor + the domain specialists (the code-writers)
 //   orchestrator → the main session only (cross-checked against ORCHESTRATOR_FRAMEWORK_SKILLS)
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { ORCHESTRATOR_FRAMEWORK_SKILLS } from "../features/skills/skill-catalog.js";
 import {
   ORCH,
   BUILDERS,
   SKILLS_DIR,
+  TWIN_DIR,
   split,
   loadRegistry,
 } from "../features/skills/skill-registry.js";
@@ -123,8 +124,10 @@ const EXTERNAL_REFS = new Set([
   "godot-plugin", // GitHub topic name (addon search), not a skill
 ]);
 const REF_RE = /`(godot-[a-z][a-z0-9-]*|gd-[a-z][a-z0-9-]*)`/g;
-/** @param {string} label @param {string} body @param {string | null} own */
-function scanDangling(label, body, own) {
+/** @param {string} label @param {string} body @param {string | null} own
+ * @param {Set<string>} [extraKnown] additional legitimate names (the twin pass adds its own
+ * skill + agent names on top of the base sets). */
+function scanDangling(label, body, own, extraKnown) {
   /** @type {Set<string>} */
   const flagged = new Set();
   for (const m of body.matchAll(REF_RE)) {
@@ -135,6 +138,7 @@ function scanDangling(label, body, own) {
       onDisk.has(ref) ||
       agentSet.has(ref) ||
       EXTERNAL_REFS.has(ref) ||
+      extraKnown?.has(ref) ||
       flagged.has(ref)
     )
       continue;
@@ -155,6 +159,85 @@ for (const ent of readdirSync(SKILLS_DIR, { withFileTypes: true })) {
     continue;
   }
   scanDangling(`skill \`${ent.name}\` body`, split(text).body, ent.name);
+}
+
+// ── xenodot-twin pass ─────────────────────────────────────────────────────────────────────
+// The SECOND plugin (viewer projects) gets the same scope-sync enforcement, with one twist:
+// twin agent frontmatter legitimately composes BASE skills as `xenodot:<name>` (the runtime
+// namespace), so namespaced entries are checked for existence against the base plugin's skills
+// (D1) and exempt from D2 — the base skills' `agents:` vocabulary cannot name twin agents.
+// Twin skills tagging `orchestrator`/`all` feed the viewer session floor at runtime
+// (getPluginOrchestratorSkills), with no constant to cross-check, so the twin pass checks
+// agent audiences only. Skipped entirely when plugin-twin/ is absent (a plain fork).
+const twin = existsSync(TWIN_DIR) ? loadRegistry(TWIN_DIR) : null;
+if (twin) {
+  errors.push(...twin.errors.map((e) => `plugin-twin: ${e}`));
+  const twinOnDisk = new Set(twin.skills.keys());
+  // A twin skill shadowing a base skill name is ambiguous everywhere (session skill lists,
+  // docs, this gate's own resolution) — ban the collision outright.
+  for (const s of twinOnDisk)
+    if (onDisk.has(s))
+      errors.push(
+        `plugin-twin skill \`${s}\` collides with a base-plugin skill of the same name — rename it (twin-*)`,
+      );
+  const NS = "xenodot:";
+  const twinKnown = new Set([...twinOnDisk, ...twin.agentNames]);
+  for (const [name, a] of twin.agents) {
+    const label = `plugin-twin agent \`${name}\` frontmatter skills:`;
+    /** @type {Set<string>} */
+    const bare = new Set();
+    for (const s of a.skills) {
+      if (s.startsWith(NS)) {
+        if (!onDisk.has(s.slice(NS.length)))
+          errors.push(`${label} lists \`${s}\`, which is not a base-plugin skill on disk`);
+      } else if (s.includes(":")) {
+        errors.push(
+          `${label} lists \`${s}\` — unknown namespace (use a bare twin skill name or xenodot:<base-skill>)`,
+        );
+      } else {
+        bare.add(s);
+        if (!twinOnDisk.has(s))
+          errors.push(`${label} lists \`${s}\`, which is not a twin skill on disk`);
+      }
+    }
+    // D2 over the twin-local names, both directions (same contract as the base pass).
+    const want = twin.expected.get(name) ?? new Set();
+    for (const s of minus(want, bare))
+      errors.push(
+        `${label} is missing \`${s}\` (a twin skill tags this audience but the frontmatter omits it)`,
+      );
+    for (const s of minus(bare, want))
+      errors.push(
+        `${label} lists \`${s}\`, but \`${s}\`'s \`agents:\` tag does not include this audience`,
+      );
+    // Index cap (twin agents are not in BUILDERS; the namespaced base entries count too —
+    // they sit in the same always-listed index).
+    if (a.skills.length > INDEX_SOFT_CAP)
+      warnings.push(
+        `plugin-twin agent \`${name}\` carries ${a.skills.length} skills in its index (> ${INDEX_SOFT_CAP}) ` +
+          `— consider splitting it into domain-specialized agents (core + domain)`,
+      );
+    // Body references resolve across both plugins (a `xenodot:x` listing covers a bare `x` ref).
+    const listedResolved = new Set(
+      a.skills.map((s) => (s.startsWith(NS) ? s.slice(NS.length) : s)),
+    );
+    for (const ref of bodySkillRefs(a.body)) {
+      if ((twinOnDisk.has(ref) || onDisk.has(ref)) && !listedResolved.has(ref))
+        errors.push(
+          `plugin-twin agent \`${name}\` body references the \`${ref}\` skill but its frontmatter skills: omits it ` +
+            `(add it to skills:, or reword the prose as a cross-reference if the skill belongs to another agent)`,
+        );
+    }
+    scanDangling(`plugin-twin agent \`${name}\` body`, a.body, null, twinKnown);
+  }
+  for (const [name] of twin.skills) {
+    try {
+      const text = readFileSync(path.join(TWIN_DIR, "skills", name, "SKILL.md"), "utf8");
+      scanDangling(`plugin-twin skill \`${name}\` body`, split(text).body, name, twinKnown);
+    } catch {
+      /* unreadable — readSkills already required the file to exist */
+    }
+  }
 }
 
 if (process.argv.includes("--write")) {
@@ -181,6 +264,10 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(
-  `ok  skill-scope: ${skills.size} skills, ${agentNames.length} agents, scoping in sync` +
+  `ok  skill-scope: ` +
+    (twin
+      ? `${skills.size}+${twin.skills.size} skills, ${agentNames.length}+${twin.agentNames.length} agents (plugin + plugin-twin)`
+      : `${skills.size} skills, ${agentNames.length} agents`) +
+    `, scoping in sync` +
     (warnings.length ? ` (${warnings.length} warning(s) above)` : ""),
 );

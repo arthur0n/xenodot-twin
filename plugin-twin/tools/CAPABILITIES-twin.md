@@ -1,0 +1,21 @@
+# tools/CAPABILITIES.md — registered xenodot-twin tools
+
+Materialize merges these into the project's `tools/` **alongside the base xenodot plugin's**
+(`validate.sh`, `lib/checks.sh`, `verify_scene.gd`, …) — twin scripts compose the shared
+`tools/lib/checks.sh` from the merged set; nothing from the base plugin is copied here.
+
+| Tool             | What it does                                                                                                                                                                                                                                                                       | Invocation                                                                                                                                    | Notes                                                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ifc_convert.py` | IFC → GLB (node names = IFC GlobalIds via `use-element-guids`) + property sidecar JSON keyed by GlobalId (`get_psets`, `json.dump default=str`). Validates the STEP header first (dead sample-URL guard).                                                                          | `python tools/ifc_convert.py <model.ifc> [--glb out.glb] [--sidecar out.json]`                                                                | Needs a **Python 3.12** venv with `ifcopenshell==0.8.5` (3.14 has no wheel) — see skill `twin-import`. No engine needed.                          |
+| `verify_twin.sh` | The twin builder's gate — the shared static floor (`tools/lib/checks.sh`, same functions as `validate.sh`, labelled `verify-twin:`) + twin checks: GlobalId join coverage, seeded data-binding smoke (each SKIPs loudly until its project script exists), frame-budget pointer.    | `tools/verify_twin.sh [scene.tscn]`                                                                                                           | Headless OK for the floor + join + smoke; stops at first failure; exit 0 = OK. Gate contract: skill `twin-verify`.                                |
+| `bench_scene.gd` | Frames-drawn fps benchmark (the only honest fps on macOS — process-loop fps lies when drawing suspends). Forces vsync off + window always-on-top, warms up, measures, prints a `BENCH:` JSON row (fps, frame_ms, draw_calls, primitives) and optionally appends it to a JSON file. | `$GODOT --path . -s tools/bench_scene.gd -- <scene.tscn> [--vantage X,Y,Z:LX,LY,LZ] [--warmup 2] [--measure 8] [--out .xenodot/bench/x.json]` | Requires display (NO `--headless` — headless prints `BENCH: SKIP`, exit 0). Methodology: skill `twin-optimize`; budget gate: skill `twin-verify`. |
+
+## Referenced (NOT bundled) — base xenodot capabilities
+
+Twin sessions load both plugins; these resolve from the base plugin / the merged project `tools/`:
+
+- `xenodot:godot-verify` — the verification floor `twin-verify` step 1 delegates to.
+- `xenodot:godot-code-rules` — strict GDScript rules every twin `.gd` follows.
+- `xenodot:godot-export-builds` — shipping a distributable viewer build.
+- `tools/lib/checks.sh`, `validate.sh`, `verify_scene.gd`, `verify_render.gd` — the base
+  gate scripts `verify_twin.sh` composes or defers to (materialized from the base plugin).

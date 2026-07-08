@@ -11,6 +11,12 @@ const HERE = path.dirname(fileURLToPath(import.meta.url)); // ui/server/features
 const PLUGIN = path.join(HERE, "..", "..", "..", "..", "plugin");
 export const SKILLS_DIR = path.join(PLUGIN, "skills");
 export const AGENTS_DIR = path.join(PLUGIN, "agents");
+/** The base plugin root, exported so the CLI validator can iterate BOTH plugin roots
+ * (base + the sibling xenodot-twin) without pulling in config.js. */
+export const PLUGIN_DIR = PLUGIN;
+/** The twin plugin root — same value as config.js TWIN_PLUGIN_DIR, duplicated here because
+ * this module deliberately stays config-free (no load-time side effects). */
+export const TWIN_DIR = path.join(PLUGIN, "..", "plugin-twin");
 
 /** Sentinel for the main session (the hive) in audience sets — NOT an agent file. Its tag token is
  * `orchestrator`; its skill set is ORCHESTRATOR_FRAMEWORK_SKILLS (in skill-catalog.js). */
@@ -54,13 +60,15 @@ export function parseSkillsList(fm) {
   return out;
 }
 
-/** Discover skills: { dir-name -> agents tag tokens }. @returns {Map<string,string[]>} */
-export function readSkills() {
+/** Discover skills: { dir-name -> agents tag tokens }.
+ * @param {string} [dir] skills dir to read (defaults to the base plugin's)
+ * @returns {Map<string,string[]>} */
+export function readSkills(dir = SKILLS_DIR) {
   /** @type {Map<string, string[]>} */
   const skills = new Map();
-  for (const e of readdirSync(SKILLS_DIR, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     if (!e.isDirectory()) continue;
-    const file = path.join(SKILLS_DIR, e.name, "SKILL.md");
+    const file = path.join(dir, e.name, "SKILL.md");
     if (!existsSync(file)) continue;
     const { fm } = split(readFileSync(file, "utf8"));
     const tag = fm.match(/^agents:\s*\[([^\]]*)\]/m);
@@ -78,13 +86,14 @@ export function readSkills() {
 }
 
 /** Discover agents: { name -> { skills, tools, model, body } }.
+ * @param {string} [dir] agents dir to read (defaults to the base plugin's)
  * @returns {Map<string,{skills:string[],tools:string[],model:string|null,body:string}>} */
-export function readAgents() {
+export function readAgents(dir = AGENTS_DIR) {
   /** @type {Map<string, {skills:string[],tools:string[],model:string|null,body:string}>} */
   const agents = new Map();
-  for (const f of readdirSync(AGENTS_DIR)) {
+  for (const f of readdirSync(dir)) {
     if (!f.endsWith(".md")) continue;
-    const { fm, body } = split(readFileSync(path.join(AGENTS_DIR, f), "utf8"));
+    const { fm, body } = split(readFileSync(path.join(dir, f), "utf8"));
     const tools = (fm.match(/^tools:\s*(.+)$/m)?.[1] ?? "").split(",").map((s) => s.trim());
     const model = fm.match(/^model:\s*(\S+)/m)?.[1] ?? null;
     agents.set(f.replace(/\.md$/, ""), { skills: parseSkillsList(fm), tools, model, body });
@@ -126,11 +135,13 @@ export function expectedByAudience(skills, agentNames, workers, errors) {
 }
 
 /** Read everything + compute the projection in one call. Workers = agents with the board tool.
+ * @param {string} [root] plugin root to read (defaults to the base plugin) — pass TWIN_DIR to
+ *   load the xenodot-twin registry.
  * @returns {{ skills: Map<string,string[]>, agents: ReturnType<typeof readAgents>,
  *   agentNames: string[], workers: string[], expected: Map<string,Set<string>>, errors: string[] }} */
-export function loadRegistry() {
-  const skills = readSkills();
-  const agents = readAgents();
+export function loadRegistry(root = PLUGIN) {
+  const skills = readSkills(path.join(root, "skills"));
+  const agents = readAgents(path.join(root, "agents"));
   const agentNames = [...agents.keys()].sort();
   const workers = agentNames.filter((n) => agents.get(n)?.tools.includes("mcp__ui__tasks"));
   /** @type {string[]} */

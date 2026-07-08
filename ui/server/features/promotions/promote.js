@@ -15,12 +15,16 @@
 import path from "node:path";
 import { PROJECT_DIR } from "../../core/config.js";
 import { approvedPending, markPromoted, readPromotions, summarize } from "./promotions-store.js";
-import { PROMOTE_KINDS as KINDS, promoteOne } from "./promote-run.js";
+import { PROMOTE_KINDS as KINDS, promoteOne, promotionTarget } from "./promote-run.js";
 
 const argv = process.argv.slice(2);
 const pending = argv.includes("--pending");
 const force = argv.includes("--force");
 const positional = argv.filter((a) => !a.startsWith("--"));
+
+// Where promotions land: the base plugin (`xenodot:`) for a game project, the twin plugin
+// (`xenodot-twin:`) for a viewer project — resolved once here, at the entry.
+const { pluginDir, namespace } = promotionTarget();
 
 if (pending) {
   const game = positional[0] ? path.resolve(positional[0]) : PROJECT_DIR;
@@ -31,7 +35,7 @@ if (pending) {
   }
   let done = 0;
   for (const p of queue) {
-    const r = promoteOne(p.kind, p.name, game);
+    const r = promoteOne(p.kind, p.name, game, { pluginDir });
     console.log(`  ${r.ok ? "✓" : "–"} ${r.msg}`);
     if (r.ok) {
       markPromoted(p.id, new Date().toISOString());
@@ -55,7 +59,7 @@ if (!kind || !KINDS.has(kind) || !name) {
   );
   process.exit(1);
 }
-const result = promoteOne(kind, name, game, { force });
+const result = promoteOne(kind, name, game, { force, pluginDir });
 if (!result.ok) {
   console.error(`promote: ${result.msg}`);
   if (result.msg.includes("not found")) {
@@ -65,5 +69,9 @@ if (!result.ok) {
 }
 const label = name.replace(/\.md$/, "");
 console.log(`promote: ${result.msg}`);
-console.log(`Now available to every game as xenodot:${label} — restart the session to load it.`);
+console.log(
+  namespace === "xenodot-twin"
+    ? `Now available to every viewer project as xenodot-twin:${label} — restart the session to load it.`
+    : `Now available to every game as xenodot:${label} — restart the session to load it.`,
+);
 if (kind !== "tools") console.log("Tip: run `npm run badges` to refresh the README counts.");

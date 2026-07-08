@@ -7,7 +7,8 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { parseJSON } from "../../lib/json.js";
 import { sessionHistory } from "../features/transcripts/transcripts.js";
 import { buildUiServer } from "../mcp-tools/ui-server.js";
-import { uiControlAllow } from "./ui-control.js";
+import { uiControlAllow, docsDedupDecision } from "./ui-control.js";
+import { resolveSessionPlugins } from "./session-plugins.js";
 import { runningChip, emitRunning, runWithRetry } from "./stream.js";
 import {
   bridgeStart,
@@ -30,7 +31,7 @@ import {
   onSocketDetach,
 } from "./connection.js";
 import { readPromotions, decide, markPromoted } from "../features/promotions/promotions-store.js";
-import { promoteOne } from "../features/promotions/promote-run.js";
+import { promoteOne, promotionTarget } from "../features/promotions/promote-run.js";
 import { readAutonomous } from "../features/autonomous/autonomous-store.js";
 import {
   handleAutonomousControl,
@@ -46,6 +47,7 @@ import {
   MODEL,
   EFFORT,
   ORCHESTRATOR_PROMPT,
+  ORCHESTRATOR_VIEWER_PROMPT,
   HERMES_BLOCK,
   CODEX_BLOCK,
   DOCS_BLOCK,
@@ -54,7 +56,9 @@ import {
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
   CODEX_PLUGIN_DIR,
+  TWIN_PLUGIN_DIR,
   getCodexConfig,
+  getProjectType,
   getDocsConfig,
   DOCS_MCP_ENTRY,
   ASSET_LIBRARY,
@@ -73,7 +77,7 @@ import {
 /** @typedef {import("./connection.js").LiveSession} LiveSession */
 /** Per-connection mutable session state, shared between runSession and the client-message
  * handlers. `autonomousLoop` is set by runSession once the check loop is built.
- * @typedef {{ policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> }, autonomousLoop?: { arm: (fireNow?: boolean) => void, disarm: () => void }, autonomousActive?: boolean }} SessionState */
+ * @typedef {{ policy: string, query?: { interrupt?: () => Promise<void>, stopTask?: (taskId: string) => Promise<void> }, autonomousLoop?: { arm: (fireNow?: boolean) => void, disarm: () => void }, autonomousActive?: boolean, fetchedDocs?: Set<string> }} SessionState */
 
 /** One-channel guard for inline asks: if any question in an `AskUserQuestion` call
  * matches an already-open board question (filed via `mcp__ui__ask`), return a deny
@@ -127,6 +131,17 @@ export function makeCanUseTool({
     // Which agent raised this call (main loop or a sub-agent), so the UI can
     // label concurrent approvals. opts.toolUseID is set by the SDK.
     const agent = agentByTool.get(opts.toolUseID) ?? "main";
+    // Deterministic dedup of the immutable Godot API docs: a class already dumped this session
+    // is denied with a stub instead of re-sending ~20k chars for zero new info (token loop).
+    const dedup = docsDedupDecision(
+      toolName,
+      input,
+      session.fetchedDocs ?? (session.fetchedDocs = new Set()),
+    );
+    if (dedup) {
+      log("auto", { type: "permission", toolName, policy: "docs-dedup" });
+      return dedup;
+    }
     if (toolName === "AskUserQuestion") return handleAskQuestion(input, agent, waitFor);
     if (toolName === FORM_TOOL) {
       // The tool handler does the waiting; hand it this call's agent (FIFO,
@@ -245,16 +260,24 @@ export function trackMessage(
  * @param {{ inbox: Inbox, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, formAgentQueue: string[], send: (obj: OutMsg) => void, checkLoop: { disarm: () => void } }} deps
  * @returns {(resume: string | null) => ReturnType<typeof query>} */
 function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, send, checkLoop }) {
-  // The OPTIONAL Codex reviewer is a SECOND local plugin (OpenAI's `codex-plugin-cc`, vendored
-  // on disk), appended ONLY when the user enabled it AND it's actually been cloned — a
-  // disabled/absent Codex changes nothing. Gating is array inclusion (the SDK has no per-plugin
-  // enable flag, and `plugins` only accepts `{ type: "local" }`). Extracted to a typed const so
-  // the options object below stays readable.
-  /** @type {import("@anthropic-ai/claude-agent-sdk").SdkPluginConfig[]} */
-  const codexPlugin =
-    getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR)
-      ? [{ type: "local", path: CODEX_PLUGIN_DIR, skipMcpDiscovery: true }]
-      : [];
+  // Which domain this session drives: "game" (default) or "viewer" (digital twin). Read fresh
+  // per session (like getCodexConfig) so a re-setup takes effect without a server restart. It
+  // picks the orchestrator prompt, extends the skill floor, and gates the twin plugin below.
+  const projectType = getProjectType();
+  const viewer = projectType === "viewer";
+  // The local-plugin list: the xenodot spine always; the OPTIONAL Codex reviewer (a SECOND
+  // local plugin — OpenAI's `codex-plugin-cc`, vendored on disk) only when the user enabled it
+  // AND it's actually been cloned; the OPTIONAL xenodot-twin viewer plugin (a THIRD local
+  // plugin) only for viewer projects AND when it exists on disk. A disabled/absent optional
+  // plugin changes nothing. Extracted to resolveSessionPlugins (pure, tested) so the options
+  // object below stays readable.
+  const plugins = resolveSessionPlugins({
+    baseDir: FRAMEWORK_PLUGIN_DIR,
+    projectType,
+    twinDir: TWIN_PLUGIN_DIR,
+    codexEnabled: getCodexConfig().enabled,
+    codexDir: CODEX_PLUGIN_DIR,
+  });
   /** @param {string | null} resume */
   return (resume) =>
     query({
@@ -270,13 +293,11 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
         cwd: PROJECT_DIR,
         // The framework's agents/skills/hooks come from the plugin (single source of truth), not
         // from copies in the game — so the game folder stays pure. Plugins load regardless of cwd.
-        // The xenodot spine is always loaded; the Codex reviewer (codexPlugin) is appended only
-        // when enabled. skipMcpDiscovery: the UI owns its MCP tools (below). Its slash commands
+        // The xenodot spine is always loaded; the Codex reviewer and the xenodot-twin viewer
+        // plugin are appended only when their gates pass (see resolveSessionPlugins above).
+        // skipMcpDiscovery: the UI owns its MCP tools (below). Its slash commands
         // (`/codex:review`) expand from the user's prompt; `codex:codex-rescue` becomes delegable.
-        plugins: [
-          { type: "local", path: FRAMEWORK_PLUGIN_DIR, skipMcpDiscovery: true },
-          ...codexPlugin,
-        ],
+        plugins,
         // The framework knowledge base (plugin/library) and skill/agent sources live
         // in the plugin, OUTSIDE the game cwd. Mount the plugin as an extra working
         // root so researcher agents can read it AND write new knowledge / promoted
@@ -302,17 +323,21 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
         // (caveman, autonomous-main-goal, graphify) + the built-ins the user enabled via the skill wizard
         // (skillOverrides). DOMAIN skills are excluded — both the framework `godot-*` skills
         // and the game's own `.claude/skills` — because the orchestrator only routes; those
-        // belong to the implementer agents. A context filter, not a sandbox: unlisted skills
-        // stay on disk and remain loadable by the agents that list them.
-        skills: resolveSessionSkills(),
-        // Keep Claude Code's tooling behavior, append the orchestrator role.
-        // Hermes and Codex blocks are injected only when those integrations are active,
-        // so the orchestrator's routing instructions match the actual team each session.
+        // belong to the implementer agents. For a VIEWER session the floor additionally gains
+        // the twin plugin's orchestrator-audience skills (read from each SKILL.md `agents:` tag
+        // — data-driven, no hardcoded list); gameplay-only skills stay excluded by the same
+        // default-deny. A context filter, not a sandbox: unlisted skills stay on disk and
+        // remain loadable by the agents that list them.
+        skills: resolveSessionSkills(projectType),
+        // Keep Claude Code's tooling behavior, append the orchestrator role — the viewer
+        // variant (digital-twin routing) when the project is a viewer, the game variant
+        // otherwise. Hermes and Codex blocks are injected only when those integrations are
+        // active, so the orchestrator's routing instructions match the actual team each session.
         systemPrompt: {
           type: "preset",
           preset: "claude_code",
           append:
-            ORCHESTRATOR_PROMPT +
+            (viewer ? ORCHESTRATOR_VIEWER_PROMPT : ORCHESTRATOR_PROMPT) +
             (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
             (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR) ? "\n\n" + CODEX_BLOCK : "") +
             (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : ""),
@@ -452,13 +477,16 @@ function runPromotion(id, send) {
     send({ type: "promotions", items: readPromotions() });
     return;
   }
-  const result = promoteOne(entry.kind, entry.name, PROJECT_DIR);
+  // Game project → base plugin (xenodot:), viewer project → twin plugin (xenodot-twin:) —
+  // resolved at this entry so the move core stays pure (see promotionTarget).
+  const { pluginDir, namespace } = promotionTarget();
+  const result = promoteOne(entry.kind, entry.name, PROJECT_DIR, { pluginDir });
   const items = result.ok ? markPromoted(id, new Date().toISOString()) : readPromotions();
   send({ type: "promotions", items });
   send({
     type: "status",
     text: result.ok
-      ? `Promoted ${entry.kind.replace(/s$/, "")} "${entry.name}" → framework plugin. Start a new session to load it as xenodot:${entry.name.replace(/\.md$/, "")}.`
+      ? `Promoted ${entry.kind.replace(/s$/, "")} "${entry.name}" → ${namespace === "xenodot-twin" ? "twin plugin" : "framework plugin"}. Start a new session to load it as ${namespace}:${entry.name.replace(/\.md$/, "")}.`
       : `Couldn't promote "${entry.name}": ${result.msg}`,
   });
 }
