@@ -15,9 +15,12 @@ extends SceneTree
 ## appended-as-array to the file.
 ##
 ## gpu_ms/cpu_ms are the viewport's measured render times
-## (RenderingServer.viewport_set_measure_render_time) — macOS clamps frame PRESENTATION
-## to the display refresh (120 Hz ProMotion) even with vsync disabled, so fps saturates
-## at the cap on fast configs; measured render time keeps differentiating below it.
+## (RenderingServer.viewport_set_measure_render_time), averaged over frames actually DRAWN
+## (Engine.get_frames_drawn) — not process frames. When presentation is capped or the window is
+## occluded, drawn < process frames and the un-drawn frames read a stale/zero sample; dividing by
+## drawn (like frame_ms/fps) keeps the average honest instead of biasing it low. macOS clamps
+## frame PRESENTATION to the display refresh (120 Hz ProMotion) even with vsync disabled, so fps
+## saturates at the cap on fast configs; measured render time keeps differentiating below it.
 
 var scene_path := ""
 var vantage := ""
@@ -107,7 +110,13 @@ func _apply_vantage() -> void:
 	cam.position = _vec3(parts[0])
 	# Node3D.look_at() needs the node "inside tree" and silently no-ops with an error
 	# during SceneTree init — Basis.looking_at is pure math and always works.
-	cam.basis = Basis.looking_at(_vec3(parts[1]) - cam.position)
+	# Guard the aerial straight-down case: looking_at errors when the direction is parallel to
+	# the up vector (default UP), so swap in a non-parallel up (FORWARD) when |dir·UP| ~= 1.
+	var dir := _vec3(parts[1]) - cam.position
+	var up := Vector3.UP
+	if absf(dir.normalized().dot(Vector3.UP)) > 0.999:
+		up = Vector3.FORWARD
+	cam.basis = Basis.looking_at(dir, up)
 	cam.make_current()
 
 
@@ -152,8 +161,8 @@ func _measure_window() -> Dictionary:
 		"fps": snappedf(drawn / el, 0.1),
 		"process_fps": snappedf(f / el, 0.1),
 		"frame_ms": snappedf(el * 1000.0 / maxf(drawn, 1.0), 0.01),
-		"gpu_ms": snappedf(gpu / f, 0.01),
-		"cpu_ms": snappedf(cpu / f, 0.01),
+		"gpu_ms": snappedf(gpu / maxf(drawn, 1.0), 0.01),
+		"cpu_ms": snappedf(cpu / maxf(drawn, 1.0), 0.01),
 		"draw_calls": int(dc / f),
 		"primitives": int(prim / f),
 		"objects_rendered": int(obj / f),

@@ -45,10 +45,13 @@ check_smoke "$SCENE_RES" || exit 1
 # models/ and x-shared-assets/ with a sibling <base>_props.json or <base>.props.json).
 # Threshold: TWIN_JOIN_MIN (ratio, default 0.95).
 _twin_discover_pair() {
-	local found glb base cand
-	found="$(find -L models x-shared-assets -name '*.glb' -type f 2>/dev/null)"
-	[ -z "$found" ] && return 1
+	local glb base cand
+	# Newest-first .glb enumeration, null-safe: BIM exports routinely carry spaces
+	# ("Duplex Apartment.glb"), so we pass names via -print0/xargs -0 (never word-split) and
+	# order by mtime. macOS stat: `-f '%m %N'` (mtime<space>name); Linux: `stat -c '%Y %n'`.
+	# Newest .glb with a sibling <base>_props.json or <base>.props.json wins (behavior unchanged).
 	while IFS= read -r glb; do
+		[ -n "$glb" ] || continue
 		base="${glb%.glb}"
 		for cand in "${base}_props.json" "${base}.props.json"; do
 			if [ -f "$cand" ]; then
@@ -57,7 +60,10 @@ _twin_discover_pair() {
 				return 0
 			fi
 		done
-	done < <(echo "$found" | xargs ls -t 2>/dev/null)
+	done < <(
+		find -L models x-shared-assets -name '*.glb' -type f -print0 2>/dev/null \
+			| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | cut -d' ' -f2-
+	)
 	return 1
 }
 if [ -z "${TWIN_MODEL:-}" ] || [ -z "${TWIN_SIDECAR:-}" ]; then
