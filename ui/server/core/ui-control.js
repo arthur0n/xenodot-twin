@@ -28,6 +28,21 @@ export function uiControlAllow(toolName, input, agent) {
   return null;
 }
 
+const IMAGE_RE = /\.(png|jpe?g|webp|gif|bmp)$/i;
+
+/** The stub returned when an image Read is refused — points at the numeric gate + disk frame. */
+export const SCREENSHOT_STUB =
+  "Image reads are GATED (a render/screenshot frame is token-heavy base64). Framework rule (godot-verify): never read a frame into chat — trust the NUMERIC gate (render_health.gd / VERIFY-* output). The PNG stays on disk (.godot/verify_render_last.png) for human inspection only. If a human genuinely must eyeball it, surface that via AskUserQuestion at the END of the pipeline.";
+
+/** Is this a Read of an image file (a screenshot/render frame)? Such a Read floods context with
+ * ~thousands of base64 tokens, so it is gated (human-approved / denied when headless), never at-will.
+ * @param {string} toolName @param {unknown} input @returns {boolean} */
+export function isImageRead(toolName, input) {
+  if (toolName !== "Read") return false;
+  const fp = /** @type {{ file_path?: unknown }} */ (input)?.file_path;
+  return typeof fp === "string" && IMAGE_RE.test(fp);
+}
+
 /**
  * Deterministic dedup of the immutable Godot API docs: a `get_class` dump is ~20k chars of
  * version-pinned reference, so re-fetching a class already pulled THIS SESSION only re-sends the
@@ -51,5 +66,41 @@ export function docsDedupDecision(toolName, input, seen) {
     };
   }
   seen.add(cls);
+  return null;
+}
+
+/** @typedef {import("../../lib/types.js").WaitFor} WaitFor */
+/** @typedef {import("../../lib/types.js").OutMsg} OutMsg */
+/** @typedef {{ session: { autonomousActive?: boolean, fetchedDocs?: Set<string> }, waitFor: WaitFor, log: (dir: string, obj: OutMsg) => void, toolName: string, input: Record<string, unknown>, agent: string }} GateDeps */
+
+/** Gate a screenshot/render-frame Read: deny outright when headless/autonomous (no human to
+ * approve), else FORCE a human approval — never at-will. @param {GateDeps} d */
+async function gateImageRead({ session, waitFor, log, toolName, input, agent }) {
+  if (session.autonomousActive) {
+    log("auto", { type: "permission", toolName, policy: "image-read-denied" });
+    return { behavior: /** @type {const} */ ("deny"), message: SCREENSHOT_STUB };
+  }
+  const { allow } = await waitFor("permission", { toolName, input, agent });
+  return allow
+    ? { behavior: /** @type {const} */ ("allow"), updatedInput: input }
+    : { behavior: /** @type {const} */ ("deny"), message: SCREENSHOT_STUB };
+}
+
+/** Deterministic pre-gates run BEFORE the permission policy: immutable-docs dedup, then the
+ * screenshot read gate. Returns a decision to short-circuit, or null to fall through. Keeps
+ * makeCanUseTool's arrow under the complexity cap and its file under the line cap.
+ * @param {GateDeps} d */
+export async function preToolGate({ session, waitFor, log, toolName, input, agent }) {
+  const dedup = docsDedupDecision(
+    toolName,
+    input,
+    session.fetchedDocs ?? (session.fetchedDocs = new Set()),
+  );
+  if (dedup) {
+    log("auto", { type: "permission", toolName, policy: "docs-dedup" });
+    return dedup;
+  }
+  if (isImageRead(toolName, input))
+    return gateImageRead({ session, waitFor, log, toolName, input, agent });
   return null;
 }

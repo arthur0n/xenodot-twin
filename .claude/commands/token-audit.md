@@ -73,6 +73,15 @@ select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter ma
      a stub on a repeat), or stop it re-entering context. (Learned from `godot-docs-memoize`:
      "memoize get_class" was mis-scoped — a cache hit still re-dumps 20k chars; the real fix was a
      canUseTool dedup that denies the repeat.)
+   - **Prefer a fix that emits a COUNTABLE PROOF over one you can only confirm by global drift.** A
+     replacement whose effect shows ONLY as cost drift across different future sessions is
+     near-unmeasurable — the covered set changes every run, so the trend is noisy and rarely
+     attributable. Favour a fix that emits a per-event signal you can later COUNT: e.g. the shipped
+     docs-dedup denial logs `policy:"docs-dedup"` once per blocked repeat, so a future audit tallies
+     `denials × ~5k tok` for a DETERMINISTIC actual saving instead of hoping the line moves. When an
+     opportunity can be built either way, prefer the instrumented one; and when you file it (steps
+     5–6), NAME the signal it should emit — the log marker + the per-event token unit — so
+     `/token-audit-fix` instruments it and a later run tallies it (`pending` → hard actual).
 
 5. **Record — super brief (prose) + deterministic numbers.**
    - Prose: append ONE entry to `LEDGER.md` (template at the top of that file) and add each
@@ -98,6 +107,19 @@ select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter ma
      / `$/turn` trend, and for any prior opportunity now `landed` check whether it `moved` — a
      `moved:false` says the last fix didn't pay off; factor that into what you propose next. This
      is the loop learning from its own objective signal, independent of the framework.
+   - **Confirm every open pending — a forward-looking fix must not rot unmeasured.** Enumerate them
+     deterministically: `node ui/server/cli/token-history.js pending` (add `--json` to consume the
+     list). For EACH id it prints, try to confirm this run — don't skip one just because it's noisy:
+     - **Countable signal** (step 4 named a marker): count it across the sessions you just covered —
+       `jq -rc 'select(.type=="event" and .message.type=="assistant")|.message.message.content[]?|select(.policy=="<marker>")' <logs> | wc -l` —
+       and if it fired, multiply by the per-event token unit and flip to a hard actual with
+       `token-history.js land --opp <id> --moved true --delta-tok <count×unit>`. A direct count is
+       deterministic confirmation; it retires a `pending` without waiting on noisy global drift.
+     - **No countable signal** (e.g. a cross-session cache fix like `godot-docs-memoize`): compare
+       the relevant `history.json` metric (global `$/turn`, `hitRate`, or the offender's per-call
+       tokens) BEFORE vs the sessions since it landed. Moved clearly → `land --opp <id> --moved true|false`
+       with the Δ; still ambiguous → leave it `pending` but SAY SO in the return + `Process note` so
+       the next run re-checks it (the `pending` verb resurfaces it every run — that's the anti-rot guarantee).
    - Critique: suggest fixes to THIS command, the CLI, or the ledger/history format (confusing
      wording, a missing reference, a better signal, a step that didn't pay off). Record it as the
      entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
@@ -112,11 +134,12 @@ select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter ma
 - If a session reveals a framework-quality issue (a convention/agent/skill defect, not a spend
   pattern), hand it to the human to file on `.claude/framework-audits/LEDGER.json` — manual only.
 
-## Never
+## Do this
 
-- Re-analyze a session already in `Covered sessions`.
-- Read whole multi-MB logs into context — always filter with `jq select(...)` first (never
-  pipe `rtk grep` into `jq` — it mangles JSON).
-- Implement the deterministic fix here — this command recommends and files tasks; the human
-  decides. (Step 7's process tweaks to the command/ledger are the one exception.)
-- Write a long ledger entry. Brevity is the point — the next run reads this first.
+- **Scan only fresh sessions** — skip any already in `Covered sessions`.
+- **Filter logs with `jq select(...)` first** — never pipe `rtk grep` into `jq` (it mangles JSON),
+  and never read whole multi-MB logs into context.
+- **Recommend and file tasks; let the human decide.** This command surfaces opportunities and files
+  tasks; the deterministic fix lands via `/token-audit-fix` (step 7's process tweaks to the
+  command/ledger are the one exception).
+- **Write one-line ledger entries** — brevity is the point; the next run reads this first.
