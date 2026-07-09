@@ -13,7 +13,7 @@ const scratch = mkdtempSync(path.join(tmpdir(), "xeno-session-"));
 process.env.GAME_DIR = scratch;
 const { denyIfQuestionOpen, makeCanUseTool, trackMessage } = await import("./session.js");
 const { resolveSessionPlugins } = await import("./session-plugins.js");
-const { docsDedupDecision } = await import("./ui-control.js");
+const { docsDedupDecision, isImageRead } = await import("./ui-control.js");
 const store = await import("../features/tasks/tasks-store.js");
 
 /** @typedef {import("../../lib/types.js").OutMsg} OutMsg */
@@ -115,6 +115,36 @@ test("docsDedupDecision: first records + allows, repeat denies, non-docs & class
   assert.equal(docsDedupDecision(GET_CLASS, { className: "Node" }, seen)?.behavior, "deny");
   assert.equal(docsDedupDecision("Read", { className: "Node" }, seen), null);
   assert.equal(docsDedupDecision(GET_CLASS, {}, seen), null);
+});
+
+test("image Read: gated — denied when autonomous, forced to pause under policy all", async () => {
+  // autonomous → hard deny with the stub (no human to approve)
+  const auto = makeGate({ policy: "all", autonomousActive: true });
+  const denied = await auto.canUseTool(
+    "Read",
+    { file_path: "/g/.godot/verify_render_last.png" },
+    { toolUseID: "tu-1", signal: /** @type {never} */ (undefined) },
+  );
+  assert.equal(denied.behavior, "deny");
+  assert.match("message" in denied ? denied.message : "", /GATED|never read a frame/);
+
+  // policy "all" (would normally auto-allow) → image Read still PAUSES for a human
+  const gate = makeGate({ policy: "all", reply: { allow: false } });
+  const res = await gate.canUseTool(
+    "Read",
+    { file_path: "/g/shot.png" },
+    { toolUseID: "tu-2", signal: /** @type {never} */ (undefined) },
+  );
+  assert.equal(gate.waits.length, 1); // NOT auto-allowed — human-gated
+  assert.equal(res.behavior, "deny");
+});
+
+test("isImageRead: only image-path Reads, not code Reads or other tools", () => {
+  assert.equal(isImageRead("Read", { file_path: "a.png" }), true);
+  assert.equal(isImageRead("Read", { file_path: "a.JPG" }), true);
+  assert.equal(isImageRead("Read", { file_path: "player.gd" }), false);
+  assert.equal(isImageRead("Bash", { file_path: "a.png" }), false);
+  assert.equal(isImageRead("Read", {}), false);
 });
 
 test("policy all / autonomous: everything auto-allows and is logged", async () => {

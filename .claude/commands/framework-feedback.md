@@ -72,7 +72,9 @@ applied by the SAME `/framework-audit-fix`.
      **id** `<Dn>-<slug>` (reuse an existing id if it's the same issue).
 
 5. **Append to the ledger — brief, dedup.** Push ONE object per finding to `LEDGER.json`'s `findings[]`
-   — `{ id, dim, bucket, verdict, status: "open", finding }` (`dim` = the id's `D`-prefix) — then run
+   — `{ id, dim, bucket, verdict, status: "open", finding }` (`dim` = the id's `D`-prefix), plus an
+   optional `pattern` (one line — the good pattern to follow, a positive exemplar, not just the
+   problem) — then run
    `npm run ledger`. Don't duplicate an id already `open`. Keep each `finding` one line, no essays.
    The ledger is ephemeral working state; the fix lives in files+git once applied.
 
@@ -86,14 +88,15 @@ applied by the SAME `/framework-audit-fix`.
    tweak to THIS command or the ledger format (a clearer signal, a missing case), recorded as the
    entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
 
-## Never
+## Do this
 
-- Auto-apply a fix, or write under `plugin/` — this command records; `/framework-audit-fix` applies
-  the agreed ids; the human decides. (Step 7's tweak to this command / ledger is the one exception.)
-- File a **game-specific** learning as a framework finding — strip it out; it lives game-local
-  (`plugin/library/` is for AGNOSTIC records, NOT game facts).
-- Re-file a finding already `open`/`later` in the ledger, or one the last-audit line marked resolved.
-- Invent findings the conversation didn't actually surface — distill what happened, don't pad.
-- Search with bash `grep` (it's `rtk`-filtered and drops matches; use the Grep tool / full-path `rg`),
-  or run shell without `rtk`.
-- Write a long ledger entry. Brevity is the point — the next run reads this first.
+- **Record; let the human apply.** Push findings to the ledger; `/framework-audit-fix` applies the
+  agreed ids and the human decides (step 7's tweak to this command / ledger is the one exception —
+  no other `plugin/` writes).
+- **Keep findings framework-general** — a game-specific learning lives game-local (`plugin/library/`
+  = AGNOSTIC records only); strip it to the general lesson or drop it.
+- **File only fresh, real findings** — dedup against ids already `open`/`later` (or ones the
+  last-audit line marked resolved), and distill what the conversation actually surfaced, don't pad.
+- **Search with the Grep tool / full-path `rg`, and prefix shell with `rtk`** — bash `grep` is
+  `rtk`-filtered and drops matches.
+- **Write one-line ledger entries** — brevity is the point; the next run reads this first.

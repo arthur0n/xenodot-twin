@@ -1,7 +1,7 @@
 ---
 name: godot-main-scene
 agents: [godot-dev]
-description: Create the thin main.tscn entry point (set as run/main_scene) that owns the persistent shell — SubViewport pixelation rig, camera rig, UI — and loads/swaps level scenes under a container node. Use when the project needs a main scene, run/main_scene is unset in project.godot, levels need loading/switching, before adding a second level, or when deciding whether something belongs in Main, a level, or an autoload.
+description: Create the thin main.tscn entry point (set as run/main_scene) that owns the persistent shell — SubViewport pixelation rig, camera rig, UI — and loads/swaps level scenes under a container node. Use when the project needs a main scene, run/main_scene is unset in project.godot, levels need loading/switching, before adding a second level, or when deciding whether something belongs in Main, a level, or an autoload. The persistent-CameraRig-in-Main layout shown is the top-down/iso paradigm (godot-orthographic-follow-camera); in first-person/third-person the camera lives inside the Player entity (godot-first-person-controller), so Main owns no camera and the swap-time rig wiring is dropped — the level-loading spine is identical either way.
 ---
 
 # Godot Main Scene (entry point + level loading)
@@ -19,6 +19,10 @@ Main (Node)                          res://main.tscn + res://main.gd (project ro
 └── UI (CanvasLayer)                 ← native-res UI, outside the SubViewport
 ```
 
+> **Camera placement is paradigm-dependent.** The persistent `CameraRig` under Main above is the **top-down/iso** layout (skill `godot-orthographic-follow-camera`): the camera survives level swaps, so Main owns it and levels ship none. In **first-person/third-person** (skill `godot-first-person-controller`) the camera lives inside the Player entity, which lives in the level — so Main owns **no** CameraRig, levels legitimately carry that camera, and step-2's `%CameraRig` rig-wiring is dropped. Everything else here (LevelHost, `free()`-swap, `run/main_scene`, autoload persistence) is paradigm-agnostic. Pick the sibling camera skill for your genre; don't ship both.
+>
+> The rest of this skill writes the top-down/iso path concretely; a first-person project keeps the same spine minus the CameraRig node and its wiring.
+
 Folder rule: every scene lives in its domain folder (`levels/`, `entities/`, …); the single entry point `main.tscn` + `main.gd` sit at the project root. There is no generic `scenes/` folder.
 
 If the pixelation rig doesn't exist yet, build `Main → LevelHost` flat and note in CLAUDE.md that LevelHost must move inside the SubViewport when that skill runs. Omit `UI` until there is UI.
@@ -30,7 +34,7 @@ Rule of thumb: **survives a level swap → Main (or autoload); describes one pla
 - **Main**: viewport rig, camera rig, HUD/menus, music player, the level-loading code itself.
 - **Level** (`levels/*.tscn`): geometry, props, lights, WorldEnvironment, spawn markers. Levels stay self-contained and runnable standalone (F6, godot-verify) — that's why each keeps its own lights/environment.
 - **Autoload**: state that outlives nodes (score, settings, run progress). Don't park it on Main nodes — Main is structure, not a data bag.
-- **Cameras**: exactly one current Camera3D per viewport. Once Main owns the CameraRig, levels must not ship a camera (delete level-local cameras when migrating); until then, Main must `make_current()` its own camera after loading a level.
+- **Cameras**: exactly one current Camera3D per viewport. In the top-down/iso paradigm the camera survives swaps → once Main owns the CameraRig, levels must not ship a camera (delete level-local cameras when migrating); until then, Main must `make_current()` its own camera after loading a level. In first-person/third-person the camera lives inside the Player (in the level) → Main owns no CameraRig and the level's camera is `make_current()` on load. (See the paradigm note under Scene structure.)
 
 ### Run-state autoload (persist state across a swap)
 
