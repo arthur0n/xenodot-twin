@@ -68,10 +68,14 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
      `description`/intro to declare its paradigm, e.g. "top-down/orthographic only".)
    - **D4 (add data-driven variant):** add the Resource / `.tres` / `@export`-driven section the
      finding named; keep the existing canonical path, add the data-driven one beside it.
-   - **D5 (extract shared block → skill):** create the new shared skill (`agents:` = the consuming
-     agents), add it to each agent's frontmatter `skills:` AND a load line at conversation start
-     (right after the caveman trigger, so it loads RELIABLY — not just listed), then delete the
-     duplicated prose from each agent body.
+   - **D5 (extract shared block → skill):** for CROSS-agent duplication — create the new shared skill
+     (`agents:` = the consuming agents), add it to each agent's frontmatter `skills:` AND a load line at
+     conversation start (right after the caveman trigger, so it loads RELIABLY — not just listed), then
+     delete the duplicated prose from each agent body. But if the duplication is WITHIN one agent file
+     (a constraint restated 3x+ in the same prompt), DON'T make a skill — trim to a single canonical
+     statement, KEEPING the fleet-standard intro + `## What you never do` scaffold (cut only the THIRD+
+     echo, or the fleet's ~20 agents go inconsistent), and point the other mentions at the canonical
+     one. "State each constraint once" means collapse the redundant echoes, not delete the scaffold.
    - **D6 (orchestrator):** apply the recorded edit to `ui/orchestrator.md` (centralize a
      duplicated directive, move dense prose into a skill, or trim).
    - **D7 (command):** edit the target command per the finding — a shipped `plugin/commands/*.md`

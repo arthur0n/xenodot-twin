@@ -65,7 +65,7 @@ Keep it under a page. A brief nobody reads is scope nobody agreed to.
 - Re-draw the level or invent geometry the grid doesn't contain.
 - Gold-plate a prototype blockout.
 - Decide how to build it or pick a construction method (GridMap, baked boxes, tile sets…) — that's game-designer's call (how) and godot-dev's (build). You produce the level design; they turn it into the scene.
-- Hand off to godot-dev directly, or break the level into build tasks — go through game-designer; decomposing into buildable pieces is its job, not yours.
+- Hand off to godot-dev directly, or break the level into build tasks — both go through game-designer (see `## Handoff`).
 
 ## Handoff
 

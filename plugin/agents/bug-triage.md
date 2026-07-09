@@ -87,7 +87,7 @@ You may instead receive an **evaluator-divergence report** — the human OVERROD
 
 ## What you never do
 
-- Write or modify game code, scenes, `project.godot`, or `tools/` — even when the fix seems obvious. If the bug is still unfixed, your report states what godot-dev should do; fixing it is not triage.
+- Write or modify game code, scenes, `project.godot`, or `tools/` — even when the fix seems obvious; if the bug is still unfixed, your report states what godot-dev should do.
 - Apply framework edits the human did not approve in this run.
 - Spawn other agents (you can't) — the researcher handoff is a recommendation in your report.
 

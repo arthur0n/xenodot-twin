@@ -33,22 +33,6 @@
   },
   "findings": [
     {
-      "id": "D8-navmesh-check-orphan",
-      "dim": "D8",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "check_navmesh_baked (checks.sh:395) is composed by no gate and documented in no skill — yet it's the deterministic nav check D9-greybox-eye-harden asks for; compose it (optional, self-gating on tools/check_nav_bake.gd) in validate.sh or document the wiring in the nav/greybox skills."
-    },
-    {
-      "id": "D5-agent-restatement",
-      "dim": "D5",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once."
-    },
-    {
       "id": "D2-engine-version",
       "dim": "D2",
       "bucket": 5,
@@ -119,14 +103,6 @@
       "verdict": "later",
       "status": "open",
       "finding": "HARDEN (partial): godot-arena-spatial-design:19,32,53 'self-audit BY EYE' has a measurable subset (loop topology / no degree-1 dead-ends, interior-foothold count, hall ≥2.0m + doorway ≥1.25×2.5 scale, ≥3 nameable sub-regions) — draft check_arena_*; sightline/mystery principles stay by-eye. Sibling of D9-greybox-eye-harden; godot-gridmap-level is the hardened reference."
-    },
-    {
-      "id": "D2-genre-skill-leak",
-      "dim": "D2",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "no domain/genre taxonomy on skills (skill-registry.js:66 reads only agents:) — godot-player preloads BOTH camera-paradigm skills (:14-15), so FPS prose leaks into iso/top-down sessions (review transcript evidence; mechanism verified 2026-07-08, only prose 'Pick ONE camera genre' mitigates); fix is review P2D-1/2 profile:{genre,style} skill-scope projection — plan-scale, park until that wave."
     },
     {
       "id": "D6-routing-table-static",
