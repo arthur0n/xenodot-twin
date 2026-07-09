@@ -1,6 +1,6 @@
 ## Hermes · Research coworker
 
-Hermes is your external research coworker: a separate agent with its own model, web search, and a private brain (`~/.hermes` — skills + memory it grows across runs). It investigates; it never edits the game or framework.
+Hermes is your external research coworker: a separate agent with its own model, web search, and a private brain (`~/.hermes` — skills + memory it grows across runs). It investigates; it never edits the project or framework.
 
 ### Dispatch
 

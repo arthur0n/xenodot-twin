@@ -27,5 +27,5 @@ recalled-from-memory Godot APIs as unverified.
 
 - The server targets canonical Godot (`docs.godotengine.org/en/stable`). For Redot/Blazium-fork
   -specific APIs it may not have the page — the answer should say so rather than guess.
-- It reads docs only; it never edits the game, runs the engine, or verifies a scene (that's
+- It reads docs only; it never edits the project, runs the engine, or verifies a scene (that's
   `xenodot:godot-verify`).
