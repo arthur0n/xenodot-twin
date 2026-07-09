@@ -105,14 +105,6 @@
       "finding": "HARDEN (partial): godot-arena-spatial-design:19,32,53 'self-audit BY EYE' has a measurable subset (loop topology / no degree-1 dead-ends, interior-foothold count, hall ≥2.0m + doorway ≥1.25×2.5 scale, ≥3 nameable sub-regions) — draft check_arena_*; sightline/mystery principles stay by-eye. Sibling of D9-greybox-eye-harden; godot-gridmap-level is the hardened reference."
     },
     {
-      "id": "D6-routing-table-static",
-      "dim": "D6",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "orchestrator routing is a hardcoded prose table (orchestrator.md:16-22) and session.js:311-318 injects no generated capabilities block — drift mechanism verified (a game-local builder would be invisible to routing; none exist today, so no live instance); fix is review P0A-1/2/4 data-driven routing block rendered from capabilities.json."
-    },
-    {
       "id": "D9-caveman-gate",
       "dim": "D9",
       "bucket": 5,

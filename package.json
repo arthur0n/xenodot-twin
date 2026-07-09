@@ -33,7 +33,7 @@
     "check:contamination": "node ui/server/cli/gen-contamination.js",
     "check:library": "node ui/server/cli/gen-library-index.js",
     "check:negative-rules": "node ui/server/cli/gen-negative-rules.js",
-    "test": "node --test $(find ui -name '*.test.js' -not -path '*/node_modules/*') && node ui/reducer.check.js && node ui/server/features/skills/skills.check.js && node ui/server/features/skills/skill-scope.check.js",
+    "test": "node --test $(find ui -name '*.test.js' -not -path '*/node_modules/*') && node ui/reducer.check.js && node ui/server/features/skills/skills.check.js && node ui/server/features/skills/skill-scope.check.js && node ui/server/cli/gen-capabilities.check.js",
     "test:onboarding": "node ui/server/cli/onboarding.check.js",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",

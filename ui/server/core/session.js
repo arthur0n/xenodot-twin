@@ -39,6 +39,7 @@ import {
 } from "../features/autonomous/autonomous-control.js";
 import { applyOp, pruneDoneTasks, findOpenQuestion } from "../features/tasks/tasks-store.js";
 import { resolveSessionSkills, resolveSessionAgents } from "../features/skills/skills.js";
+import { loadRoutingBlock } from "../cli/gen-capabilities.js";
 import {
   DEFAULT_POLICY,
   EDIT_TOOLS,
@@ -266,6 +267,10 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
   // plugin agent by bare name; empty (a total no-op) when the profile is unset or nothing is out
   // of profile. Built once per session — the profile is fixed for the session's lifetime.
   const profiledAgents = resolveSessionAgents();
+  // The generated builder routing roster (framework builders + this game's `.claude/agents`), read
+  // from the capabilities.json prepareGame wrote at startup. Fixed for the session; "" if the index
+  // is absent (fail-open — the orchestrator's routing prose still stands).
+  const routingBlock = loadRoutingBlock(PROJECT_DIR);
   /** @param {string | null} resume */
   return (resume) =>
     query({
@@ -326,6 +331,7 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
           preset: "claude_code",
           append:
             ORCHESTRATOR_PROMPT +
+            (routingBlock ? "\n\n" + routingBlock : "") +
             (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
             (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR) ? "\n\n" + CODEX_BLOCK : "") +
             (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : ""),
