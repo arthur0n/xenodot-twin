@@ -22,19 +22,13 @@ export const TWIN_DIR = path.join(PLUGIN, "..", "plugin-twin");
  * `orchestrator`; its skill set is ORCHESTRATOR_FRAMEWORK_SKILLS (in skill-catalog.js). */
 export const ORCH = "@orchestrator";
 
-/** The code-writers (stable hardcoded alias). godot-dev is the core/general builder; the rest are
- * domain specialists split off from it. Builders carry a 7-skill shared core, so the index cap for a
- * builder is higher (15 = 7 core + ~8 domain); see gen-skill-scope.js. @type {string[]} */
-export const BUILDERS = [
-  "godot-dev",
-  "godot-refactor",
-  "godot-weapons-abilities",
-  "godot-enemy",
-  "godot-vfx",
-  "godot-player",
-  "godot-visuals",
-  "godot-assets",
-];
+/** The code-writers (stable hardcoded alias). godot-dev is the core/general builder that the viewer
+ * orchestrator routes generic Godot glue to; godot-refactor does behaviour-preserving extraction;
+ * godot-visuals owns the rendered look; godot-assets owns asset-import wiring. (The game gameplay
+ * specialists — enemy/weapons/player/vfx — are not part of the digital-twin domain; see
+ * ui/orchestrator-viewer.md.) Builders carry a shared skill core, so the index cap for a builder is
+ * higher (15 = 7 core + ~8 domain); see gen-skill-scope.js. @type {string[]} */
+export const BUILDERS = ["godot-dev", "godot-refactor", "godot-visuals", "godot-assets"];
 
 /** The frontmatter block (between the first two `---`) and the body that follows.
  * @param {string} text @returns {{ fm: string, body: string }} */
