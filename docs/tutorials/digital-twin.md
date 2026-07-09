@@ -27,6 +27,12 @@ instead, so you won't touch it, but the scaffold reports creating it in Step 2.)
 The framework never contains twin/game content — it points at an external project (`house/`
 here), reads it in place, and the project stays pure. That is why there are two repos.
 
+> **In a hurry?** Once you've scaffolded (Step 2) and created the venv + copied the kit, the
+> whole import → optimize → verify pipeline collapses into **one command** —
+> `tools/twin_build.sh <ifc> --map binding_map.json`. See **[The one command — the fast
+> path](#the-one-command--the-fast-path)** right after Step 2. The stage-by-stage walk (Steps
+> 3–8) is the teaching path: the tutorial teaches the pipeline, the command compresses it.
+
 ---
 
 ## Prerequisites
@@ -116,6 +122,67 @@ What landed and what stayed put:
   /plugin install xenodot@xenodot-twin
   /plugin install xenodot-twin@xenodot-twin
   ```
+
+---
+
+## The one command — the fast path
+
+Steps 3–8 below walk the pipeline **by hand**, one stage per step — that's the teaching path,
+and it's how you drive a real, non-Duplex model. But the whole thing also collapses into a
+single gated command, `tools/twin_build.sh`, which is what a demo actually runs. Two one-time
+prerequisites (both explained in full in Steps 4–5): copy the kit in, and create the pinned
+3.12 ifcopenshell venv — `twin_build` looks for it at **`.venv-ifc`** specifically and never
+auto-creates it (a missing venv FAILs loud with the exact `uv` lines):
+
+```bash
+cd ../house
+mkdir -p models
+cp ../xenodot-twin/plugin-twin/examples/Duplex_A_20110907.ifc models/
+cp ../xenodot-twin/plugin-twin/examples/binding_map.example.json binding_map.json
+cp ../xenodot-twin/plugin-twin/examples/viewer.cfg.example viewer.cfg
+uv venv --python 3.12 .venv-ifc && uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5
+
+tools/twin_build.sh models/Duplex_A_20110907.ifc --map binding_map.json
+```
+
+Five loud stages — preflight → import → optimize → verify → summary — exit 0 only if every
+non-SKIP gate passed:
+
+```
+== twin-build [2/5] import (ifc_convert.py) ==
+GLB written: models/Duplex_A_20110907.glb — 286 shapes in 1.0s
+== twin-build [3/5] optimize (optimize_scene.gd) ==
+twin-build: optimize — registering class_name globals (first-run headless import)
+OPTIMIZE: OK { ... "multimeshes":3, "nodes_after":261 ... }
+== twin-build [4/5] verify (verify_twin.sh) ==
+JOIN: 286/286 (100.0%)
+BIND-SMOKE: OK — 6 node target(s), 0 mmi target(s), 90 frames, 0 drops
+verify-twin: SKIP frame-budget — windowed bench not run (a SKIP is not a pass)
+== twin-build [5/5] summary ==
+  boot the optimized twin (live against the sim):
+    $GODOT --path . -- --model=models/Duplex_A_20110907_opt.tscn
+twin-build: OK
+```
+
+Boot that printed command to see the optimized, data-painted twin. On an M3 Pro the whole
+command runs in ~19.5 s cold — measured, with machine caveats, in
+[`plugin-twin/library/findings/twin-build-2026-07-09.md`](../../plugin-twin/library/findings/twin-build-2026-07-09.md).
+No binding map? The build still does import + optimize + join; the smoke SKIPs loudly and the
+summary points you at authoring one (skill `twin-bind-data`).
+
+Fast path vs. teaching path — three things to know:
+
+- `twin_build` runs the optimizer, so it emits an **optimized `.tscn`**
+  (`models/Duplex_A_20110907_opt.tscn`) — the viewer loads it at runtime just like a GLB. The
+  by-hand Steps 4–8 stop at the GLB, the simpler thing to learn the join on.
+- The first-run **`class_name` import** the optimize stage prints is the fix for the
+  "Identifier TwinChunks not declared" wrinkle (Troubleshooting): `twin_build` self-heals it
+  before the optimizer runs, so a clean scaffold builds in one shot.
+- `twin_build` never touches `viewer.cfg` unless you pass `--wire` (which points
+  `[viewer] model=` at the optimized scene and keeps a `.bak`).
+
+The rest of this tutorial is the same pipeline, unrolled — read on to understand each gate the
+one command runs.
 
 ---
 
