@@ -170,8 +170,9 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
    this id, so reuse the same id across runs for the same issue.
 
 5. **Record — brief, and KEEP THE LEDGER LEAN.** For each surviving finding, push ONE object to
-   `LEDGER.json`'s `findings[]` (dedup by `id`): `{ id, dim, bucket, verdict, status, finding }` —
-   `finding` is one line (problem + proposed fix), `dim` is the id's `D`-prefix. Update `lastAudit`,
+   `LEDGER.json`'s `findings[]` (dedup by `id`): `{ id, dim, bucket, verdict, status, finding }`
+   plus an optional `pattern` (one line — the good pattern to follow, a positive exemplar, not just
+   the problem). `finding` is one line (problem + proposed fix), `dim` is the id's `D`-prefix. Update `lastAudit`,
    then run `npm run ledger` to regenerate `LEDGER.md` / `ledger.html` (never hand-edit those). The
    ledger is EPHEMERAL working state, not a history log: carry only findings still `open`/`later`.
    **Once a pass fully resolves (nothing left `open`), PRUNE `findings[]` empty and set `lastAudit`
@@ -202,17 +203,18 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
    dimension, a step that didn't pay off. Record it as the entry's `Process note` (or `none`).
    If a fix is obvious and safe, make it here.
 
-## Never
+## Do this
 
-- Re-audit a dimension already covered recently (unless its area changed) — check the ledger.
-- Slurp whole files; filter with the Grep tool / full-path `rg` / `wc` / sub-agents first
-  (never bash `grep`/`rtk grep` for match content — see the search warning above).
-- Auto-apply fixes or write under `plugin/`. This command reports; `/framework-audit-fix`
-  applies the agreed ids; the human decides. (Step 7's tweaks to this command / ledger are the
-  one exception.)
-- Add game-specific content to the framework — and that INCLUDES `plugin/library/`, which ships
-  to every game (AGNOSTIC records only). A game's specific FACTS live GAME-LOCAL (the game repo),
-  never in a skill and never in `plugin/library/`.
-- Flag or edit `docs/roadmap/*.md` itself — it's forge-local project history, out of audit scope.
-  Only flag a SHIPPED file that cites it as reference/authority (D2); the roadmap doc stays untouched.
-- Write a long ledger entry. Brevity is the point.
+- **Audit fresh ground** — check the ledger first and spend the pass on dimensions not covered
+  recently (re-audit one only when its area changed).
+- **Filter before reading** — pull just the slice you need with the Grep tool / full-path `rg` /
+  `wc` / sub-agents (the `rtk` hook drops match content from bash `grep`/`rtk grep`, so those never
+  see the real matches — see the search warning above).
+- **Report; let the human apply.** This command surfaces buckets; `/framework-audit-fix` applies
+  the agreed ids and the human decides. Writing under `plugin/` or auto-applying is never this
+  command's job (step 7's tweaks to this command / ledger are the one exception).
+- **Keep the framework agnostic** — a game's specific FACTS live GAME-LOCAL (the game repo).
+  `plugin/library/` ships to every game, so it too holds AGNOSTIC records only — never a game fact.
+- **Treat `docs/roadmap/*.md` as out of scope** — it's forge-local project history. Only flag a
+  SHIPPED file that cites it as reference/authority (D2); the roadmap doc itself stays untouched.
+- **Write one-line ledger entries** — brevity is the point; the next run reads them first.

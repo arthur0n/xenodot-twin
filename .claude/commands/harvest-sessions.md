@@ -94,7 +94,8 @@ lines, which `rtk grep`/`jq` handle.)
    playbook applies; write the **fix concretely** (target `file` + before→after / block to add);
    assign **bucket**/`verdict`/**id** `<Dn>-<slug>` (reuse an existing id for the same issue). Push
    ONE `open` object per finding to `LEDGER.json`'s `findings[]` — `{ id, dim, bucket, verdict,
-status: "open", finding }` (`dim` = the id's `D`-prefix) — then run `npm run ledger`. Don't
+status: "open", finding }` (`dim` = the id's `D`-prefix), plus an optional `pattern` (one line — the
+   good pattern to follow, a positive exemplar, not just the problem) — then run `npm run ledger`. Don't
    duplicate an id already in `findings[]`. Keep each `finding` one line.
 
 7. **Record coverage.** Append every scanned tag to `harvested-sessions.txt` (even ones that yielded
@@ -109,15 +110,18 @@ status: "open", finding }` (`dim` = the id's `D`-prefix) — then run `npm run l
    tweak to THIS command or the ledger format (a better signal to grep, a missing case), recorded as
    the entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
 
-## Never
+## Do this
 
-- Read a whole multi-MB log into context — always filter to the typed slices with `jq select(...)` directly (grep only on jq's text output).
-- Re-scan a session whose tag is in `harvested-sessions.txt`.
-- Auto-apply a fix, or write under `plugin/` — this command records; `/framework-audit-fix` applies
-  the agreed ids; the human decides. (Step 9's tweak to this command / ledger is the one exception.)
-- File a **game-specific** learning as a framework finding — strip it; it lives game-local
-  (`plugin/library/` is for AGNOSTIC records, NOT game facts).
-- Re-file a finding already `open`/`later`, or invent friction the logs don't actually show.
-- Search with bash `grep` (it's `rtk`-filtered and drops matches; use `rtk grep`/`jq` or full-path
-  `rg`), or run shell without `rtk`.
-- Write a long ledger entry. Brevity is the point — the next run reads this first.
+- **Filter logs to the typed slices** — `jq select(...)` directly on the multi-MB log; grep only on
+  jq's text output (never read the whole log into context).
+- **Scan only fresh sessions** — skip any tag already in `harvested-sessions.txt`.
+- **Record; let the human apply.** This command files findings; `/framework-audit-fix` applies the
+  agreed ids and the human decides (step 9's tweak to this command / ledger is the one exception —
+  no other `plugin/` writes).
+- **Keep findings framework-general** — a game-specific learning lives game-local (`plugin/library/`
+  = AGNOSTIC records only).
+- **File only fresh, real friction** — dedup against ids already `open`/`later`, and file only what
+  the logs actually show.
+- **Search with the Grep tool / full-path `rg` (or `jq`), and prefix shell with `rtk`** — bash
+  `grep` is `rtk`-filtered and drops matches.
+- **Write one-line ledger entries** — brevity is the point; the next run reads this first.
