@@ -42,14 +42,6 @@
       "pattern": "generic core = the base BOTH aesthetics import; each art style is a thin delta layer on top, never a sibling reaching into the other's skill for the shared workflow."
     },
     {
-      "id": "D6-issuekit-mechanics",
-      "dim": "D6",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "ui/orchestrator.md:25 embeds builder-facing issuekit CLI syntax (attempt/resolve flags) + the known-issues graduation recipe inside the routing doc; trim to the routing decision (search tracker first → spawn builder/designer) and let the issue process own the mechanics."
-    },
-    {
       "id": "D8-navmesh-check-orphan",
       "dim": "D8",
       "bucket": 4,

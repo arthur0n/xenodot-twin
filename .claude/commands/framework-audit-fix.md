@@ -94,7 +94,11 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 4. **Verify.** If any framework file changed: `rtk npm run validate` (tsc + eslint, zero
    warnings — this also runs the skill-scope check, catching D1/D3/D5 wiring mistakes) and
    `rtk npx prettier --write` on the touched files. Report the result honestly; if validate
-   fails, fix or revert that id and say so — never leave the gate red.
+   fails, first confirm the failure is YOURS before acting — attribute red to your id only after
+   checking it against the pre-edit state (`git stash`, re-run, or scope the failing files to what
+   the finding touched). A pre-existing red from unrelated uncommitted WIP (a doc-only fix can't
+   trip tsc/eslint) is NOT yours to fix or revert — say so and leave it. If the red IS yours, fix
+   or revert that id and say so — never leave a gate red that your change caused.
 5. **Record — REMOVE, don't stamp.** DELETE each applied id's object from `LEDGER.json`'s `findings[]`
    (match by `id`) — do NOT mark it `done <YYYY-MM-DD>` (git + this run's commit message are the "what
    was fixed" record, so the ledger stays lean — no `done` findings accumulate as distraction). If it
@@ -118,8 +122,10 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 
 - **Apply only the ids the human passed** — resolve each against `findings[]`; if an id is
   `later`/`skip` or already removed (resolved), skip it and say so. Never invent findings.
-- **Keep the gate green** — `rtk npm run validate` must pass after your edits; fix or revert the
-  offending id rather than leaving it red.
+- **Keep the gate green — that YOUR change didn't break** — `rtk npm run validate` must pass for
+  what your edits touched; fix or revert the offending id rather than leaving it red. But first
+  confirm the red is yours (check vs pre-edit state / scope to the finding's files) — never
+  misattribute a pre-existing red from unrelated uncommitted WIP to a fix that can't have caused it.
 - **Keep skills game-agnostic** — strip any game-specific content to the METHOD; the game holds its
   FACTS game-local (`plugin/library/` = AGNOSTIC records only).
 - **Search with the Grep tool / full-path `rg`** — the `rtk` hook drops matches from bash `grep`,
