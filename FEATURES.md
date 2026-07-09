@@ -63,16 +63,17 @@ Framework agents, namespaced `xenodot:<name>`. Grouped by role:
   `bug-triage` (root-cause + what the framework should learn),
   `handoff-summarizer` (the ≤5-line builder-report digest).
 
-## Skills (47)
+## Skills (48)
 
 Procedures (one canonical path, observable outcome), not references. Loaded by
 the implementers that own them, not invoked directly. Across these domains:
 
 - **Meta / procedural** — `agent-report`, `autonomous-main-goal`, `caveman`,
   `graphify`, `research-presenting`, `tasks-mcp`.
-- **Godot core** — project conventions, typed-GDScript code rules, composition
-  (SOLID via component nodes), data-driven + effect composition, main-scene
-  shell, docs lookup, export builds.
+- **Godot core** — project baseline (agnostic quality gates + way-of-work; game
+  aesthetics live in a project-local game-conventions skill it teaches you to
+  author), typed-GDScript code rules, composition (SOLID via component nodes),
+  data-driven + effect composition, main-scene shell, docs lookup, export builds.
 - **Verification & playtesting** — `godot-verify`, runtime smoke, runtime
   arena, the playgrade grader, the playthrough input-bot, enemy-AI headless smoke.
 - **Rendering & visuals** — 3D pixelation (SubViewport), pixel-readability
