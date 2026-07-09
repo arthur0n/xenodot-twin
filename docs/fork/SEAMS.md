@@ -34,9 +34,47 @@ On every conflict during a sync merge:
 
 - `docs/fork/**` — this contract + the sync runbook.
 - `.claude/commands/sync-upstream.md` — the analysis-driven down-sync command.
-- Everything under `plugin-twin/`, `starter-viewer/`, `ui/server/features/twin/`,
-  `ui/orchestrator-viewer.md`, `ui/server/core/session-plugins.js` — these already exist upstream
-  (the twin is developed upstream too); we simply keep them whole.
+
+## The twin domain is now FORK-OWNED (upstream `e250d11`, 2026-07-08)
+
+Upstream commit `e250d11` ("the twin domain moves to its exclusive fork") **removed the entire twin
+domain from `arthur0n/xenodot-forge`** — 79 files: all of `plugin-twin/`, `starter-viewer/`,
+`ui/orchestrator-viewer.md`, `ui/server/features/twin/`, `docs/tutorials/digital-twin.md`,
+`ui/server/cli/materialize.test.js`, and the twin-wiring inside a set of shared framework files
+(listed below). **This fork IS the twin's exclusive home from now on.** The relationship inverted:
+the twin is no longer "developed upstream too," it is **fork-owned**, and upstream will never carry
+it again.
+
+Consequence for every FUTURE sync: `git merge` re-applies `e250d11`'s deletions to any twin file the
+fork hasn't diverged since the merge base — **silently, with no conflict** (modify/delete only fires
+where the fork also edited the file). So each sync MUST, after `git merge --no-commit`, restore the
+protect-list from HEAD **before** committing, and resolve every shared-file twin-unwiring to OURS:
+
+**Protect-list — restore whole from HEAD every sync** (`git checkout HEAD -- <path>`):
+
+```
+plugin-twin  starter-viewer  ui/orchestrator-viewer.md  ui/server/features/twin
+docs/tutorials  ui/server/cli/materialize.test.js
+```
+
+**Shared-file twin-unwiring — reject to OURS every sync** (upstream's `e250d11` stripped twin
+awareness from these; the fork keeps its twin wiring — restore from HEAD, then fold in any SEPARABLE
+non-twin improvement by hand):
+
+```
+ui/server/core/{config,index,session,session-plugins,session.test}.js
+ui/server/cli/{new,setup,doctor,materialize,gen-skill-scope,gen-contamination,gen-library-index}.js
+ui/server/features/promotions/{promote,promote-run,promote-run.test}.js
+ui/server/features/skills/{skills,skill-registry,skills.check}.js
+tsconfig.json  eslint.config.js  .prettierignore
+README.md / FEATURES.md (twin-section shrink — identity, always OURS)
+```
+
+> At the `e250d11` sync these carried NO separable improvement (the commit was a pure strip); the
+> three that ALSO received a real `b7053ae` improvement (`session.js` preToolGate rewire,
+> `session.test.js` image-read gate tests, `gen-skill-scope.js` name-convention warn) were resolved
+> as **fork HEAD + only the `b7053ae` hunks re-applied** (`git checkout HEAD -- <f>` then apply just
+> that commit's diff), never taking `e250d11`'s twin removals.
 
 ## Identity — resolve as OURS (fully diverged)
 
@@ -106,10 +144,19 @@ Delete `plugin/skills/`:
 > a prop joins the data layer), and ad-hoc one-off `.glb`/texture dressing falls to `godot-assets` on
 > its core skills.
 
-Keep the 15 base skills: `agent-report`, `autonomous-main-goal`, `caveman`, `godot-code-rules`,
+Keep the 16 base skills: `agent-report`, `autonomous-main-goal`, `caveman`, `godot-code-rules`,
 `godot-composition`, `godot-docs`, `godot-export-builds`, `godot-main-scene`,
-`godot-project-conventions`, `godot-runtime-smoke`, `godot-screen-effects`, `godot-verify`,
-`graphify`, `research-presenting`, `tasks-mcp`.
+`godot-project-baseline`, `godot-runtime-smoke`, `godot-screen-effects`, `godot-verify`,
+`graphify`, `library-record-writing`, `research-presenting`, `tasks-mcp`.
+
+> Upstream `322e4da` renamed `godot-project-conventions` → `godot-project-baseline` (rewritten
+> game-agnostic: quality gates + way-of-work only; aesthetics move to a PROJECT-LOCAL skill). We took
+> the rename — it's the exact improvement the fork wanted (our kept copy was pixel-art flavored). Its
+> "Example skeleton" block still teaches a 3D-pixel-art aesthetic as the illustrative project-local
+> payload; kept as a generic pattern example (the base plugin is the engine-generic Godot base — the
+> example demonstrates the project-local pattern, it isn't a twin default). Upstream `b7053ae` added
+> `library-record-writing` (shared record-writing method for the `*-researcher` agents) — a generic
+> CORE skill, taken.
 
 > After a new upstream release: any NEW `godot-*` skill/agent that lands is game payload UNLESS the
 > viewer orchestrator routes to it or a twin agent composes it. Judge it, drop it if game, and add it
