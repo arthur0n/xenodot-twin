@@ -52,5 +52,5 @@ _none_
 ## Parking — dimension ideas (unactioned)
 
 - skill-content-gap dimension — a skill missing a known technique/caveat maps to no clean D1–D9
-- D10 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state? (this pass's D2-library-gate-blindspot is exactly a seam-integrity find)
+- D11 'seam integrity' dimension — do the framework's own gates (promote/materialize/validate) enforce the conventions its docs state? (this pass's D2-library-gate-blindspot is exactly a seam-integrity find) [renumbered D10→D11 when abstraction-level/domain-layering took D10]
 - 2026-07-06 external review (docs/xenodot/2026-07-06-framework-review-iter1.md) = ROADMAP source (capabilities.json routing, domain taxonomy, bolts, starter/onboarding waves, seam check\_\*, autoload/shadow/dir gates) — plan work lives in that doc, ledger tracks only drift; verified already-resolved there: gdlintrc is 500 now, host-agnostic seam rule already in godot-composition rules 5/6
