@@ -25,10 +25,21 @@
 // (never throws), so the framework runs exactly as today and the Hive dispatches a researcher itself.
 import { tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
-import { parseJSON } from "../../lib/json.js";
 import { getHermesConfig } from "../core/config.js";
 import { applyOp } from "../features/tasks/tasks-store.js";
 import { getPersona, PERSONA_IDS } from "../../lib/hermes-personas.js";
+// The runs-API HTTP bridge (create/poll/stop/classify + helpers) lives in one dependency-free module
+// so the analysis worker reuses it instead of duplicating the fetch/poll dance.
+import {
+  authHeaders,
+  baseOf,
+  parseAs,
+  sleep,
+  createRun,
+  fetchRun,
+  stopRun,
+  classifyRun,
+} from "../integrations/hermes/hermes-runs.js";
 
 /** @typedef {(obj: import("../../lib/types.js").OutMsg) => void} Send */
 /** @typedef {import("@anthropic-ai/claude-agent-sdk").SDKUserMessage} SDKUserMessage */
@@ -50,18 +61,6 @@ const RUN_WALLCLOCK_MS = 15 * 60_000;
 function relay(send, persona, phase, text, runId) {
   send({ type: "hermes", phase, runId, text, persona });
 }
-
-/** Parse a JSON payload, or null if it isn't JSON. @param {string} data @returns {unknown} */
-function parseAs(data) {
-  try {
-    return parseJSON(data);
-  } catch {
-    return null;
-  }
-}
-
-const authHeaders = (/** @type {string} */ key) => ({ authorization: `Bearer ${key}` });
-const baseOf = (/** @type {string} */ url) => url.replace(/\/+$/, "");
 
 /** Compose a run's `instructions`: the persona's standing brief plus the Hive's task `context`.
  * Hermes appends this to its own SOUL/base persona and layers it on its system prompt. The agent's
@@ -91,30 +90,6 @@ function buildInstructions(persona, context) {
     "take no part in.";
   const extra = context?.trim();
   return persona.brief + headless + (extra ? `\n\n--- Task context ---\n${extra}` : "");
-}
-
-/** Create a run and return its id. The POST returns immediately; the agent loops server-side.
- * @param {string} base @param {string} key @param {string} task @param {string} instructions
- * @param {AbortSignal} signal @returns {Promise<string>} */
-async function createRun(base, key, task, instructions, signal) {
-  const res = await fetch(`${base}/v1/runs`, {
-    method: "POST",
-    headers: { "content-type": "application/json", ...authHeaders(key) },
-    body: JSON.stringify({ input: task, instructions }),
-    signal,
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(
-      `Hermes ${res.status} ${res.statusText}${detail ? ` — ${detail.slice(0, 300)}` : ""}`,
-    );
-  }
-  const body = /** @type {{ run_id?: string } | null} */ (
-    parseAs(await res.text().catch(() => "{}"))
-  );
-  const runId = body?.run_id;
-  if (!runId) throw new Error("Hermes did not return a run_id");
-  return runId;
 }
 
 /** The synthetic user turn that delivers Hermes' findings back to the Hive (same shape as a real
@@ -159,60 +134,6 @@ function fallbackTurn(runId, persona, reason) {
       ],
     },
   };
-}
-
-/** Resolve after `ms`, or early if `signal` aborts (so the watcher unblocks on teardown).
- * @param {number} ms @param {AbortSignal} signal @returns {Promise<void>} */
-function sleep(ms, signal) {
-  return new Promise((resolve) => {
-    const t = setTimeout(resolve, ms);
-    signal.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(t);
-        resolve();
-      },
-      { once: true },
-    );
-  });
-}
-
-/** Fetch one run's current state. @param {string} base @param {string} key @param {string} runId
- * @param {AbortSignal} signal @returns {Promise<Record<string, unknown> | null>} */
-async function fetchRun(base, key, runId, signal) {
-  const res = await fetch(`${base}/v1/runs/${runId}`, { headers: authHeaders(key), signal });
-  if (!res.ok) throw new Error(`run status ${res.status}`);
-  return /** @type {Record<string, unknown> | null} */ (
-    parseAs(await res.text().catch(() => "{}"))
-  );
-}
-
-/** Best-effort stop of a run (timeout / approval gate). Never throws. @param {string} base
- * @param {string} key @param {string} runId @returns {Promise<void>} */
-async function stopRun(base, key, runId) {
-  try {
-    await fetch(`${base}/v1/runs/${runId}/stop`, { method: "POST", headers: authHeaders(key) });
-  } catch {
-    /* the run will still hit its own server-side limits; nothing more we can do */
-  }
-}
-
-/** Decide what a polled run state means. @param {Record<string, unknown> | null} state
- * @returns {{ kind: "pending" } | { kind: "approval" } |
- *   { kind: "completed", output: string } | { kind: "ended", reason: string }} */
-function classifyRun(state) {
-  const status = typeof state?.status === "string" ? state.status.toLowerCase() : "";
-  if (status.includes("approval")) return { kind: "approval" };
-  if (status === "completed") {
-    const out = state?.output;
-    const output = typeof out === "string" ? out : out == null ? "" : JSON.stringify(out);
-    return { kind: "completed", output };
-  }
-  if (status === "failed" || status === "cancelled" || status === "canceled") {
-    const why = typeof state?.error === "string" ? ` — ${state.error.slice(0, 200)}` : "";
-    return { kind: "ended", reason: `${status}${why}` };
-  }
-  return { kind: "pending" };
 }
 
 /** Map a Hermes tool name to a plain-language self-improvement line, or null if it isn't one.
