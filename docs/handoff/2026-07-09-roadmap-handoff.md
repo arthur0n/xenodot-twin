@@ -134,10 +134,19 @@ writes once?_ Honest verdicts, including NONE.
 
 ### Explicitly NOT on the roadmap
 
-Protocol stack implementations; streaming/tiling engines; physics solvers; native C++
-format parsers; anything competing head-on with Omniverse/Cesium/iTwin on their turf.
-The product's lane: the agent framework that takes you from industrial file + data feed
-to a verified, optimized, live twin viewer — on an open engine.
+NONE verdicts mean **never BUILD ourselves — zero differentiation in building it**.
+They are NOT "never in the product": every one stays open as a THIRD-PARTY INTEGRATION
+seam, and the architecture already carries the receiving socket — protocol stacks arrive
+as existing bridges behind `sourceUrl` (the MQTT adapter is this pattern's first
+instance); streaming/tiling arrives by adopting an existing runtime if geo-context ever
+matters (the refuted-claims research exists precisely so we know that door is open);
+simulation arrives as third-party solvers — FMI/FMU co-simulation is the industrial
+standard route — with the framework doing scenario authoring, orchestration and gating
+on top; native format parsers get ADOPTED when they mature (GDIFC once it ships macOS,
+native USD when the Godot proposal lands), with the offline-conversion pipeline covering
+the meantime. In every case the framework keeps the agent-shaped work — integration,
+authoring, verification — and the third party supplies the core tech. What is truly
+never on the roadmap: competing head-on with Omniverse/Cesium/iTwin on their own turf.
 
 ## Open items carried over (not roadmap — hygiene)
 
