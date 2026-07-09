@@ -1,5 +1,5 @@
 {
-  "include": ["ui/**/*.js", "plugin-twin/tools/**/*.js"],
+  "include": ["ui/**/*.js"],
   "exclude": ["node_modules", "logs"],
   "compilerOptions": {
     "noEmit": true,

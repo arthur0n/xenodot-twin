@@ -2,8 +2,8 @@
 //   node ui/server/features/skills/skills.check.js
 // No test runner: computeSessionSkills is pure, so it's exercised directly. Guards the override
 // semantics Layer 1 depends on (default-deny, wildcard, per-name, floor always-on, dedup) plus
-// the viewer floor extension (getPluginOrchestratorSkills — audience-tag reads over a temp
-// fixture plugin, so nothing depends on plugin-twin/ existing).
+// the data-driven audience reader (getPluginOrchestratorSkills — audience-tag reads over a temp
+// fixture plugin, so nothing depends on any real plugin dir).
 // Importing skills.js triggers config.js's one-time engine probe — harmless, hand-run only.
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
@@ -66,9 +66,9 @@ check("result is de-duplicated when a name is in both floor and candidates", () 
   assert.deepEqual(out, ["caveman"]);
 });
 
-// ---- getPluginOrchestratorSkills: the data-driven viewer floor (each SKILL.md `agents:` tag
-// is the source of truth — orchestrator/all join the floor, builder-audience skills stay out).
-const fixture = mkdtempSync(path.join(tmpdir(), "xeno-twin-plugin-"));
+// ---- getPluginOrchestratorSkills: the data-driven audience reader (each SKILL.md `agents:`
+// tag is the source of truth — orchestrator/all join the floor, builder-audience skills stay out).
+const fixture = mkdtempSync(path.join(tmpdir(), "xeno-fixture-plugin-"));
 /** @param {string} name @param {string} agents */
 function makeSkill(name, agents) {
   const dir = path.join(fixture, "skills", name);
@@ -78,12 +78,12 @@ function makeSkill(name, agents) {
     `---\nname: ${name}\ndescription: x\nagents: [${agents}]\n---\nbody\n`,
   );
 }
-makeSkill("twin-status", "orchestrator");
-makeSkill("twin-terse", "all");
-makeSkill("twin-verify", "builders, data-binder");
+makeSkill("ext-status", "orchestrator");
+makeSkill("ext-terse", "all");
+makeSkill("ext-verify", "builders, data-binder");
 
 check("getPluginOrchestratorSkills: orchestrator/all-tagged skills in, builder-tagged out", () => {
-  assert.deepEqual(getPluginOrchestratorSkills(fixture), ["twin-status", "twin-terse"]);
+  assert.deepEqual(getPluginOrchestratorSkills(fixture), ["ext-status", "ext-terse"]);
 });
 
 check(

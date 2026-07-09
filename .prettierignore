@@ -15,4 +15,3 @@ package-lock.json
 # `npm run check:library` the index reads as stale and fails validate. Same churn loop as above;
 # keep prettier off them so the generator's output stays canonical.
 plugin/library/*/index.md
-plugin-twin/library/*/index.md

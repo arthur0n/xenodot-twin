@@ -55,7 +55,6 @@ import {
 } from "../features/skills/skills.js";
 import { listAgentSkills, applyAssignment } from "../features/skills/agent-skills.js";
 import { readSkills } from "../features/skills/skill-registry.js";
-import { registerTwinRelay, isTwinDataPath } from "../features/twin/twin-data.js";
 
 /** Read a request body and write it as a transcript; respond with the path or an error.
  * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
@@ -478,11 +477,7 @@ const server = http.createServer((req, res) => {
 });
 
 const wss = new WebSocketServer({ server });
-// The twin-data relay shares this WebSocketServer: it claims only `/twin-data` sockets, so the
-// session handler must decline those (a browser data-viewer socket is not a Claude session).
-registerTwinRelay(wss);
 wss.on("connection", (ws, req) => {
-  if (isTwinDataPath(req)) return; // owned by the twin-data relay
   handleConnection(ws, req);
 });
 
