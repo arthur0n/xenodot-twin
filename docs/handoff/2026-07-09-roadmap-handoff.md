@@ -1,0 +1,168 @@
+# Handoff + internal roadmap — 2026-07-09
+
+Written at the close of the two-day session that researched, built, forked and shipped
+this product. Self-contained on purpose: the next session — **any model** — should be able
+to pick up from this file plus the repo, with no prior conversation context.
+
+## What this product is (one paragraph)
+
+Xenodot Twin is an AI agent framework on the Claude Code SDK that works WITH you to build
+**digital-twin visualization** apps on Godot: import a building/plant model (IFC → GLB with
+every element joined to its property record), optimize it to interactive frame rates,
+bind live sensor values to the actual 3D elements, and scrub recorded history — all
+behind deterministic gates (`tools/verify_twin.sh`). Honest wording rule: say
+_visualization_, not _simulation_, until simulation exists. Claude Code / Anthropic is
+the system that supports twin **creation** (and, in the future, analysis and simulation);
+other models will plug in later as analysis workers — see the roadmap.
+
+## State of the world (verified at handoff)
+
+- **This repo** (`github.com/arthur0n/xenodot-twin`): product-ready by clean-stranger
+  acid test — clone → `npm install` → `validate`/`test` green → `npm run new -- ../house`
+  scaffolds a viewer → tutorial (`docs/tutorials/digital-twin.md`) + bundled kit
+  (`plugin-twin/examples/`) reach a live, data-painted twin with zero manual steps.
+  16+6 skills, 10+3 agents, D10 audit dimension in place.
+- **Upstream** (`github.com/arthur0n/xenodot-forge`): games only again; this fork pulls
+  curated framework wins via `.claude/commands/sync-upstream.md`. The conflict contract
+  and permanent divergences live in `docs/fork/SEAMS.md` — read it before ANY sync; the
+  first sync proved git silently re-applies upstream's twin deletions unless the
+  protect-list is restored.
+- **Seats** (the self-improvement model): the human develops the framework FROM INSIDE
+  each domain's workspace. `twindemo/` (repo `github.com/arthur0n/twindemo`) is the twin
+  seat — its `house/` project and demos are the daily test bed; framework improvements
+  commit in the seat's clone and push here; workspace files push to the twindemo repo.
+  Mirror of the game seat (`mercenary/` ↔ `arthur0n/pain`).
+- **Proven numbers** (one machine — M3 Pro/Metal, shadows off; caveats in
+  `plugin-twin/library/findings/`): IFC→GLB ~1.1 s with 286/286 GlobalId join; optimizer
+  ≥4.4× on repeated-geometry scenes (auto-chunked MultiMeshes, join preserved through
+  optimization); live binding ~5 ms avg, 0 drops; playback determinism sha256-gated.
+- **Marketing** (`docs/marketing/`): LinkedIn draft + long-form + demo shot list, staged,
+  NOT published. The two research-refuted claims are permanent bans (see
+  `docs/research/landscape-2026-07.md`): never claim hobby twins default to Unity; never
+  claim a Cesium-for-Godot gap.
+
+## Where an agent framework genuinely has an advantage — and where NONE
+
+The filter applied to every research thread: _does agent orchestration + deterministic
+gates + self-improving skills add real leverage here, or is this just software any team
+writes once?_ Honest verdicts, including NONE.
+
+**REAL advantage — proven already (double down):**
+
+- **Import pipelines with fiddly, documented workflows.** The IFC path (venv trap, dead
+  sample URLs, serializer flags, sidecar join) is exactly agent-shaped: encoded once in
+  `twin-import`, executed reliably forever, gate-verified. Same shape for every future
+  format.
+- **Applying the engine's manual optimization toolkit.** Godot ships the tools but leaves
+  them manual (occluders, visibility ranges, chunking); the measured win came from an
+  agent-applied, gate-verified pass with honest per-scene judgment (chunks=auto, occlusion
+  toggleable). This is the product's core differentiator — no competitor automates it.
+- **Authoring the data layer as reviewable data.** Binding maps, hint sidecars, recording
+  fixtures — agents emit JSON humans can diff, gates verify the join and the painting.
+  The two-layer design (agent-authored data → deterministic tool materializes) is the
+  house pattern; keep extending it.
+- **Verification itself.** Every claim in the marketing material is backed by a gate.
+  That discipline is the framework, not a feature of it.
+
+**Advantage NONE or LOW (do not invest as if differentiating):**
+
+- **Protocol stacks (OPC UA, BACnet, full MQTT brokers).** Classic write-once software;
+  the peer-reviewed architecture keeps them at the edge anyway (the 3D scene never
+  speaks OPC UA). Use existing bridges (Node-RED, Mosquitto); our seam is `sourceUrl`.
+  An agent writes the adapter no better than a library does.
+- **Streaming/tiling tech (competing with Cesium 3D Tiles, Omniverse).** Years of
+  rendering engineering; not agent-shaped; not our fight.
+- **Physics/process simulation engines.** Domain solvers, not orchestration. If
+  "simulation" ever enters this product, it enters as _scenario authoring and what-if
+  orchestration on top of an existing solver_ — where agents DO have leverage — never as
+  building the solver.
+- **Format parsers in C++ (native USD/point-cloud GDExtensions).** Not agent-shaped;
+  the agent-shaped version is an offline conversion pipeline (like IFC), which IS viable.
+
+## Internal roadmap
+
+### Must Have (credibility for the first real user/demo)
+
+1. **MQTT source adapter behind `sourceUrl`.** The first question every real visitor
+   asks is "can it talk to my broker?" The relay seam was designed for exactly this;
+   the sim's `stream.js`/`protocol.js` split means the adapter is a bounded Node module
+   with tests. Research-validated architecture: edge bridge → MQTT/WS → viewer.
+   (Agent-advantage low, product-necessity high — build it once, gate it.)
+2. **One-command pipeline: import → optimize → verify.** The pieces exist as separate
+   skills/tools; a single `twin-build` flow (or orchestrator behavior) that takes an IFC
+   and yields an optimized, join-verified, bound viewer is the demo moment. Mostly
+   orchestration glue — exactly what the framework is for.
+3. **De-game the internal persona prompts.** `ui/server/integrations/hermes/hermes-soul.md`
+   and `ui/lib/personas/{critic,researcher}/persona.js` still say "game-development
+   framework" — they shape agent behavior in every session. Small, flagged, do it early.
+4. **Benched LOD/visibility-range recipe.** `--vis-ranges` applies documented defaults
+   nobody measured. The bench harness exists (`bench_scene.gd`); turn the defaults into
+   a measured recipe like chunking got. Keeps the "every number is gate-backed" promise.
+
+### Nice to Have (differentiation + the human's stated direction)
+
+5. **Multi-model analysis seam.** The human's explicit direction: Claude Code/Anthropic
+   remains the build-and-verify system; OTHER models plug in later for **analysis** —
+   narrating anomalies in a recording, summarizing a day of tag history, drafting
+   inspection reports from binding data. The Hermes integration (own provider, own
+   billing, advisory-only) is the in-house precedent to generalize: recordings
+   (NDJSON) + binding maps + property sidecars are clean, typed inputs for any LLM.
+   Design the seam as data-in/report-out so the analysis worker is swappable.
+6. **Web/Grafana embed story.** OpenTwins proved the pattern on Unity WebGL; our web
+   export boots (38 MB) but browser fps was never measured. Measure the WASM ceiling
+   honestly, then ship an embed recipe (COI headers exist). If the ceiling is bad,
+   publish the finding — negative results are still content.
+7. **`twin-ship` packaging skill.** A viewer deploys as build + model + sidecar +
+   binding map + optional recording; base `godot-export-builds` doesn't bundle the data
+   files. Small skill, closes the journey's last step.
+8. **Second demo asset beyond the Duplex.** A plant/factory-flavored public model makes
+   the industrial pitch land harder than a house (the city block covers scale; it
+   doesn't cover "looks like my plant").
+
+### Good to Have (speculative, revisit after real users)
+
+9. **Semantic/master-data models (DTDL, ISA-95 → scene mapping).** Research found NO
+   precedent in any engine — greenfield and differentiating, but speculative until a
+   user asks. Agent-shaped (data transformation + authoring), so if demand appears the
+   framework is the right tool. Park until then.
+10. **USD import via offline conversion** (usd→glTF toolchains exist) — same pipeline
+    shape as IFC; do when a user shows up with USD files.
+11. **Point clouds** — same rule as USD.
+12. **"Simulation"** — the word in the product's long-term vision. Enters only as
+    scenario/what-if orchestration over an existing solver (see the NONE list), and only
+    after visualization has users. Until then the honesty rule stands.
+
+### Explicitly NOT on the roadmap
+
+Protocol stack implementations; streaming/tiling engines; physics solvers; native C++
+format parsers; anything competing head-on with Omniverse/Cesium/iTwin on their turf.
+The product's lane: the agent framework that takes you from industrial file + data feed
+to a verified, optimized, live twin viewer — on an open engine.
+
+## Open items carried over (not roadmap — hygiene)
+
+- Forge (upstream, not this repo): open ledger finding `D10-import-layering-inversion`
+  (HD import skills depend on the pixel-art skill for the generic core) — apply via its
+  `/framework-audit-fix`.
+- Xenomoon (sibling fork): two flagged pre-existing bugs — dangling audit-doc references
+  and a broken pre-commit hook calling the absent `gen-ledger.js`.
+- Human-paced: record the demo video (`docs/marketing/demo-script.md`), publish the
+  post when ready (bans apply), decide `twindemo_test2/` cleanup (it holds the last
+  acid-test evidence).
+
+## Working rules the next session must honor (learned the hard way)
+
+- **Workspace model:** one folder per project/experiment; the framework belongs to no
+  project. Twin work happens ONLY from the twin seat (`twindemo/`), game work from the
+  game seat. Every commit pushes upstream; downstreams evaluate before pulling.
+- **Sync:** read `docs/fork/SEAMS.md` first, always. Restore the protect-list; upstream's
+  twin deletions re-apply silently on every merge.
+- **Quality bars:** zero magic numbers (named + documented, what AND why); size caps met
+  by decomposition, never docstring compression; no cross-script private access; the
+  human reviews line-by-line post-phase and expects a constants table when constants
+  change; no ASCII tables in docs.
+- **Launcher:** `./start_server` / `./stop_server` (never bare `npm start` in
+  instructions) — and on shared machines always `PORT=<free>` (default-port start kills
+  the current holder).
+- **Honesty:** measured numbers carry their caveats; refuted claims stay banned; SKIPs
+  are loud and are not passes.
