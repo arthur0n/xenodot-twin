@@ -47,13 +47,19 @@ skill `twin-import`. No engine needed.
 $GODOT --headless --path . --script tools/optimize_scene.gd -- \
     --in=<model.glb|scene.tscn> --out=<optimized.scn> --report=<report.json> \
     [--chunks=auto|N] [--target-per-chunk=32] [--min-instances=8] \
-    [--hints=<hints.json>] [--occluders] [--vis-ranges]
+    [--hints=<hints.json>] [--occluders] [--vis-ranges] \
+    [--vis-small-diag=0.5] [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120]
 ```
 
 Groups repeated meshes into region-chunked MultiMesh fields (auto-sized per group by
 default), preserving the GlobalId join as `twin_globalids` metadata; applies hint-sidecar
 directives (`no_instance` / `occluder` / `lod_end` / `tags` → persistent groups +
 metadata); optional occluder and visibility-range passes. Emits a full report JSON.
+The four `--vis-*` flags override the visibility-range size-class thresholds/distances
+(each must be > 0, medium must exceed small, or it FAILs loud); the report echoes the
+effective values so every run is self-describing. `--vis-ranges` is now benched — a
+**scoped win** (big on many-unique-mesh scenes, no-op on single buildings / instanced
+scenes; defaults kept, still opt-in): `plugin-twin/library/findings/twin-vis-range-recipe-2026-07-09.md`.
 Helpers live in `tools/lib/twin_chunks.gd` (grid + emission) and `tools/lib/twin_hints.gd`
 (hint contract). Recipe, measured numbers and knob guidance: skill `twin-optimize`.
 
