@@ -42,6 +42,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { parseJSON } from "../../../lib/json.js";
 import { saveHermesConfig, CONFIG_FILE } from "../../core/config.js";
+import { isLegacySoul } from "./hermes-soul-legacy.js";
 
 const argv = process.argv.slice(2);
 /** @param {string} n @returns {boolean} */
@@ -337,6 +338,19 @@ function ensureSoul() {
   }
   if (existing !== null && existing.trim() === template.trim()) {
     console.log("✓ SOUL.md is already the Xenodot partner persona (unchanged).");
+    return;
+  }
+  // A SOUL that verbatim-matches a PRIOR shipped Xenodot template is OURS (an old version), not the
+  // user's — upgrade it in place so a reworded template reaches machines set up before the change.
+  // (An old template has real content → fails soulIsDefault → would otherwise be mistaken for a
+  // custom SOUL and never updated; see hermes-soul-legacy.js.) Trimmed compare, same mechanism as
+  // the current-template check above.
+  if (existing !== null && isLegacySoul(existing)) {
+    mkdirSync(HERMES_DIR, { recursive: true });
+    writeFileSync(SOUL_FILE, template);
+    console.log(
+      `✓ Replaced a legacy Xenodot soul template → ${SOUL_FILE} (updated to the current one).`,
+    );
     return;
   }
   if (existing !== null && !soulIsDefault(existing)) {
