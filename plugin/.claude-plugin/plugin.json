@@ -1,6 +1,6 @@
 {
   "name": "xenodot",
-  "description": "Xenodot Forge — agents, skills, tools and hooks for AI-assisted Godot-family (Godot / Redot / Blazium) game development with Claude Code",
+  "description": "Xenodot base — engine-generic agents, godot-* skills, tools and hooks for AI-assisted Godot-family (Godot / Redot / Blazium) work with Claude Code. The xenodot-twin plugin composes these via the xenodot: namespace",
   "version": "0.2.1",
   "author": { "name": "Xenodot Forge" }
 }

@@ -1,427 +1,169 @@
-# Xenodot Forge
+# Xenodot Twin
 
-<p align="center"><img src="assets/full_logo.png" alt="Xenodot Forge" width="340"></p>
+<p align="center"><img src="assets/full_logo.png" alt="Xenodot Twin" width="340"></p>
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
-![Skills: 47](https://img.shields.io/badge/Skills-47-purple.svg)
-![Agents: 20](https://img.shields.io/badge/Agents-20-orange.svg)
+![Skills: 15](https://img.shields.io/badge/Skills-15-purple.svg)
+![Agents: 10](https://img.shields.io/badge/Agents-10-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
-An experiment in building games on **Godot and its compatible forks (Redot, Blazium)** with Claude Code using **a deliberate pipeline instead of a chat box**.
+An AI agent framework on the **Claude Code SDK** that works _with_ you to build **digital-twin
+visualization apps on Godot** — using **a deliberate pipeline instead of a chat box**.
 
-## The real goal
+It takes a real building model (IFC/BIM or CAD), imports it into a Godot 3D scene, joins it to your
+master data by element id, and drives it with **live time-series** and **recorded-history playback**.
+You get a running viewer you can walk through, color by live values, click an element to read its
+data, and scrub back through time.
 
-Most frameworks hand you a fixed toolbox. This one is designed to be **broken, rebuilt, and replaced by you**.
+**What it is honest about:** this is **visualization** — geometry + live data + history playback.
+It is **not** a physics or process simulator. It doesn't model airflow, structural loads, or what a
+system _would_ do under a hypothetical; it shows you what your model _is_ and what your data _says_,
+clearly and in 3D.
 
-The agents self-improve from your experience: every bug, every awkward pattern, every moment where the pipeline slowed you down instead of helping is signal. The `bug-triage`, `skill-researcher`, and `godot-refactor` agents exist specifically to close that loop: find the friction, trace the root cause, update the skills, rewrite the rules. The framework you end up with is not the one you started with.
+## The pipeline
 
-The tools are here. The shape of the framework is yours to decide.
-
-### Roadmap:
-
-✅ [Foundation POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/first_game.md) is complete and retired.
-
-✅ [FPS POC](https://github.com/arthur0n/xenodot-forge/blob/main/docs/roadmap/fps_poc.md) Part 1 completed.
-
-<p align="center"><img src="assets/fps_poc.png" alt="FPS POC — first-person shooter proof of concept" width="480"></p>
-
-## Progress
-
-> **Disclaimer:** I don't have much time, so progress is slower than I'd like — but I'll keep the updates coming.
-
-**Latest: `v0.2.1`** — the self-improvement loop: `/framework-feedback` (conversation) +
-`/harvest-sessions` (logs) feed the human-gated audit ledger; promote handles
-already-in-plugin capabilities; token-audit fixes; modular settings. Full history in
-[Releases](https://github.com/arthur0n/xenodot-forge/releases);
-the reference game is on [Itch](https://arthur0n.itch.io).
-
-**Since `v0.2.1`** — background sub-agents can reach the async UI tools (task board, ask,
-promote, asset) instead of auto-denying; `mcp__ui__form` is now foreground-only with
-`mcp__ui__ask` as the background → task-panel channel; a tool-domain guard keeps
-game-specific bots out of the shared plugin; a typed-export NodePath gate catches a silent
-Godot null trap; Codex/Hermes can be set up from the Settings panel (one button, then
-restart); and CI now runs the full `validate` + `test` gate, with the plugin manifest
-riding the same release train as `package.json`.
-
-## Why this exists
-
-Most AI-assisted game dev setups hand you a frontier model and a blank prompt. Describe your game, get some code, paste it in, pray it runs. That works, until you want to ship something repeatable, reviewable, and actually _yours_.
-
-This project bets on a different loop: **move the design decisions to before inference, not during it.** You don't tell the model what to build; you go through a structured interview that cuts scope to one buildable slice, produces a locked design doc, and only _then_ hands it off to a dev agent. The model stops guessing. You stop pasting broken code.
-
-The pipeline looks like this:
+You don't describe a viewer and hope. You go through a short interview that cuts scope to one
+buildable slice, locks a design doc, and only then hands off to a builder — and nothing is called
+"done" until it passes real engine + twin gates.
 
 ```
-idea → game-designer       (interviews you, pushes back on vague scope, writes a one-page design doc)
-     → godot-dev           (implements exactly that doc, nothing more, nothing less)
-     → godot-verify        (headless engine checks, catches what Godot silently drops)
-     → you                 (one look in the editor, that's your job)
+idea → twin-architect    interviews you, refuses vague scope, writes a one-page design doc
+     → twin-import        IFC/BIM → GLB + property sidecar, joined by GlobalId
+     → scene-optimizer    measured LOD / MultiMesh / chunking to hit a frame budget
+     → data-binder        master data + live time-series bound to the actual elements
+     → twin-verify        headless engine checks + join / binding / playback gates
+     → you                one look in the running viewer — that's your job
 ```
 
-Push-back is the product. The designer agent will not silently fill gaps. It asks, narrows, and confirms before anything gets built. Nothing gets reported "done" without passing real engine checks.
+Design decisions move **before** inference, not during it. The gates are the point: a viewer that
+connects but paints nothing, or a "verified" scene Godot silently dropped a property from, does not
+pass.
 
-## Naming
+## Measured, not claimed
 
-| Term              | What it means                                                        |
-| ----------------- | -------------------------------------------------------------------- |
-| **Xenodot**       | The ecosystem                                                        |
-| **Xenodot Forge** | This framework: web UI + the agent workflow                          |
-| **Xenodots**      | The individual agents (designer, dev, refactor, researchers, triage) |
-| **Xenodot Hive**  | The multi-agent orchestrator: the main coordination loop             |
+Numbers from the spike + benchmark findings in [`plugin-twin/library/findings/`](plugin-twin/library/findings)
+(one machine — M3 Pro, macOS/Metal, Godot 4.6.3; recipes generalize, percentages don't automatically):
 
-## What's inside
-
-```
-ui/         Web UI (Node), run sessions from a browser.
-            Designer questions render as clickable forms.
-            Tool approvals become allow/deny buttons.
-            Live event feed so you see what's happening.
-```
-
-### How it fits together
-
-```mermaid
-flowchart LR
-  subgraph Browser["browser — ui/client"]
-    UI["chat · activity · task board<br/>approval cards · FleetView"]
-  end
-  subgraph Server["Node server — ui/server"]
-    WS["WebSocket + HTTP<br/>core/index.js"]
-    SES["core/session.js<br/>permission gate · 529 retry<br/>detach / reattach"]
-    MCP["in-process MCP tools<br/>form · ask · tasks · promote"]
-  end
-  subgraph SDK["Claude Agent SDK session"]
-    HIVE["Hive orchestrator<br/>ui/orchestrator.md — routes, never implements"]
-    SUBS["sub-agents: designer · builders<br/>playtester · researchers"]
-  end
-  PLUGIN["xenodot plugin (plugin/)<br/>agents · skills · hooks · tools · library"]
-  GATES["deterministic gates<br/>validate.sh floor · playgrade.sh rubric<br/>(one shared checks lib)"]
-  GAME["your Godot game<br/>(its own repo — read in place)"]
-  HERMES["Hermes — optional researcher"]
-  CODEX["Codex — optional reviewer"]
-
-  UI <--> WS --> SES --> HIVE
-  SES --- MCP
-  HIVE --> SUBS
-  PLUGIN -. "loaded via SDK plugins option" .-> HIVE
-  SUBS -- "build / play" --> GAME
-  SUBS -- "must pass" --> GATES --> GAME
-  HERMES -.-> HIVE
-  CODEX -.-> HIVE
-```
-
-**The framework is independent of your game, it contains no game folder.** It
-_points at_ your Godot project wherever it lives (by default a sibling folder named
-`game/`), reads it in place, and never tracks it. Your project stays in its own git
-repo; the framework drives Claude Code against it.
-
-**The full capability catalog lives in [FEATURES.md](FEATURES.md)** — agents, skills, the
-web UI, verification, autonomous mode, and integrations. How it ships (the plugin vs. game
-separation) is in [What ships](#what-ships) below. The reference project during this POC is
-[DiceOfFate](https://github.com/Coghatch-ai/dicefate).
-
-## Requirements
-
-- [Claude Code](https://claude.com/claude-code) installed and authenticated
-- A Godot-family engine 4.x: **Godot**, **Redot**, or **Blazium** (skills target
-  4.x APIs; verified against 4.6). The forks share Godot's project format, GDScript
-  and CLI, so they run the same pipeline unchanged, see [docs/engines.md](docs/engines.md).
-- Node.js 18+ (only for the web UI)
-
-## Cost & subscriptions
-
-Separate bills, by design — only the **Hive** is required. The Hive (orchestrator + sub-agents)
-runs on your local Claude Code login. **Hermes** (optional researcher) and **Codex** (optional
-reviewer) are separate runtimes, each with its own provider and billing.
-
-| Rail                  | What runs                                                                             | How you pay                                                                                                                       | Switch it                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Hive** (required)   | Claude Code via the Agent SDK, pinned to Opus 4.8                                     | Claude **subscription** (Pro ~$20 / Max ~$100–200 mo, usage-capped) **or** Anthropic **API key** (~$5/$25 per 1M in/out)          | subscription: `claude` `/login`; API key: set `ANTHROPIC_API_KEY`                         |
-| **Hermes** (optional) | External [Hermes Agent](https://hermes-agent.nousresearch.com/), model of your choice | Provider it points at — **OpenRouter** / Nous Portal / your own key, metered per token (~$0.25–$2.50 per deep run)                | install + setup: [`HERMES.md`](HERMES.md); then ⚙ Settings or `npm run hermes`            |
-| **Codex** (optional)  | OpenAI's Codex reviewer (`/codex:review`), on-demand                                  | a **ChatGPT subscription with Codex access** (Plus / Pro / Business) **or** an OpenAI **API key** — billed to your OpenAI account | setup: [`CODEX.md`](CODEX.md) (`npm run codex:setup` + `codex login`); ⚙ Settings → Codex |
-
-- **Your Anthropic plan covers only the Hive.** Hermes and Codex each bring their own account and billing — Hermes always needs its own API key; Codex bills to your ChatGPT/OpenAI account.
-- **Codex on a plain ChatGPT subscription.** A Plus (or higher) plan with Codex access works — no separate API key needed. On a ChatGPT login, point Codex at a general model (`gpt-5.5`), not a `*-codex` variant (those are rejected). Details in [`CODEX.md`](CODEX.md).
-- **Hermes and Codex are off by default**; the framework runs fully on the Hive alone.
-- You **can** point the Hive at the Anthropic API (or a compatible endpoint) via env vars instead of the subscription login. I don't — a subscription beats an API key for heavy use; API keys are better for ad-hoc requests.
-
-> **Disclaimer (maintainer's setup):** I run on paid AI subscriptions across providers (~$150/mo) because I work across several projects, so the flat fee pays off. That is **not required** — the framework runs on Pro, on pay-per-token API, or with the optional rails off entirely. If you want a cheaper setup, open an issue and I'll help you wire one.
+- **Optimize: 4.4×.** A city block of repeated real BIM (114,400 mesh instances) goes **27.3 → 119.4
+  fps** at the aerial vantage with chunked MultiMesh instancing (render-thread submit −98%). The
+  optimizer is measured against a stated frame budget, not eyeballed.
+- **Join: 100%.** IFC → GLB carries the IFC **GlobalId** as the node name, so the model joins to a
+  master-data sidecar by id at ~100% of mesh nodes — verified headless as a gate, not by hand.
+- **Playback: sha-gated.** Recorded history replays deterministically — `check_playback.gd` runs
+  twice and the gate asserts an identical `PLAYBACK-HASH`, so "it replays the same" is a check, not a
+  hope.
+- **Import: ~1.1 s.** A 2.3 MB sample IFC converts to GLB + property sidecar in about a second
+  (ifcopenshell in a Python 3.12 venv); live telemetry streams clean over a WebSocket at 10 Hz.
 
 ## Quickstart
 
-The framework and your Godot game are **two separate repos, side by side** (recommended, not required — any path works):
-
-```
-your-workspace/
-├── xenodot-forge/   ← this framework (cloned)
-└── game/            ← your Godot project (any name; its own git repo)
-```
-
-1. **Clone the framework and install:**
-
-   ```bash
-   git clone https://github.com/arthur0n/xenodot-forge.git
-   cd xenodot-forge && npm install
-   ```
-
-2. **Point it at your game.** Scaffolds a new runnable project if the path doesn't exist, or wires an existing one in place (and remembers it):
-
-   ```bash
-   npm run new -- ../game     # any path works: ../game, /abs/path, ../nested/project
-   ```
-
-3. **Run the web UI:**
-
-   ```bash
-   npm start                  # http://localhost:8338
-   ```
-
-Every command runs **from inside `xenodot-forge/`** and takes the game path as an argument, so your game can be named anything and live anywhere. Re-check wiring anytime with `npm run doctor -- <path>`.
-
-### Let Claude do it for you
-
-Open Claude Code in your workspace and paste this:
-
-```text
-Read https://raw.githubusercontent.com/arthur0n/xenodot-forge/main/README.md and follow its
-Quickstart to set up and run it against my Godot game at: <PATH TO MY GODOT GAME>. Run the
-commands yourself, fix anything that fails, and tell me when it's running.
-```
-
-### Terminal Claude Code instead of the web UI
-
-Install the plugin once (`npm run doctor` prints the exact commands), then run `claude` from your game folder:
-
-```
-/plugin marketplace add /path/to/xenodot-forge
-/plugin install xenodot@xenodot-forge
-```
-
-### Updating
-
-Your game lives in its own repo, so pulling the latest framework never touches your work:
+Requires [Claude Code](https://claude.com/claude-code), Node 18+, and a Godot-family 4.x binary
+(see [Requirements](#requirements)).
 
 ```bash
-cd xenodot-forge && git pull
+git clone https://github.com/arthur0n/xenodot-twin.git
+cd xenodot-twin
+npm install
+npm run validate        # tsc + eslint + gates — should be green out of the box
+
+npm run new -- ../plant  # scaffold a digital-twin VIEWER next door (projectType: viewer)
+npm start ../plant       # web UI on http://localhost:8338
 ```
 
-## What ships
+`npm run new -- <path>` scaffolds a viewer by default — there is no game path in this fork (see
+[Lineage](#lineage)). It copies the viewer starter, remembers the path, materializes the plugin's
+per-project tools, symlinks the shared library, and health-checks with `doctor`.
 
-The framework's Claude Code setup is in two parts:
-
-- **Framework spine** (`.claude/`), rules + the rtk hook for working _on the framework_
-  (the Node/TS web UI). Committed; nothing to install.
-- **The xenodot plugin** (`plugin/`), the agents, `godot-*` skills, the game-agnostic
-  verification tools (the validate gate, verify/gen scripts), safety hooks, and the
-  knowledge base (`library/`). The **single source of truth** for what a game gets. The web
-  UI loads it via the Agent SDK `plugins` option; terminal Claude Code installs it once from
-  the bundled marketplace (`.claude-plugin/marketplace.json`). Capabilities namespace as
-  `xenodot:<name>`.
-
-Nothing is copied into your game. The only per-game files the framework materializes are
-gitignored and regenerated on demand: `tools/` (copied, Godot runs `.gd` helpers from
-`res://`) and `library/` (a symlink to the plugin's knowledge base). Your committed game
-stays pure game.
-
-**Example assets stay out of your game.** Free CC0 models/textures live in an external
-`x-shared-assets/` library, mounted into the game as a gitignored symlink Godot imports
-(`res://x-shared-assets/`). Override its location with `assetLibrary` in `.xenodot.json`; you
-place files into the game or the shared library from the **Get Assets** modal. See
-[FEATURES.md](FEATURES.md).
-
-**Growing the framework.** New skills/agents/tools start **game-local** in `<game>/.claude/`
-and are usable immediately; you **promote** the keepers into the plugin
-(`npm run promote -- skills <name>`). The clone → new → run path is guarded by
-`npm run test:onboarding` (and CI). Full growth loop in [FEATURES.md](FEATURES.md).
-
-**Experimental: the xenodot-twin plugin** (`plugin-twin/`) — a digital-twin 3D **viewer**
-sibling (BIM/IFC import, master-data join by GlobalId, live time-series overlays). **Not part
-of the normal installation**: it is not listed in the marketplace, game projects never load
-it, and nothing above changes for games. It only activates for projects scaffolded with
-`npm run new -- <path> --viewer` (`projectType: "viewer"`), where the web UI loads it as a
-second plugin beside xenodot. Web-UI only for now; capabilities namespace as
-`xenodot-twin:<name>`, viewer promotions land in `plugin-twin/`, and viewer projects mount
-its knowledge base as `library-twin/`. Try it end to end with the walkthrough in
-[docs/tutorials/digital-twin.md](docs/tutorials/digital-twin.md) and the bundled try-it
-kit (sample IFC + example binding map + viewer config) in
-[plugin-twin/examples/](plugin-twin/examples/).
-
-## Using the web UI
-
-The web UI runs the same agents from a browser (full feature list in
-[FEATURES.md](FEATURES.md)):
+Prefer a detached server that survives the terminal? Use the launcher:
 
 ```bash
-cd xenodot-forge
-npm start                    # foreground — opens http://localhost:8338 (Ctrl-C to stop)
+./start_server ../plant     # detached; logs + PID under .xenodot-run/
+PORT=9000 ./start_server ../plant   # the UI defaults to port 8338; override with PORT
+./stop_server
 ```
 
-**Run it detached** (survives the terminal; PID + log under `.xenodot-run/`, reclaims the
-port if a stale server holds it):
+Then open the tutorial and the try-it kit — they're the fastest way in.
 
-```bash
-./start_server                  # the configured game; ./start_server /path/to/game to override
-./stop_server                   # stop it; PORT=9000 ./start_server for a different port
-```
+### The tutorial + try-it kit
 
-`npm run new` (or `npm run setup`) already saved your game's path to `.xenodot.json`
-(gitignored), so `npm start` finds it with no arguments. The framework only
-**reads** your project, it stays in its own repo.
+- **[`docs/tutorials/digital-twin.md`](docs/tutorials/digital-twin.md)** — the complete from-scratch
+  walkthrough: empty folder → a live, scrubbable twin of a real BIM model, with a green end-to-end
+  gate. Every command and output was actually run.
+- **[`plugin-twin/examples/`](plugin-twin/examples)** — the bundled kit the tutorial uses: a sample
+  IFC (`Duplex_A_20110907.ifc`), an example `binding_map`, and an example `viewer.cfg`, so you don't
+  have to source any files yourself.
 
-You can point at any project, no setup needed:
+## Requirements
 
-```bash
-npm start /path/to/another/project     # one-off override
-GAME_DIR=/path/to/project npm start    # via environment variable
-```
+- **[Claude Code](https://claude.com/claude-code)** — the agent runtime the framework drives via the
+  SDK. A Claude subscription or an Anthropic API key (or a Bedrock/Vertex/gateway backend).
+- **Node 18+** — the web UI + tooling (developed on Node 22).
+- **A Godot-family 4.x binary** — Godot, Redot, or Blazium. Point the framework at it once; see
+  [`docs/engines.md`](docs/engines.md). Developed against Godot 4.6.3.
+- **Optional — Python 3.12 + [ifcopenshell](https://ifcopenshell.org/)** — only for IFC import.
+  `uv venv --python 3.12 && uv pip install ifcopenshell` (system Python 3.14 has no wheel yet — the
+  one real setup trap, covered in the tutorial). Not needed for GLB/CAD models or the examples once
+  converted.
 
-**Path resolution order** (first match wins): CLI argument → `GAME_DIR` env var →
-saved `.xenodot.json` → default sibling `../game`.
+## What's inside
 
-**Troubleshooting, opens but shows no sessions or files?** The UI is pointed at
-a folder with no `project.godot`. The server prints a warning on start and the
-sidebar shows how to fix it. Point it at your game and restart:
+- **The web UI** (`ui/`) — a Node server + browser client that runs the agent team, streams their
+  activity, surfaces approval gates and forms, holds a persistent task board, and lets you resume or
+  compact sessions. `npm start` or `./start_server`.
+- **The `xenodot` base plugin** (`plugin/`) — engine-generic agents (`godot-dev`, `godot-visuals`,
+  `godot-assets`, `godot-refactor`, the researchers, `godot-docs-evangelist`) and Godot skills
+  (`godot-verify`, `godot-code-rules`, `godot-composition`, `godot-export-builds`, `godot-main-scene`,
+  …). Loaded into every session.
+- **The `xenodot-twin` plugin** (`plugin-twin/`) — the digital-twin domain: `twin-architect`,
+  `scene-optimizer`, `data-binder` and the `twin-import` / `twin-optimize` / `twin-bind-data` /
+  `twin-playback` / `twin-verify` skills. It **composes** the base plugin via the `xenodot:`
+  namespace rather than copying it.
+- **The viewer starter** (`starter-viewer/`) — the minimal Godot project `new` scaffolds.
 
-```bash
-npm run setup -- /path/to/your/game
-```
+A full capability catalog is in [`FEATURES.md`](FEATURES.md).
 
 ## Design principles
 
-- **Small slices.** A design doc is done when a single agent task can implement it and verification plus one human look can confirm it.
-- **Push-back is the product.** The framework should refuse to silently fill vague briefs with its own assumptions. If the scope isn't clear, it asks.
-- **Verification is mandatory.** Godot exits 0 on script parse errors and silently drops unknown `.tscn` properties. `tools/verify_scene.gd` exists because bugs that should have been caught shipped "verified" without it.
-- **You stay the designer.** The framework keeps the loop fast and honest, it does not replace your judgement on what game to build.
+- **Move design before inference.** The interview locks scope; the builder implements exactly that.
+- **Gates over vibes.** Render health, join coverage, binding smoke, frame budget, playback
+  determinism — all deterministic, all run before "done".
+- **One system, not N parallel ones.** One join model, one data contract, one signal path — the
+  architect decides the shape before builders fan out.
+- **Data-driven both halves.** Every binding value lives in a named, addressable place, and code only
+  reads it — a hardcoded id or inline threshold is a magic number even in a "data-driven" system.
+- **The framework is yours to change.** Skills and rules are files; researchers pull new ones in when
+  the pipeline hits friction. The framework you end up with isn't the one you started with.
 
-## For reviewers: a 10-minute reading tour
+## Lineage
 
-If you're here to judge the agentic engineering, read these four things in order:
+Xenodot Twin is a **fork of [xenodot-forge](https://github.com/arthur0n/xenodot-forge)** — the same
+web UI, agent spine, and Godot engine tooling, focused down to one domain. The game half (the game
+orchestrator, gameplay agents, and game-genre skills) was stripped; the digital-twin domain and the
+engine-generic core were kept.
 
-1. [`ui/orchestrator.md`](ui/orchestrator.md) — the Hive's system prompt: routing rules with named anti-patterns, judge≠fixer, the bounded regrade loop.
-2. [`ui/server/core/session.js`](ui/server/core/session.js) — the layered permission gate (`makeCanUseTool`) and how the Agent SDK session is wired (plugin, in-process MCP tools, reconnect/detach).
-3. [`plugin/tools/validate.sh`](plugin/tools/validate.sh) + [`plugin/tools/playgrade.sh`](plugin/tools/playgrade.sh) — builder floor and evaluator rubric sourcing one shared check library, so the generator and the judge can't drift apart.
-4. [`docs/process/self-improvement.md`](docs/process/self-improvement.md) — the human-gated audit loop: three ways findings enter the ledger, zero ways they auto-apply.
+It tracks upstream: `/sync-upstream` pulls curated framework improvements down from xenodot-forge and
+re-drops the game payload each time. The full contract lives in
+[`docs/fork/SEAMS.md`](docs/fork/SEAMS.md) (every intentional divergence — the re-drop checklist) and
+[`docs/fork/SYNC.md`](docs/fork/SYNC.md) (the runbook).
 
-## Not a competitor, a conductor
+## Honest limitations
 
-This framework isn't trying to beat Claude Code, [Hermes](https://hermes-agent.org/), or any model provider. It's built to **use them under the hood, with you still holding the wheel.** The bet isn't "our agent vs theirs", it's "the right tools composed behind one honest, human-gated loop."
+- **Visualization, not simulation.** See above — no physics/process modeling.
+- **POC.** It works end-to-end and the gates are real, but it's an experiment, not a product. Numbers
+  are from one machine.
+- **Godot for the viewport, not a mapping engine.** Great for a building/facility-scale 3D model with
+  data bound to elements. It is not a planet-scale GIS globe.
+- **Non-Claude models lose fidelity.** The pipeline is tuned for Claude's tool calls; other providers
+  work through an API-compatible proxy but degrade.
 
-- **Bring your own provider.** The Hive drives Claude Code through the Agent SDK, so Bedrock / Vertex / Foundry / enterprise gateways are first-class backends and non-Claude models route through an Anthropic-compatible proxy — you're tied to an API _shape_, not a vendor. (Setup details in [FEATURES.md](FEATURES.md#provider-flexibility).)
-- **Other agents as delegated workers, not bosses.** The Hive stays the orchestrator and you keep approving its moves; a persistent agent like Hermes plugs in _underneath_ as a sub-agent the Hive dispatches to (over Hermes's OpenAI-compatible HTTP API), useful for work outside Godot's core: long-running memory, web research, multi-step ops. Anything it produces re-enters the same verification gates before it counts as done. (Running such an agent _on top_ as the conductor is possible too, but only on a leash that checkpoints with you, we compose autonomy, we don't surrender it.)
-- **The one rule that doesn't bend: human in the loop.** Every other piece, provider, model, outer orchestrator, is swappable. The approval gates, the designer interview, and the human-run `promote` are not.
+## Integrations (opt-in, off by default)
 
-## Honest limitations (and where they're going)
-
-No spin. Where it's weak today, and the intended direction, marked clearly as _not yet shipped_:
-
-- **The learning loop is deliberately manual.** Skills improve only when _you_ run `promote`. That's the point, you stay the gatekeeper, but knowledge accrues slower than auto-capturing agents like Hermes. _Direction: assisted capture that drafts the skill and still waits for your yes._
-- **API-shape lock-in.** Native backends are all Claude-family (Bedrock / Vertex / Foundry / gateway); other models need a translating proxy and lose some tool-use fidelity, since the pipeline is tuned for Claude's tool calls. _Direction: first-class, UI-level provider switching, with the fidelity gap measured honestly instead of hidden._
-- **Hermes worker bridge is early (POC).** The Hermes-as-sub-agent story above is now **shipped as a gated POC**: a small in-process tool (`mcp__ui__hermes`) wraps Hermes's HTTP `runs` API (Hermes is an MCP _client_, not yet a server), every dispatch passes the human approval gate, and Hermes stays purely advisory — it investigates, a Xenodot researcher + you own the verdict and the library write. Off by default; setup is in [`HERMES.md`](HERMES.md). _Still open: proving its research actually beats the native researcher on real gaps, and a single source of truth for skills/memory aligned to the [agentskills.io](https://agentskills.io) standard so two systems don't grow two brains._
-- **No persistent cross-session memory of _you_.** Each run starts fresh against the game repo; it doesn't remember your preferences the way an always-on agent does. _Direction: an optional, human-curated memory layer, off by default._
-- **Verification is Godot-specific and headless-bound.** The gates catch what the engine silently drops, but render checks are shallow and there's no gameplay/behavioral testing yet. _Direction: deeper runtime assertions._
-- **Local, single-user, not always-on.** The web UI is one person at one machine, no multi-channel, no 24/7. That's by design (human in the loop), but a real limit if you wanted hands-off automation, which this deliberately is not for.
-- **It's a POC, and narrow.** Godot-family only; APIs, layouts, and prompts change without notice. _Direction: stabilize the pipeline contract before chasing breadth._
-
-## Releases & versioning
-
-Git tags are the source of truth, in a 4-part scheme keyed to the change type:
-
-- `feat` → new **sub-version**: `v0.1.2` → `v0.1.3`
-- `fix` / `chore` / `refactor` → new **build**: `v0.1.2` → `v0.1.2.1`
-
-When you commit **in a terminal**, the pre-commit hook asks whether to cut a
-release. Pick a type and it bumps `package.json` and tags the commit; press enter
-to skip. Agent/CI commits (no TTY) are never prompted.
-
-Tags are created **locally**, push them yourself:
-
-```bash
-git push origin main
-git push origin v0.1.3
-```
-
-For a scripted / non-interactive release, stage the bump into your next commit:
-
-```bash
-npm run release -- feat   # or: fix | chore | refactor
-git commit -m "…"          # post-commit creates the tag
-```
-
-`package.json` tracks the 3-part sub-version; the 4th build digit lives only in
-the git tag (npm versions must be valid 3-part semver).
-
-> **The plugin is the framework.** Changes under `plugin/` (agents, skills, tools, the
-> knowledge base) ARE framework changes, list them in release notes as normal. Game-specific
-> capabilities stay game-local until you `npm run promote` them into the plugin.
-
-## Status
-
-⚠️ **Proof of concept.** Shared so you can clone it and experiment with your own game. APIs, file layouts, and agent prompts will change without notice.
-
-**Not accepting contributions for now**, issues and PRs are unlikely to be reviewed. Fork freely; it's MIT.
-
-## Inspirations
-
-This project doesn't exist in a vacuum. These people and projects shaped how it thinks about AI-assisted workflows, skill design, and Godot tooling.
-
-**[Matt Pocock](https://github.com/mattpocock/skills/)**, the idea that skills should be _procedures_, not references. One canonical path, observable outcomes, no ambiguity about what "done" means.
-
-**[Eduardo Schildt](https://www.youtube.com/@eduardoschildt)**, game designer and artist who loves making games and shares what he learns through game dev tutorials.
-
-- [Donation page](https://ko-fi.com/eduardoschildt)
-- [Demo Projects](https://pixelagegames.itch.io/)
-
-**[Brackeys](https://www.youtube.com/@Brackeys)**, Top-quality game development tutorials on everything from Unity, Godot and programming to game design. A reminder that clarity and enthusiasm aren't mutually exclusive.
-
-- [Donation Page](https://www.paypal.com/donate/?hosted_button_id=VCMM2PLRRX8GU)
-- [Discord](https://discord.gg/brackeys)
-- [Games](https://brackeysgames.itch.io/)
-
-**[Jan Mesarč, GodotPrompter](https://github.com/jame581/GodotPrompter)**, the most complete Godot × Claude Code library out there: ~48 skills covering 2D, 3D, UI, audio, multiplayer, C#, optimization and more, plus 9 specialized agents. Parts of this project's plugin scaffolding are adapted from it (MIT, with thanks). If you want broad Godot coverage for Claude Code today, use GodotPrompter, it's excellent.
-
-This project is not a competitor on breadth. The differences are in philosophy:
-
-|              | GodotPrompter                                     | Xenodot Forge                                                         |
-| ------------ | ------------------------------------------------- | --------------------------------------------------------------------- |
-| Scope        | Broad reference library (48+ skills)              | Narrow pipeline with a locked design step                             |
-| Skill style  | Reference: variants + trade-offs, GDScript and C# | Procedure: one canonical path, GDScript only                          |
-| Entry point  | Skills you invoke directly                        | Designer interview gates what gets built                              |
-| Verification | Code-review checklists                            | Observable runtime gates + error→fix tables                           |
-| Growth rule  | n/a                                               | One skill at a time, adopted after passing its gate on a real project |
-
-If you want broad coverage now, go use GodotPrompter. If you want to experiment with the pipeline model on your own project, clone this.
-
-## Framework UI
-
-<img width="1722" height="882" alt="image" src="https://github.com/user-attachments/assets/0b6b3223-ac6e-48c1-99c6-208f7e311370" />
-
-<img width="1612" height="1084" alt="image" src="https://github.com/user-attachments/assets/bd2e67f8-04e3-4b43-85f1-da199208073a" />
-
-### Functional Questions - Approval Gate
-
-<img width="581" height="606" alt="image" src="https://github.com/user-attachments/assets/8c4acf45-dda3-44b4-8be5-d204bdfffdc6" />
-
-### Tools use - Approval Gate
-
-<img width="582" height="159" alt="image" src="https://github.com/user-attachments/assets/3b16e771-64ac-404b-8a03-e86437c99c5c" />
-
-### Activities List
-
-<img width="343" height="691" alt="image" src="https://github.com/user-attachments/assets/b8c0a286-ded8-493b-8994-bcaf571b5815" />
-
-### Session Management
-
-<img width="403" height="394" alt="image" src="https://github.com/user-attachments/assets/8b8ac8ae-1134-4bd3-9dd7-c6fb98e8befc" />
-
-### Agents
-
-<img width="411" height="339" alt="image" src="https://github.com/user-attachments/assets/f3e3b2f9-561b-45de-956d-80156054da0c" />
-
-### Draw Level
-
-<img width="642" height="649" alt="image" src="https://github.com/user-attachments/assets/6f6d4e2d-1ca0-4d8f-aa17-ee3a199e349b" />
+- **Hermes** — an external deep-research agent with its own model/billing ([`HERMES.md`](HERMES.md)).
+- **Codex** — OpenAI's Codex reviewer, on-demand via `/codex:review` ([`CODEX.md`](CODEX.md)).
+- **Godot-docs MCP** — official Godot 4.x docs as an MCP source, powering `godot-docs-evangelist`.
 
 ## License
 
-[MIT](LICENSE)
+MIT — see [`LICENSE`](LICENSE). Built by [Arthur Nunes](https://github.com/arthur0n), forked from
+Xenodot Forge.
