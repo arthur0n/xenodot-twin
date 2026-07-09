@@ -4,7 +4,7 @@
 // The setup wizard writes .xenodot/skill-setup.json; the server applies it on next start.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { PROJECT_DIR, TWIN_PLUGIN_DIR, getProjectType } from "../../core/config.js";
+import { PROJECT_DIR } from "../../core/config.js";
 import { parseJSON } from "../../../lib/json.js";
 import { split } from "./skill-registry.js";
 import {
@@ -106,10 +106,9 @@ export function saveSkillOverrides(overrides) {
 }
 
 /** Skill names in a plugin's skills/ tree whose `agents:` audience tag includes the
- * orchestrator (`orchestrator` or `all` — same tag vocabulary as gen-skill-scope.js). This is
- * the data-driven hook that lets a viewer session's floor pick up the xenodot-twin plugin's
- * orchestrator-audience skills without hardcoding a list here: the plugin's own SKILL.md tags
- * are the source of truth. Guarded: a missing plugin dir (parallel setup, game project) → [].
+ * orchestrator (`orchestrator` or `all` — same tag vocabulary as gen-skill-scope.js). A
+ * data-driven audience reader: the plugin's own SKILL.md tags are the source of truth, no
+ * hardcoded list. Guarded: a missing plugin dir → [].
  * @param {string} pluginDir @returns {string[]} */
 export function getPluginOrchestratorSkills(pluginDir) {
   const dir = path.join(pluginDir, "skills");
@@ -138,27 +137,22 @@ export function getPluginOrchestratorSkills(pluginDir) {
  * from the Skill tool (files stay on disk). The set =
  *   ORCHESTRATOR_FRAMEWORK_SKILLS  (framework meta floor — always on)
  *   ∪ REQUIRED_ORCHESTRATOR_BUILTINS (required builtins, e.g. update-config — always on, not toggleable)
- *   ∪ (viewer sessions only) the xenodot-twin plugin's orchestrator-audience skills
- *     (getPluginOrchestratorSkills — read from each SKILL.md `agents:` tag, no hardcoded list)
  *   ∪ the built-in/workspace skills the user enabled via skillOverrides.
- * DOMAIN skills are deliberately EXCLUDED — the framework `godot-*` skills, the twin plugin's
- * builder-audience skills, AND the game's own `.claude/skills` (e.g. godot-decal-vfx,
- * cast-system). The orchestrator only ROUTES; domain skills belong to the implementer agents,
- * not the hive. (Blanket-including game-local skills here polluted the hive's index — its
- * `godot-oneshot-vfx` bare name even pulled in the framework copy as
- * `xenodot:godot-oneshot-vfx`.) This is also what finally makes `skillOverrides` do something.
+ * DOMAIN skills are deliberately EXCLUDED — the framework `godot-*` skills AND the game's own
+ * `.claude/skills` (e.g. godot-decal-vfx, cast-system). The orchestrator only ROUTES; domain
+ * skills belong to the implementer agents, not the hive. (Blanket-including game-local skills
+ * here polluted the hive's index — its `godot-oneshot-vfx` bare name even pulled in the
+ * framework copy as `xenodot:godot-oneshot-vfx`.) This is also what finally makes
+ * `skillOverrides` do something.
  *
  * Override semantics (skillOverrides: Record<name, "on"|"off">), applied to built-ins/workspace only:
  *   per-name "on"/"off" wins; else the "*" wildcard; else DEFAULT-DENY. An unconfigured project
  *   therefore gets a lean orchestrator (meta only), not all ~18 built-in "system" skills.
  * Read live per session, so a `/api/skills` POST takes effect on the next new session.
- * @param {"game" | "viewer"} [projectType] the session's project type (defaults to the live
- *   config read, so existing no-arg callers keep game semantics on a game project)
  * @returns {string[]} */
-export function resolveSessionSkills(projectType = getProjectType()) {
-  const twinFloor = projectType === "viewer" ? getPluginOrchestratorSkills(TWIN_PLUGIN_DIR) : [];
+export function resolveSessionSkills() {
   return computeSessionSkills({
-    floor: [...ORCHESTRATOR_FRAMEWORK_SKILLS, ...REQUIRED_ORCHESTRATOR_BUILTINS, ...twinFloor],
+    floor: [...ORCHESTRATOR_FRAMEWORK_SKILLS, ...REQUIRED_ORCHESTRATOR_BUILTINS],
     candidates: [...BUILTIN_SKILLS, ...getWorkspaceSkills().map((s) => s.name)],
     overrides: getSkillOverrides(),
   });

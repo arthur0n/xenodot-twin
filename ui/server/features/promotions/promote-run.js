@@ -4,24 +4,10 @@
 // promotions board) share the exact same move semantics.
 import { existsSync, readFileSync, renameSync, rmSync, mkdirSync, cpSync } from "node:fs";
 import path from "node:path";
-import { FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR, getProjectType } from "../../core/config.js";
+import { FRAMEWORK_PLUGIN_DIR } from "../../core/config.js";
 import { scanPath } from "./contamination.js";
 
 export const PROMOTE_KINDS = new Set(["skills", "agents", "tools"]);
-
-/** Which plugin a promotion lands in, resolved from the project type: a GAME project promotes
- * into the base plugin (`plugin/`, namespace `xenodot:`), a VIEWER project promotes into the
- * twin plugin (`plugin-twin/`, namespace `xenodot-twin:`) — a viewer capability landing in the
- * base plugin would contaminate every game session with twin content. Pure seam: callers (the
- * promote CLI, the UI's one-click runPromotion) resolve this once at their entry and pass
- * `pluginDir` down, so the move core stays testable with temp fixtures.
- * @param {"game" | "viewer"} [projectType] defaults to the live config read
- * @returns {{ pluginDir: string, namespace: string }} */
-export function promotionTarget(projectType = getProjectType()) {
-  return projectType === "viewer"
-    ? { pluginDir: TWIN_PLUGIN_DIR, namespace: "xenodot-twin" }
-    : { pluginDir: FRAMEWORK_PLUGIN_DIR, namespace: "xenodot" };
-}
 
 // smoke_*.gd / play_*.gd auto-join the gate by filename glob (tools/lib/checks.sh
 // run_gd_bots) — no explicit reference needed.
@@ -29,9 +15,7 @@ const AUTO_GLOB_RE = /^(smoke|play)_.*\.gd$/;
 
 /** Whether a game-local tool is actually wired into the gate: it either matches the
  * smoke_ / play_ auto-glob prefix, or its name is referenced by the game's validate.sh /
- * validate.local.sh / checks.sh (or, in a viewer project, the twin gate verify_twin.sh —
- * absent in game projects, so checking it is a no-op there). Used to reject promoting an
- * orphan tool nothing runs.
+ * validate.local.sh / checks.sh. Used to reject promoting an orphan tool nothing runs.
  * @param {string} name @param {string} game @returns {boolean} */
 export function isGateWired(name, game) {
   if (AUTO_GLOB_RE.test(name)) return true;
@@ -39,7 +23,6 @@ export function isGateWired(name, game) {
     path.join(game, "tools", "validate.sh"),
     path.join(game, "tools", "validate.local.sh"),
     path.join(game, "tools", "lib", "checks.sh"),
-    path.join(game, "tools", "verify_twin.sh"),
   ];
   return wiringFiles.some((file) => {
     try {
@@ -52,8 +35,8 @@ export function isGateWired(name, game) {
 
 /** Resolve the game-local source path and the plugin destination for this capability.
  * @param {string} kind @param {string} name @param {string} game
- * @param {string} [pluginDir] destination plugin root (see promotionTarget); defaults to the
- *   base plugin so existing game-path callers are byte-identical. */
+ * @param {string} [pluginDir] destination plugin root override (temp fixtures in tests);
+ *   defaults to the base plugin so existing game-path callers are byte-identical. */
 export function locate(kind, name, game, pluginDir = FRAMEWORK_PLUGIN_DIR) {
   if (kind === "skills") {
     return {
@@ -88,8 +71,8 @@ function movePath(src, dst) {
 /** Promote one capability game→plugin. Never throws on a skip — returns the outcome so
  * the batch path can keep going. @param {string} kind @param {string} name @param {string} game
  * @param {{ force?: boolean, pluginDir?: string }} [opts] force: promote despite a contamination
- * block (CLI --force). pluginDir: destination plugin root (see promotionTarget); defaults to the
- * base plugin.
+ * block (CLI --force). pluginDir: destination plugin root override (temp fixtures in tests);
+ * defaults to the base plugin.
  * @returns {{ ok: boolean, msg: string }} */
 export function promoteOne(kind, name, game, opts = {}) {
   if (!PROMOTE_KINDS.has(kind)) return { ok: false, msg: `skip ${kind}/${name}: unknown kind` };
@@ -126,6 +109,5 @@ export function promoteOne(kind, name, game, opts = {}) {
   }
   mkdirSync(path.dirname(dst), { recursive: true });
   movePath(src, dst);
-  // "plugin" for the base dir, "plugin-twin" for the twin — the game path stays byte-identical.
   return { ok: true, msg: `moved ${kind}/${name} → ${path.basename(pluginDir)}` };
 }

@@ -11,12 +11,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url)); // ui/server/features
 const PLUGIN = path.join(HERE, "..", "..", "..", "..", "plugin");
 export const SKILLS_DIR = path.join(PLUGIN, "skills");
 export const AGENTS_DIR = path.join(PLUGIN, "agents");
-/** The base plugin root, exported so the CLI validator can iterate BOTH plugin roots
- * (base + the sibling xenodot-twin) without pulling in config.js. */
+/** The base plugin root, exported so the CLI validator can resolve it without pulling in
+ * config.js (this module deliberately stays config-free — no load-time side effects). */
 export const PLUGIN_DIR = PLUGIN;
-/** The twin plugin root — same value as config.js TWIN_PLUGIN_DIR, duplicated here because
- * this module deliberately stays config-free (no load-time side effects). */
-export const TWIN_DIR = path.join(PLUGIN, "..", "plugin-twin");
 
 /** Sentinel for the main session (the hive) in audience sets — NOT an agent file. Its tag token is
  * `orchestrator`; its skill set is ORCHESTRATOR_FRAMEWORK_SKILLS (in skill-catalog.js). */
@@ -135,8 +132,8 @@ export function expectedByAudience(skills, agentNames, workers, errors) {
 }
 
 /** Read everything + compute the projection in one call. Workers = agents with the board tool.
- * @param {string} [root] plugin root to read (defaults to the base plugin) — pass TWIN_DIR to
- *   load the xenodot-twin registry.
+ * @param {string} [root] plugin root to read (defaults to the base plugin) — parameterized so
+ *   a sibling plugin's registry can be loaded too.
  * @returns {{ skills: Map<string,string[]>, agents: ReturnType<typeof readAgents>,
  *   agentNames: string[], workers: string[], expected: Map<string,Set<string>>, errors: string[] }} */
 export function loadRegistry(root = PLUGIN) {

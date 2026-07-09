@@ -5,10 +5,6 @@
 //
 // Usage: npm run setup -- ../game        (or any path to your project)
 //        npm run setup                    (defaults to ../game, the sibling folder)
-//        npm run setup -- ../mytwin --viewer   (mark the project a digital-twin VIEWER —
-//                                               loads plugin-twin + the viewer orchestrator)
-//        npm run setup -- ../game --game       (explicitly mark it a GAME — the way BACK
-//                                               from viewer: type is sticky otherwise)
 //
 // Hermes (external researcher) can be switched on here too — these only touch the
 // `hermes` block, never the project path (use the web UI ⚙ Settings panel for the same):
@@ -70,26 +66,12 @@ if (arg || !hermesArgs) {
   try {
     saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
   } catch {}
-  // Project type: `--viewer` marks a digital-twin viewer, `--game` explicitly marks a game
-  // (the way BACK from viewer — without it a previously saved "viewer" is preserved, so a
-  // plain re-setup can't accidentally demote a twin project); everything else normalizes to
-  // the "game" default — an old .xenodot.json without the key keeps working, it just gains
-  // an explicit projectType on the next setup.
-  const projectType = flag("viewer")
-    ? "viewer"
-    : flag("game")
-      ? "game"
-      : saved.projectType === "viewer"
-        ? "viewer"
-        : "game";
-  writeFileSync(
-    CONFIG_FILE,
-    JSON.stringify({ ...saved, projectDir: target, projectType }, null, 2) + "\n",
-  );
+  // Note: an old .xenodot.json may carry a stale `projectType` key from the retired viewer
+  // domain — it is preserved by the spread and ignored everywhere (harmless unknown key).
+  writeFileSync(CONFIG_FILE, JSON.stringify({ ...saved, projectDir: target }, null, 2) + "\n");
 
   console.log(`Saved project path → ${CONFIG_FILE}`);
   console.log(`  projectDir: ${target}`);
-  console.log(`  projectType: ${projectType}`);
   if (existsSync(path.join(target, ENGINE.projectFile))) {
     console.log(`  ✓ ${ENGINE_LABEL} project found. Run: npm start`);
   } else {

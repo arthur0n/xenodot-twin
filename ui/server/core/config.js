@@ -19,12 +19,6 @@ export const FRAMEWORK_DIR = path.join(UI_DIR, "..");
  * SDK `plugins` option (see session.js), so a game project needs no copied agents or
  * skills; it stays pure game and the plugin provides the framework regardless of cwd. */
 export const FRAMEWORK_PLUGIN_DIR = path.join(FRAMEWORK_DIR, "plugin");
-/** The digital-twin viewer capabilities (twin agents, skills, tools) packaged as a THIRD local
- * plugin, `xenodot-twin`. Repo boundary ≠ load boundary: it lives in the framework repo but
- * session.js appends it ONLY when the project is a viewer (`getProjectType() === "viewer"`) AND
- * this path exists — a game session must never load twin capabilities, and a missing/ungated
- * twin changes nothing. */
-export const TWIN_PLUGIN_DIR = path.join(FRAMEWORK_DIR, "plugin-twin");
 /** Saved-path config written by `npm run setup` — gitignored, so each fork
  * remembers its own game project without committing it. */
 export const CONFIG_FILE = path.join(FRAMEWORK_DIR, ".xenodot.json");
@@ -329,28 +323,6 @@ export function saveHermesConfig(patch) {
   }
 }
 
-/** The kinds of project this framework can drive: a Godot game (the default) or a
- * digital-twin viewer (3D scene from converted BIM/CAD + master-data + live overlays).
- * Drives which orchestrator prompt and which optional plugin a session loads. */
-export const PROJECT_TYPES = ["game", "viewer"];
-
-/** Effective project type, resolved fresh on every call from `.xenodot.json`'s optional
- * `projectType` key ("game" | "viewer"; written by `npm run setup` / `forge new --viewer`).
- * Defaults to "game" when the key is absent/unknown, so existing config files keep working
- * unchanged. Read live so a re-setup takes effect on the next new session without a server
- * restart (same pattern as getCodexConfig).
- * @returns {"game" | "viewer"} */
-export function getProjectType() {
-  try {
-    const saved = /** @type {{ projectType?: unknown }} */ (
-      parseJSON(readFileSync(CONFIG_FILE, "utf8"))
-    );
-    return saved.projectType === "viewer" ? "viewer" : "game";
-  } catch {
-    return "game";
-  }
-}
-
 /** Effective Codex config, resolved fresh on every call (env `CODEX_ENABLED` →
  * `.xenodot.json` `codex` block → disabled), so toggling it from the UI or the CLI takes
  * effect WITHOUT a server restart (session.js re-reads it when a new session starts).
@@ -511,13 +483,6 @@ export const EFFORT = /** @type {import("@anthropic-ai/claude-agent-sdk").Effort
   args.find((a) => a.startsWith("--effort="))?.split("=")[1] ?? "medium"
 );
 export const ORCHESTRATOR_PROMPT = readFileSync(path.join(UI_DIR, "orchestrator.md"), "utf8");
-/** The viewer-domain variant of the orchestrator prompt — same contracts and hook expectations,
- * digital-twin routing instead of game routing. session.js appends this INSTEAD of
- * ORCHESTRATOR_PROMPT when `getProjectType() === "viewer"`. */
-export const ORCHESTRATOR_VIEWER_PROMPT = readFileSync(
-  path.join(UI_DIR, "orchestrator-viewer.md"),
-  "utf8",
-);
 export const HERMES_BLOCK = readFileSync(path.join(UI_DIR, "hermes-block.md"), "utf8");
 /** Absolute path to the vendored Codex companion CLI (OpenAI's `codex-plugin-cc`) — the same
  * Node script the `/codex:*` slash commands wrap. The orchestrator does NOT call this directly;

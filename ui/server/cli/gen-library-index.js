@@ -12,17 +12,15 @@
 // records worth re-chunking. Mechanizes "fix chunking, don't ask the model to sift".
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR } from "../core/config.js";
+import { FRAMEWORK_PLUGIN_DIR } from "../core/config.js";
 import { parseFrontmatter } from "../../lib/frontmatter.js";
 
-// BOTH plugin libraries get the same gate + generated per-kind indexes: the base plugin's
-// (ships to every game) and the twin plugin's (ships to every viewer project) — each generator
-// output stays INSIDE its own library (plugin-twin/library/<kind>/index.md is generated there,
-// never merged into the base indexes). A missing library (plain fork) is skipped.
-const LIBRARIES = [
-  { label: "plugin", dir: path.join(FRAMEWORK_PLUGIN_DIR, "library") },
-  { label: "plugin-twin", dir: path.join(TWIN_PLUGIN_DIR, "library") },
-].filter((l) => existsSync(l.dir));
+// Library loop kept generic: every plugin library listed here gets the same gate + generated
+// per-kind indexes — each generator output stays INSIDE its own library, never merged across
+// roots. A missing library is skipped.
+const LIBRARIES = [{ label: "plugin", dir: path.join(FRAMEWORK_PLUGIN_DIR, "library") }].filter(
+  (l) => existsSync(l.dir),
+);
 const WRITE = process.argv.includes("--write");
 
 /** Recursively collect record .md files (skips README.md, index.md, and archive/ raws).

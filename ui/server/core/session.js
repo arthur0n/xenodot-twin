@@ -31,7 +31,7 @@ import {
   onSocketDetach,
 } from "./connection.js";
 import { readPromotions, decide, markPromoted } from "../features/promotions/promotions-store.js";
-import { promoteOne, promotionTarget } from "../features/promotions/promote-run.js";
+import { promoteOne } from "../features/promotions/promote-run.js";
 import { readAutonomous } from "../features/autonomous/autonomous-store.js";
 import {
   handleAutonomousControl,
@@ -47,7 +47,6 @@ import {
   MODEL,
   EFFORT,
   ORCHESTRATOR_PROMPT,
-  ORCHESTRATOR_VIEWER_PROMPT,
   HERMES_BLOCK,
   CODEX_BLOCK,
   DOCS_BLOCK,
@@ -56,9 +55,7 @@ import {
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
   CODEX_PLUGIN_DIR,
-  TWIN_PLUGIN_DIR,
   getCodexConfig,
-  getProjectType,
   getDocsConfig,
   DOCS_MCP_ENTRY,
   ASSET_LIBRARY,
@@ -253,21 +250,12 @@ export function trackMessage(
  * @param {{ inbox: Inbox, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, formAgentQueue: string[], send: (obj: OutMsg) => void, checkLoop: { disarm: () => void } }} deps
  * @returns {(resume: string | null) => ReturnType<typeof query>} */
 function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, send, checkLoop }) {
-  // Which domain this session drives: "game" (default) or "viewer" (digital twin). Read fresh
-  // per session (like getCodexConfig) so a re-setup takes effect without a server restart. It
-  // picks the orchestrator prompt, extends the skill floor, and gates the twin plugin below.
-  const projectType = getProjectType();
-  const viewer = projectType === "viewer";
   // The local-plugin list: the xenodot spine always; the OPTIONAL Codex reviewer (a SECOND
   // local plugin — OpenAI's `codex-plugin-cc`, vendored on disk) only when the user enabled it
-  // AND it's actually been cloned; the OPTIONAL xenodot-twin viewer plugin (a THIRD local
-  // plugin) only for viewer projects AND when it exists on disk. A disabled/absent optional
-  // plugin changes nothing. Extracted to resolveSessionPlugins (pure, tested) so the options
-  // object below stays readable.
+  // AND it's actually been cloned. A disabled/absent optional plugin changes nothing. Extracted
+  // to resolveSessionPlugins (pure, tested) so the options object below stays readable.
   const plugins = resolveSessionPlugins({
     baseDir: FRAMEWORK_PLUGIN_DIR,
-    projectType,
-    twinDir: TWIN_PLUGIN_DIR,
     codexEnabled: getCodexConfig().enabled,
     codexDir: CODEX_PLUGIN_DIR,
   });
@@ -286,8 +274,8 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
         cwd: PROJECT_DIR,
         // The framework's agents/skills/hooks come from the plugin (single source of truth), not
         // from copies in the game — so the game folder stays pure. Plugins load regardless of cwd.
-        // The xenodot spine is always loaded; the Codex reviewer and the xenodot-twin viewer
-        // plugin are appended only when their gates pass (see resolveSessionPlugins above).
+        // The xenodot spine is always loaded; the Codex reviewer is appended only when its gate
+        // passes (see resolveSessionPlugins above).
         // skipMcpDiscovery: the UI owns its MCP tools (below). Its slash commands
         // (`/codex:review`) expand from the user's prompt; `codex:codex-rescue` becomes delegable.
         plugins,
@@ -316,21 +304,17 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
         // (caveman, autonomous-main-goal, graphify) + the built-ins the user enabled via the skill wizard
         // (skillOverrides). DOMAIN skills are excluded — both the framework `godot-*` skills
         // and the game's own `.claude/skills` — because the orchestrator only routes; those
-        // belong to the implementer agents. For a VIEWER session the floor additionally gains
-        // the twin plugin's orchestrator-audience skills (read from each SKILL.md `agents:` tag
-        // — data-driven, no hardcoded list); gameplay-only skills stay excluded by the same
-        // default-deny. A context filter, not a sandbox: unlisted skills stay on disk and
-        // remain loadable by the agents that list them.
-        skills: resolveSessionSkills(projectType),
-        // Keep Claude Code's tooling behavior, append the orchestrator role — the viewer
-        // variant (digital-twin routing) when the project is a viewer, the game variant
-        // otherwise. Hermes and Codex blocks are injected only when those integrations are
-        // active, so the orchestrator's routing instructions match the actual team each session.
+        // belong to the implementer agents. A context filter, not a sandbox: unlisted skills
+        // stay on disk and remain loadable by the agents that list them.
+        skills: resolveSessionSkills(),
+        // Keep Claude Code's tooling behavior, append the orchestrator role. Hermes and Codex
+        // blocks are injected only when those integrations are active, so the orchestrator's
+        // routing instructions match the actual team each session.
         systemPrompt: {
           type: "preset",
           preset: "claude_code",
           append:
-            (viewer ? ORCHESTRATOR_VIEWER_PROMPT : ORCHESTRATOR_PROMPT) +
+            ORCHESTRATOR_PROMPT +
             (getHermesConfig().enabled ? "\n\n" + HERMES_BLOCK : "") +
             (getCodexConfig().enabled && existsSync(CODEX_PLUGIN_DIR) ? "\n\n" + CODEX_BLOCK : "") +
             (getDocsConfig().enabled && DOCS_MCP_ENTRY ? "\n\n" + DOCS_BLOCK : ""),
@@ -470,16 +454,13 @@ function runPromotion(id, send) {
     send({ type: "promotions", items: readPromotions() });
     return;
   }
-  // Game project → base plugin (xenodot:), viewer project → twin plugin (xenodot-twin:) —
-  // resolved at this entry so the move core stays pure (see promotionTarget).
-  const { pluginDir, namespace } = promotionTarget();
-  const result = promoteOne(entry.kind, entry.name, PROJECT_DIR, { pluginDir });
+  const result = promoteOne(entry.kind, entry.name, PROJECT_DIR);
   const items = result.ok ? markPromoted(id, new Date().toISOString()) : readPromotions();
   send({ type: "promotions", items });
   send({
     type: "status",
     text: result.ok
-      ? `Promoted ${entry.kind.replace(/s$/, "")} "${entry.name}" → ${namespace === "xenodot-twin" ? "twin plugin" : "framework plugin"}. Start a new session to load it as ${namespace}:${entry.name.replace(/\.md$/, "")}.`
+      ? `Promoted ${entry.kind.replace(/s$/, "")} "${entry.name}" → framework plugin. Start a new session to load it as xenodot:${entry.name.replace(/\.md$/, "")}.`
       : `Couldn't promote "${entry.name}": ${result.msg}`,
   });
 }
