@@ -56,6 +56,11 @@ const args = process.argv.slice(2);
 /** Persisted Godot-docs MCP block (see getDocsConfig). Just an on/off switch — the docs
  * server is a stateless public-docs proxy (the bundled `@nuskey8/godot-docs-mcp`), so there is
  * no key or URL to store here. @typedef {{ enabled?: boolean }} DocsConfig */
+/** Persisted analysis block (see getAnalysisConfig). Selects + configures the multi-model analysis
+ * worker used by `npm run analyze`. `worker` picks the adapter; the rest configure the
+ * `openai-compatible` endpoint (the `hermes` worker reads its connection from the `hermes` block
+ * instead). The apiKey lives only here (the file is gitignored) or in env.
+ * @typedef {{ worker?: string, apiUrl?: string, apiKey?: string, model?: string }} AnalysisConfig */
 
 /** Parsed `.xenodot.json` (written by `npm run setup`), or `{}` if absent/invalid.
  * Read once: it carries both the saved project path and the engine block. */
@@ -327,6 +332,35 @@ export function saveHermesConfig(patch) {
   } catch (e) {
     return { error: e instanceof Error ? e.message : "write failed" };
   }
+}
+
+/** The default analysis worker id: the `openai-compatible` adapter covers OpenRouter, local
+ * llama.cpp/Ollama, vLLM, and most hosted "other models" behind one `/v1/chat/completions` POST. */
+export const ANALYSIS_DEFAULT_WORKER = "openai-compatible";
+
+/** Effective analysis config, resolved fresh on every call (env overrides → `.xenodot.json`
+ * `analysis` block → defaults), mirroring getHermesConfig so switching worker/endpoint from the CLI
+ * or `.xenodot.json` takes effect without a server restart. `worker` selects the adapter;
+ * `apiUrl`/`apiKey`/`model` configure the `openai-compatible` endpoint. The apiKey is read here but
+ * is a secret — never surface it to the browser.
+ * @returns {{ worker: string, apiUrl: string | null, apiKey: string | null, model: string | null }} */
+export function getAnalysisConfig() {
+  /** @type {AnalysisConfig} */
+  let saved = {};
+  try {
+    saved =
+      /** @type {{ analysis?: AnalysisConfig }} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")))
+        .analysis ?? {};
+  } catch {
+    /* absent/invalid — treat as no saved block */
+  }
+  const env = process.env;
+  return {
+    worker: env.ANALYSIS_WORKER ?? saved.worker ?? ANALYSIS_DEFAULT_WORKER,
+    apiUrl: env.ANALYSIS_API_URL ?? saved.apiUrl ?? null,
+    apiKey: env.ANALYSIS_API_KEY ?? saved.apiKey ?? null,
+    model: env.ANALYSIS_MODEL ?? saved.model ?? null,
+  };
 }
 
 /** The kinds of project this framework can drive. Xenodot Twin ships ONE domain — the
