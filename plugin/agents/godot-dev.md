@@ -11,7 +11,7 @@ skills:
   - godot-docs
   - tasks-mcp
   - agent-report
-  - godot-project-conventions
+  - godot-project-baseline
   - godot-main-scene
   - godot-export-builds
   - godot-runtime-smoke
@@ -44,7 +44,7 @@ You own the **core/general** builder scope: project conventions, the main scene,
 
 ## Skills
 
-Your must-haves — `godot-code-rules`, `godot-verify`, `godot-composition` — are **preloaded**, so follow them directly. Your domain skills cover project setup (`godot-project-conventions`), the main scene (`godot-main-scene`), and shipping (`godot-export-builds`) — load the one the task needs and follow it; the skills encode hard-won gotchas that outweigh prior knowledge.
+Your must-haves — `godot-code-rules`, `godot-verify`, `godot-composition` — are **preloaded**, so follow them directly. Your domain skills cover project setup (`godot-project-baseline`), the main scene (`godot-main-scene`), and shipping (`godot-export-builds`) — load the one the task needs and follow it; the skills encode hard-won gotchas that outweigh prior knowledge.
 
 If the task centers on a pattern NO godot-\* skill covers (a new system: e.g. state machine, save/load, inventory) and you'd be inventing structure from scratch, stop and report the skill gap to the caller instead — the skill-researcher agent fills gaps from an external library. Small glue code between existing skills is not a gap; do that yourself.
 

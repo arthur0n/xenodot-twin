@@ -7,7 +7,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { parseJSON } from "../../lib/json.js";
 import { sessionHistory } from "../features/transcripts/transcripts.js";
 import { buildUiServer } from "../mcp-tools/ui-server.js";
-import { uiControlAllow, docsDedupDecision } from "./ui-control.js";
+import { uiControlAllow, preToolGate } from "./ui-control.js";
 import { resolveSessionPlugins } from "./session-plugins.js";
 import { runningChip, emitRunning, runWithRetry } from "./stream.js";
 import {
@@ -131,17 +131,10 @@ export function makeCanUseTool({
     // Which agent raised this call (main loop or a sub-agent), so the UI can
     // label concurrent approvals. opts.toolUseID is set by the SDK.
     const agent = agentByTool.get(opts.toolUseID) ?? "main";
-    // Deterministic dedup of the immutable Godot API docs: a class already dumped this session
-    // is denied with a stub instead of re-sending ~20k chars for zero new info (token loop).
-    const dedup = docsDedupDecision(
-      toolName,
-      input,
-      session.fetchedDocs ?? (session.fetchedDocs = new Set()),
-    );
-    if (dedup) {
-      log("auto", { type: "permission", toolName, policy: "docs-dedup" });
-      return dedup;
-    }
+    // Deterministic pre-gates that short-circuit BEFORE the permission policy: immutable-docs dedup
+    // + the screenshot/render-frame read gate (both token-heavy; godot-verify "never read a frame").
+    const pre = await preToolGate({ session, waitFor, log, toolName, input, agent });
+    if (pre) return pre;
     if (toolName === "AskUserQuestion") return handleAskQuestion(input, agent, waitFor);
     if (toolName === FORM_TOOL) {
       // The tool handler does the waiting; hand it this call's agent (FIFO,

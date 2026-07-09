@@ -77,7 +77,7 @@ compose these. Grouped by role:
   `godot-docs-evangelist` (authoritative Godot API verification; needs the docs MCP).
 - **Support** — `handoff-summarizer` (the ≤5-line builder-report digest).
 
-## Skills (15)
+## Skills (16)
 
 Procedures (one canonical path, observable outcome), not references. Loaded by
 the implementers that own them, not invoked directly. Across these domains:

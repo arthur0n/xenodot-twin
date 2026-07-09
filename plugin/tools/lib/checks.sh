@@ -128,7 +128,7 @@ check_warnings_config() {
 		echo "  project.godot is missing the [debug] warnings-as-errors block (sentinel"
 		echo "  'gdscript/warnings/shadowed_global_identifier=2' absent). The strict GDScript"
 		echo "  contract is OFF — untyped/unsafe/shadowed warnings will ship green. Restore the"
-		echo "  block from starter/project.godot (godot-project-conventions)."
+		echo "  block from starter/project.godot (godot-project-baseline)."
 		_xeno_fail warnings-config
 		return 1
 	fi

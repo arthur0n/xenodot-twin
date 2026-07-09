@@ -105,12 +105,14 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
    carry it into the commit message (git, not the ledger, is the changelog; no separate changelog
    needed). End with anything still `open` the human may want next.
 
-## Never
+## Do this
 
-- Fix an id the human didn't pass, or invent findings not in the ledger.
-- Apply a `later`/`skip` finding, or one already resolved (its object was removed from `findings[]`).
-- Leave `npm run validate` failing — green gate or revert.
-- Put game-specific content into a skill — strip it; the game holds its facts game-local
-  (`plugin/library/` is for AGNOSTIC records, NOT game facts).
-- Search with bash `grep` — it's `rtk`-filtered and drops matches; use the Grep tool / full-path `rg`.
-- Run shell without `rtk`.
+- **Apply only the ids the human passed** — resolve each against `findings[]`; if an id is
+  `later`/`skip` or already removed (resolved), skip it and say so. Never invent findings.
+- **Keep the gate green** — `rtk npm run validate` must pass after your edits; fix or revert the
+  offending id rather than leaving it red.
+- **Keep skills game-agnostic** — strip any game-specific content to the METHOD; the game holds its
+  FACTS game-local (`plugin/library/` = AGNOSTIC records only).
+- **Search with the Grep tool / full-path `rg`** — the `rtk` hook drops matches from bash `grep`,
+  so a rename/re-tag sweep needs `rg`'s completeness.
+- **Prefix every shell command with `rtk`.**

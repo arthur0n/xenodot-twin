@@ -86,6 +86,22 @@ for (const [id, have] of actual) {
     );
 }
 
+// Naming convention (WARN-ONLY, catches NEW skills; existing names grandfathered): adopt
+// `godot-<system>[-<qualifier>]` with the ENGINE VERSION in frontmatter, never baked into the name
+// (a name outlives the version it pins). Only the version-in-name half is mechanically checkable —
+// qualifier ORDER (hd-material-import vs mesh-import-hd) is authoring judgment the skill-researcher
+// prompt owns. Existing violators are grandfathered so the gate doesn't nag the names the finding
+// explicitly declined to bulk-rename (review D-14/P2D-3, finding D3-name-qualifier-order).
+const VERSION_IN_NAME = /-\d+-\d+/; // two hyphen-joined numeric segments = a dotted version (e.g. -4-6); `3d`/`2d` are letter-suffixed, not matched
+const NAME_CONVENTION_GRANDFATHERED = new Set(["godot-navmesh-pathing-4-6"]);
+for (const name of onDisk) {
+  if (VERSION_IN_NAME.test(name) && !NAME_CONVENTION_GRANDFATHERED.has(name))
+    warnings.push(
+      `skill \`${name}\` bakes an engine version into its name — new skills use \`godot-<system>[-<qualifier>]\` ` +
+        `and put the version in frontmatter (a name outlives the version it pins)`,
+    );
+}
+
 // Body-reference checks: an agent body that names a skill it doesn't list. Two cases —
 //   - the skill EXISTS on disk → ERROR (real drift: the prose claims a skill the agent isn't wired to
 //     load). Fix by adding it to skills:, OR — if the skill belongs to another agent and the body is

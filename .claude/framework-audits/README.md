@@ -28,7 +28,8 @@ The pre-commit hook also runs this and stages `LEDGER.md`, so the committed view
     "bucket": 4,
     "verdict": "fix-now",
     "status": "open",
-    "finding": "one line: the problem + the proposed fix"
+    "finding": "one line: the problem + the proposed fix",
+    "pattern": "one line: the good pattern to follow (positive exemplar) — optional"
   }
   ```
 - **Apply / resolve a finding** → **DELETE its object** (git + the commit message are the fix record;
@@ -36,14 +37,15 @@ The pre-commit hook also runs this and stages `LEDGER.md`, so the committed view
 
 ## Schema
 
-| field     | meaning                                                                                           |
-| --------- | ------------------------------------------------------------------------------------------------- |
-| `id`      | stable `<Dn>-<slug>` — the fix commands target findings by this id                                |
-| `dim`     | `D1`..`D9` (see `dimensions` in the JSON)                                                         |
-| `bucket`  | `3` no-brainer · `4` improvement · `5` later · `6` skip                                           |
-| `verdict` | `fix-now` (3/4) · `later` (5) · `skip` (6)                                                        |
-| `status`  | `open` · `skip`                                                                                   |
-| `finding` | one line — problem + proposed fix (plain text; pipes/newlines are safe now, unlike the old table) |
+| field     | meaning                                                                                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`      | stable `<Dn>-<slug>` — the fix commands target findings by this id                                                                                                                                |
+| `dim`     | `D1`..`D9` (see `dimensions` in the JSON)                                                                                                                                                         |
+| `bucket`  | `3` no-brainer · `4` improvement · `5` later · `6` skip                                                                                                                                           |
+| `verdict` | `fix-now` (3/4) · `later` (5) · `skip` (6)                                                                                                                                                        |
+| `status`  | `open` · `skip`                                                                                                                                                                                   |
+| `finding` | one line — problem + proposed fix (plain text; pipes/newlines are safe now, unlike the old table)                                                                                                 |
+| `pattern` | _optional_ one line — the good pattern to follow (positive exemplar), not just what to avoid. Loop's own anti-negative-instruction principle: state the target behavior, not only the prohibition |
 
 Meta keys: `lastAudit`, `parking[]`, `dimensions`, `buckets`, `verdicts`.
 
