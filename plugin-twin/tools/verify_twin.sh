@@ -152,7 +152,8 @@ else
 		sleep 0.4
 		SMOKE_RC=0
 		"$GODOT" --headless --path . --script tools/smoke_binding.gd -- \
-			"--map=$BIND_MAP" "--url=ws://localhost:$TWIN_SIM_PORT" || SMOKE_RC=1
+			"--map=$BIND_MAP" "--url=ws://localhost:$TWIN_SIM_PORT" \
+			${SCENE_RES:+"--scene=$SCENE_RES"} || SMOKE_RC=1
 		kill "$SIM_PID" 2>/dev/null
 		pkill -f "tools/sim/server.js" 2>/dev/null
 		trap - EXIT

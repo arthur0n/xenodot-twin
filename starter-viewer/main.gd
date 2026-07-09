@@ -111,7 +111,21 @@ func _user_arg(key: String) -> String:
 	return ""
 
 
+## Load the model into `_model_host`, branching on extension (mirrors the optimizer's
+## loader split): `.glb`/`.gltf` read at RUNTIME via GLTFDocument (never imported into the
+## project); `.tscn`/`.scn` (the optimizer's own output) load as a PackedScene + instantiate.
+## Error paths stay loud — push_error + return false, caller skips _frame_model.
 func _load_model(path: String) -> bool:
+	var ext := path.get_extension().to_lower()
+	if ext == "glb" or ext == "gltf":
+		return _load_gltf(path)
+	if ext == "tscn" or ext == "scn":
+		return _load_packed(path)
+	push_error("viewer: unsupported model '%s' (want .glb/.gltf/.tscn/.scn)" % path)
+	return false
+
+
+func _load_gltf(path: String) -> bool:
 	var fs_path := path
 	if path.begins_with("res://") or path.begins_with("user://"):
 		fs_path = ProjectSettings.globalize_path(path)
@@ -122,6 +136,16 @@ func _load_model(path: String) -> bool:
 		push_error("viewer: failed to load model '%s' (error %d)" % [path, err])
 		return false
 	_model_host.add_child(gltf.generate_scene(state))
+	print("viewer: model loaded from %s" % path)
+	return true
+
+
+func _load_packed(path: String) -> bool:
+	var packed := load(_rooted_path(path)) as PackedScene
+	if packed == null:
+		push_error("viewer: failed to load scene '%s'" % path)
+		return false
+	_model_host.add_child(packed.instantiate())
 	print("viewer: model loaded from %s" % path)
 	return true
 
