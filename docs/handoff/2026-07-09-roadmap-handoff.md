@@ -113,9 +113,18 @@ writes once?_ Honest verdicts, including NONE.
    `hermes:setup` reported replacing the legacy Xenodot soul template in `~/.hermes/SOUL.md`
    (now the neutral family text), HOME=tmp both-paths proven (legacy replaced / customized
    kept); `npm run validate` + `npm test` green.
-4. **Benched LOD/visibility-range recipe.** `--vis-ranges` applies documented defaults
-   nobody measured. The bench harness exists (`bench_scene.gd`); turn the defaults into
-   a measured recipe like chunking got. Keeps the "every number is gate-backed" promise.
+4. ~~**Benched LOD/visibility-range recipe.**~~ ✅ **DONE (2026-07-09, built on
+   `feat/vis-range-recipe` — swept from the seat, pending merge to `main`). Outcome: SCOPED WIN.**
+   Phase 1 parameterized the pass (four `--vis-*` flags, `5853234`); a 6-config × 3-scene sweep
+   (seat `a6c0707`) showed `--vis-ranges` is a large, beyond-noise win ONLY on many-unique-mesh
+   scenes (unique-city aerial cpu 4.13 → 2.81 ms, **−32%** at defaults; **−71%** coarser;
+   fps 163 → 530), essentially nothing on a realistic single building (duplex flat at street,
+   ≤0.04 ms aerial), and a proven no-op on fully-instanced scenes (`vis_ranges_set==0`, negative
+   control). Defaults 0.5/2 → 40/120 kept as-is (the perceptually-clean scoped winner);
+   coarser/aggressive win more cpu but hard-pop at ~60 m and are NOT adopted without a fade margin
+   (future work, measured-before-adoption). `--vis-ranges` stays opt-in in `twin-build`. Recipe +
+   tables + machine caveats:
+   [`plugin-twin/library/findings/twin-vis-range-recipe-2026-07-09.md`](../../plugin-twin/library/findings/twin-vis-range-recipe-2026-07-09.md).
 
 ### Nice to Have (differentiation + the human's stated direction)
 
