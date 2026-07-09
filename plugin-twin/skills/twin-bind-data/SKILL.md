@@ -160,18 +160,49 @@ dropped when the last leaves.
   the source needs no server restart. Env `TWIN_SOURCE_URL` overrides.
 - The relay shares the existing session `WebSocketServer` (registered in `core/index.js`): it
   claims only `/twin-data` sockets; the session handler declines those via `isTwinDataPath`.
-- **v1 is WebSocket-only.** There is NO MQTT/OPC-UA dependency — a protocol bridge plugs in behind
-  `sourceUrl`, and that is the ONLY seam it needs (see the honest boundaries below).
+- **The relay itself is WebSocket-only** — it carries NO MQTT/OPC-UA dependency. A protocol bridge
+  plugs in behind `sourceUrl`, and that is the ONLY seam it needs. The first such bridge now exists
+  — see below.
+
+## The MQTT→WS bridge — real broker source (`tools/bridge/`)
+
+The first protocol adapter behind the seam. `tools/bridge/mqtt_ws.js` speaks MQTT 3.1.1 client-side
+to a broker (QoS-0 subscribe, dependency-free, bare `node` like the sim), translates each PUBLISH
+into the DataBus wire shape, and re-serves it as a WebSocket server on `8766`. Point the relay at
+it: `TWIN_SOURCE_URL=ws://localhost:8766` (or a viewer's `viewer.cfg url=`). The relay, DataBus, and
+viewer are unchanged — the bridge just IS a `ws://` source.
+
+```
+node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json \
+    [--port 8766] [--user u --pass p] [--stats out.json]
+```
+
+Map file (`mqtt_map.json`, example: `plugin-twin/examples/mqtt_map.example.json`) — a `rules` list,
+**first match wins** (order matters):
+
+- `topic` — an exact topic or MQTT wildcard filter (`+` one level, `#` remaining levels); the bridge
+  subscribes to each rule's filter.
+- `tag` — the DataBus tag name; **omit** to derive it from the concrete topic by slash→dot
+  (`plant/pump_1/temp` → `plant.pump_1.temp`).
+- `field` — the numeric key when the payload is a JSON object; **omit** when the payload is a bare
+  number. Non-numeric / unmapped payloads are counted and dropped loudly, never fatal.
+
+Honesty note: `seq` is bridge-local and `sent_ms` is stamped at translation, so DataBus drop/latency
+math measures the bridge→viewer hop, not broker→bridge loss (QoS 0 promises no delivery anyway).
+Modules: `mqtt_protocol.js` (codec), `map.js` (pure translation), `mqtt_ws.js` (client + WS server,
+reusing `../sim/protocol.js`). Live-validated against Mosquitto — see
+`plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`.
 
 ## Phase 3 TODO — honest boundaries
 
 Built and proven now: the binding-map runtime (`core/binding_map.gd` — loader, resolution index
-incl. the `mmi`+index case, `albedo_ramp`/`label` responses), the seeded sim, and the WebSocket
-relay seam (`/twin-data`, `sourceUrl`). Still NOT built or proven; do not claim them:
+incl. the `mmi`+index case, `albedo_ramp`/`label` responses), the seeded sim, the WebSocket relay
+seam (`/twin-data`, `sourceUrl`), and the **MQTT→WS bridge** (`tools/bridge/`, above). Still NOT
+built or proven; do not claim them:
 
-- **Real protocol adapters** — OPC-UA / MQTT / BACnet. The `sourceUrl` relay seam is where a
-  WebSocket-fronted bridge (e.g. `mqtt→ws`) plugs in; the bridge itself is unbuilt. The relay is
-  WebSocket-in / WebSocket-out only.
+- **Other protocol adapters** — OPC-UA / BACnet. MQTT now has a built bridge behind the `sourceUrl`
+  seam; OPC-UA and BACnet remain **third-party bridges placed in front of** this adapter, not
+  framework code. The relay stays WebSocket-in / WebSocket-out only.
 - **More responses** — v1 is `albedo_ramp` + `label`. No visibility/emission/animation responses,
   no CanvasLayer-aggregate response type in the map (the overlay HUD is hand-wired).
 - **Historization / trends** — no time-series buffer, no trend overlay.

@@ -118,6 +118,28 @@ Bare `node`; no engine needed. Without `--seconds`, SIGINT flushes and summarize
 Playback consumes these files (starter-viewer `core/recording.gd`). Contract: skill
 `twin-playback`.
 
+## `bridge/mqtt_ws.js` — MQTT → WebSocket bridge
+
+```
+node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json \
+    [--port 8766] [--user u --pass p] [--stats out.json]
+```
+
+The first real protocol adapter behind the relay's `sourceUrl` seam: a dependency-free
+(bare `node`, no npm install) MQTT 3.1.1 client (QoS-0 subscribe) that translates each
+broker PUBLISH into the DataBus wire shape `{tag,value,seq,sent_ms}` and re-serves it as a
+WebSocket server on `8766` — the exact shape the sim emits, so relay/DataBus/viewer are
+unchanged. Point a viewer at it via `TWIN_SOURCE_URL=ws://localhost:8766` or
+`viewer.cfg url=`. The `mqtt_map.json` rule list (example:
+`plugin-twin/examples/mqtt_map.example.json`) maps topics→tags: `topic` (exact or `+`/`#`
+wildcard), optional `tag` (else derived slash→dot), optional `field` (JSON numeric key);
+first match wins. Non-numeric / unmapped payloads are counted and dropped, never fatal.
+TLS (`mqtts://`), MQTT 5, QoS 1/2 and the write path are out of scope v1.
+
+Shared internals — one source, no forks: `bridge/mqtt_protocol.js` (MQTT codec, both
+directions), `bridge/map.js` (pure topic→tag/value), `../sim/protocol.js` (RFC 6455 WS
+server side, reused verbatim). Seam contract + map schema: skill `twin-bind-data`.
+
 ## `check_playback.gd` — playback determinism gate
 
 ```
