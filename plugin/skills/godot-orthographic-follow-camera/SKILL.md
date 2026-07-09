@@ -12,7 +12,7 @@ Why orthographic is a hard requirement, not taste: with a perspective camera, wo
 
 ## Requirements
 
-- `godot-project-conventions` applied (read `CLAUDE.md` first).
+- `godot-project-baseline` applied (read `CLAUDE.md` first).
 - If `godot-3d-pixelation` is set up, the entire rig goes **inside the SubViewport** (it contains the camera). If skills run out of order, build the rig at the world root and note in CLAUDE.md that it must move into the SubViewport later.
 
 ## Project conventions

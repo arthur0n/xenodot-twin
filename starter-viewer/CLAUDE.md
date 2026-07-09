@@ -81,4 +81,4 @@ weaken it.
 
 ## Project conventions
 
-_(empty — the `godot-project-conventions` skill fills this in on first setup.)_
+_(empty — the `godot-project-baseline` skill fills this in on first setup.)_

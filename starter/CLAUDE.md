@@ -8,8 +8,10 @@ to the plugin's knowledge base). Game-specific skills/agents you author live in 
 `.claude/` until you promote them to the framework (`npm run promote -- …`).
 
 Record only **this game's** conventions below — keep it thin (decisions here, not in chat). Run the
-`godot-project-conventions` skill first to establish the renderer, window, folder layout, naming
-and input map.
+`godot-project-baseline` skill first to establish the quality gates, folder layout, naming and
+input map; then author this game's aesthetics (renderer, window, texture filters, art-style stack)
+as a project-local `<game>-game-conventions` skill in `.claude/skills/` — the baseline skill
+teaches the pattern.
 
 ## Understanding the codebase (graphify)
 
@@ -23,4 +25,5 @@ See the `xenodot:graphify` skill.
 
 ## Project conventions
 
-_(empty — the `godot-project-conventions` skill fills this in on first setup.)_
+_(empty — the `godot-project-baseline` skill fills this in on first setup; your project-local
+game-conventions skill appends the aesthetic decisions.)_

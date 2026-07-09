@@ -18,7 +18,7 @@
 
 | Phase                 | Skill(s)                                         | Status     | Gate (observable, F5-testable)                                             |
 | --------------------- | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------- |
-| 0 Foundation          | godot-project-conventions                        | ✅ built   | CLAUDE.md conventions section; project runs empty; Jolt enabled            |
+| 0 Foundation          | godot-project-baseline                           | ✅ built   | CLAUDE.md conventions section; project runs empty; Jolt enabled            |
 | 1 Render pipeline     | godot-3d-pixelation                              | ✅ built   | Scene visibly pixelated at stretch_shrink; crisp (nearest) edges           |
 | 2 Camera              | godot-orthographic-follow-camera                 | ✅ built   | Orthographic view, no vanishing point; Size zooms, Z-move doesn't          |
 | 3 Level blockout      | (godot-csg-blockout)                             | ⏭ skipped | Manual StaticBody3D blockout satisfied the gate; CSG skill never built     |
