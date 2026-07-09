@@ -41,8 +41,16 @@ twin-build: OK
     $GODOT --path . -- --model=models/Duplex_A_20110907_opt.tscn
 ```
 
-No `--map`? The build still runs import + optimize + join; the binding smoke SKIPs loudly and
-the summary names `twin-bind-data` as the next step. Measured wall time + machine caveats:
+Boot with that printed `--model=` command: the copied `viewer.cfg` points `model=` at the
+teaching path's `res://models/duplex.glb` (which this fast path never builds), so a bare
+`$GODOT --path .` comes up empty — either use the printed command, or rerun with `--wire` to
+point `viewer.cfg` at the optimized scene (keeps a `viewer.cfg.bak`).
+
+No map discoverable (no `--map`, nothing in `viewer.cfg [twin] binding_map=`, no
+`binding_map.json`)? The build still completes import + optimize + join; the binding smoke
+SKIPs loudly and the summary names `twin-bind-data` as the next step. (In this quickstart the
+smoke always runs: step 1 copies `binding_map.json` into place.) Measured wall time + machine
+caveats:
 [`../library/findings/twin-build-2026-07-09.md`](../library/findings/twin-build-2026-07-09.md).
 
 ## By hand — the teaching path
