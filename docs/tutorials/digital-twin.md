@@ -383,15 +383,16 @@ export TWIN_SOURCE_URL=ws://localhost:8766        # or set twin.sourceUrl in .xe
 ```
 
 That's the whole real-world setup — your broker is already publishing plant telemetry, so the mapped
-elements paint live. **No broker handy?** Spin up a throwaway one just to try it (either works; Docker
-is only one option):
+elements paint live. **No broker handy?** Spin up a throwaway one and let the bundled demo publisher
+feed it — the MQTT counterpart to the seeded sim (bare `node`, no deps, animates the six house
+topics so the heat map moves):
 
 ```bash
 brew install mosquitto && brew services start mosquitto   # native — or: docker run --rm -p 1883:1883 eclipse-mosquitto:2
-# then use --broker mqtt://localhost:1883 above, and fake some telemetry:
-mosquitto_pub -t house/living_room/temp -m 21.5
-mosquitto_pub -t house/solar/power -m '{"watts":3200}'
+node tools/bridge/demo_publish.js --broker mqtt://localhost:1883   # loops the house topics at 2 Hz
 ```
+
+(Prefer to hand-poke a value? `mosquitto_pub -t house/living_room/temp -m 26` publishes one reading.)
 
 Map rules: `topic` (exact or `+`/`#` wildcard), optional `tag` (else derived from the topic by
 slash→dot), optional `field` (a JSON payload's numeric key); first match wins, non-numeric/unmapped
