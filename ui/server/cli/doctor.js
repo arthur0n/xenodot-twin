@@ -121,8 +121,9 @@ const checks = [
     hard: false,
     label:
       PROFILE.genre && PROFILE.style
-        ? `profile declared (${PROFILE.genre}/${PROFILE.style})`
-        : "profile not declared — set it: npm run setup -- <game-path> --genre=… --style=…",
+        ? `profile declared (${PROFILE.genre}/${PROFILE.style}) — genre/style skills filtered to it`
+        : "profile not declared — every genre/style skill preloads (filter fails open); set it: " +
+          "npm run setup -- <game-path> --genre=… --style=…",
   },
   { ok: libraryLinked(), hard: false, label: "library/ symlinked to the plugin" },
   {
