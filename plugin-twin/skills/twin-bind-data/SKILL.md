@@ -190,7 +190,9 @@ Map file (`mqtt_map.json`, example: `plugin-twin/examples/mqtt_map.example.json`
 Honesty note: `seq` is bridge-local and `sent_ms` is stamped at translation, so DataBus drop/latency
 math measures the bridge→viewer hop, not broker→bridge loss (QoS 0 promises no delivery anyway).
 Modules: `mqtt_protocol.js` (codec), `map.js` (pure translation), `mqtt_ws.js` (client + WS server,
-reusing `../sim/protocol.js`). Live-validated against Mosquitto — see
+reusing `../sim/protocol.js`). To try it without a real broker, `tools/bridge/demo_publish.js`
+(bare `node`, same codec) publishes the six example-map topics with animated values — the MQTT
+counterpart to the seeded sim. Live-validated against Mosquitto — see
 `plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`.
 
 ## Phase 3 TODO — honest boundaries
