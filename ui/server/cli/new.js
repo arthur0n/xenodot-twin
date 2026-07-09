@@ -69,7 +69,7 @@ function ensureIgnores(dir) {
   const missing = need.filter((p) => !lines.includes(p));
   if (!missing.length) return;
   const block =
-    "\n# Xenodot Forge generated/working files — not repo content\n" + missing.join("\n") + "\n";
+    "\n# Xenodot generated/working files — not repo content\n" + missing.join("\n") + "\n";
   if (cur) appendFileSync(file, block);
   else writeFileSync(file, block.trimStart());
   console.log(`new: added ${missing.length} ignore rule(s) to ${file}`);

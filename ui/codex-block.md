@@ -20,7 +20,7 @@ fire a review unprompted. That is a billing/UX guardrail, **not** a capability l
 ### How to run it (after the user agrees)
 
 `{{CODEX_COMPANION}}` is the framework's review companion (absolute path). Reviews run against
-the current working tree — your cwd is the game — default to the **adversarial** pass, and the
+the current working tree — your cwd is the project — default to the **adversarial** pass, and the
 companion **automatically applies the project's data-driven review standards** (it injects them
 for you; you never pass or restate them). Note: a review the USER launches by typing
 `/codex:review` calls the underlying tool directly and does NOT carry those standards.
@@ -65,7 +65,7 @@ themselves — but you don't have to wait for them.
 
 - After `xenodot:godot-dev` lands a significant feature or refactor and a second pair of eyes helps.
 - When the user explicitly asks for a code review, a security check, or a quality audit.
-- Before a game-local skill/agent is promoted to the framework — catch issues before they're permanent.
+- Before a project-local skill/agent is promoted to the framework — catch issues before they're permanent.
 
 ### Limits
 

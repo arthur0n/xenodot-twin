@@ -122,3 +122,14 @@ silently never lands. Fix in the same change:
 - Any persona ADDITIONS (e.g. a twin-domain analyst persona) — that's roadmap item 5
   (multi-model analysis seam) territory, not hygiene.
 - Upstream PRs themselves (offer later; this repo doesn't block on forge).
+
+## Addendum (execution-time)
+
+The inventory above (5 files + the gitignore banner) was incomplete: the acceptance sweep at
+execution time found THREE more prompt blocks with game framing, all appended verbatim to the
+Hive system prompt by `session.js` — `ui/hermes-block.md` ("never edits the game or framework"),
+`ui/docs-block.md` ("never edits the game, runs the engine"), `ui/codex-block.md` ("your cwd is
+the game", "a game-local skill/agent"). All four phrases were generic → neutral "project"
+wording (upstream candidates; SEAMS rows added). Confirmed intentional and NOT changed:
+`ui/orchestrator-viewer.md` ("not a game" is deliberate twin framing) and `hermes-soul.md`
+("games (Xenodot Forge)" is the neutral family framing). Listed here so the plan stays truthful.

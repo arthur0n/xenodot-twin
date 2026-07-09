@@ -13,8 +13,12 @@
 // `API_SERVER_KEY` you invented for your gateway — NOT the billable provider key,
 // which lives inside Hermes (`hermes setup`) and is never seen by Xenodot.
 import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import path from "node:path";
 import { parseJSON } from "../../../lib/json.js";
 import { getHermesConfig } from "../../core/config.js";
+import { isLegacySoul } from "./hermes-soul-legacy.js";
 
 /** The verdict of one probe. `reachable` = the gateway answered at all; `authOk` =
  * the bearer key was accepted; `ok` = both, with a usable model list.
@@ -150,6 +154,18 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const cfg = getHermesConfig();
   if (!cfg.enabled) {
     console.log("Hermes is OFF — enable it in ⚙ Settings or `npm run hermes -- --hermes`.");
+  }
+  // Prompt-drift guard (WARN, never fail): a ~/.hermes/SOUL.md that verbatim-matches a PRIOR shipped
+  // Xenodot template is an out-of-date copy of OURS — `npm run hermes:setup` will upgrade it in place.
+  try {
+    const soul = readFileSync(path.join(homedir(), ".hermes", "SOUL.md"), "utf8");
+    if (isLegacySoul(soul)) {
+      console.log(
+        "⚠ ~/.hermes/SOUL.md is an OLD Xenodot soul template — run `npm run hermes:setup` to update it.",
+      );
+    }
+  } catch {
+    /* no SOUL.md yet — nothing to warn about */
   }
   // Toolsets that execute on YOUR machine — flag loudly if the API path has them.
   const MACHINE = ["terminal", "file", "code_execution", "browser", "process"];

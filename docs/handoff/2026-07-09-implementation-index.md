@@ -8,12 +8,12 @@ you're picking up.
 
 ## Must Have (credibility for the first real user/demo)
 
-| #   | Item                                                            | Plan doc                                                                   | Status                                                                                           |
-| --- | --------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 1   | MQTT source adapter behind `sourceUrl`                          | [2026-07-09-mqtt-adapter-plan.md](2026-07-09-mqtt-adapter-plan.md)         | Plan only — nothing built                                                                        |
-| 2   | One-command pipeline: import → optimize → verify (`twin-build`) | [2026-07-09-twin-build-plan.md](2026-07-09-twin-build-plan.md)             | ✅ Built on `feat/twin-build` — seat-validated (join 286/286, smoke 6/6, ~19.5 s), pending merge |
-| 3   | De-game the internal persona prompts                            | [2026-07-09-degame-personas-plan.md](2026-07-09-degame-personas-plan.md)   | Plan only — nothing changed                                                                      |
-| 4   | Benched LOD/visibility-range recipe                             | [2026-07-09-vis-range-recipe-plan.md](2026-07-09-vis-range-recipe-plan.md) | Plan only — measurement item, sweep not run                                                      |
+| #   | Item                                                            | Plan doc                                                                   | Status                                                                                                            |
+| --- | --------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1   | MQTT source adapter behind `sourceUrl`                          | [2026-07-09-mqtt-adapter-plan.md](2026-07-09-mqtt-adapter-plan.md)         | Plan only — nothing built                                                                                         |
+| 2   | One-command pipeline: import → optimize → verify (`twin-build`) | [2026-07-09-twin-build-plan.md](2026-07-09-twin-build-plan.md)             | ✅ Built on `feat/twin-build` — seat-validated (join 286/286, smoke 6/6, ~19.5 s), pending merge                  |
+| 3   | De-game the internal persona prompts                            | [2026-07-09-degame-personas-plan.md](2026-07-09-degame-personas-plan.md)   | ✅ Built on `feat/degame-personas` — seat-landed (setup replaced legacy soul, validate+test green), pending merge |
+| 4   | Benched LOD/visibility-range recipe                             | [2026-07-09-vis-range-recipe-plan.md](2026-07-09-vis-range-recipe-plan.md) | Plan only — measurement item, sweep not run                                                                       |
 
 Independent of each other — no ordering constraint; `twin-build` (#2) deliberately does
 NOT default `--vis-ranges` on until #4 lands.
