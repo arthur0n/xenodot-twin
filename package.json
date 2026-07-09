@@ -1,14 +1,14 @@
 {
-  "name": "xenodot-forge",
+  "name": "xenodot-twin",
   "version": "0.2.1",
-  "description": "Xenodot Forge — POC web UI + agent workflow (design -> implement -> verify) for building Godot-family (Godot / Redot / Blazium) games with Claude Code",
+  "description": "Xenodot Twin — web UI + agent workflow (architect -> import -> optimize -> bind -> verify) for building digital-twin visualization apps on Godot with Claude Code. Forked from xenodot-forge.",
   "type": "module",
   "private": true,
   "license": "MIT",
   "author": "Arthur Nunes (https://github.com/arthur0n)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arthur0n/xenodot-forge.git"
+    "url": "git+https://github.com/arthur0n/xenodot-twin.git"
   },
   "scripts": {
     "setup": "node ui/server/cli/setup.js",

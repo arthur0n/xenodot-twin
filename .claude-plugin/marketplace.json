@@ -1,19 +1,28 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "xenodot-forge",
+  "name": "xenodot-twin",
   "metadata": {
-    "description": "Xenodot Forge — agents, skills, tools and hooks for AI-assisted Godot-family game development."
+    "description": "Xenodot Twin — agents, skills, tools and hooks for AI-assisted digital-twin viewers on Godot. Ships two plugins: the engine-generic xenodot base and the xenodot-twin domain that composes it."
   },
-  "owner": { "name": "Xenodot Forge" },
+  "owner": { "name": "Xenodot Twin" },
   "plugins": [
     {
       "name": "xenodot",
-      "description": "Agents (design → build → verify pipeline), godot-* skills, verification tools and safety hooks for building Godot / Redot / Blazium games with Claude Code.",
+      "description": "Engine-generic base: builder/researcher agents, godot-* engine skills (verify, code-rules, export-builds, import), verification tools and safety hooks for Godot / Redot / Blazium work with Claude Code. The xenodot-twin plugin composes these via the xenodot: namespace.",
       "version": "0.2.1",
-      "author": { "name": "Xenodot Forge" },
+      "author": { "name": "Xenodot Twin" },
       "source": "./plugin",
       "category": "development",
-      "tags": ["godot", "gamedev", "agents", "skills"]
+      "tags": ["godot", "digital-twin", "agents", "skills"]
+    },
+    {
+      "name": "xenodot-twin",
+      "description": "Digital-twin domain: the twin-architect / scene-optimizer / data-binder agents and twin-import / twin-optimize / twin-bind-data / twin-verify / twin-playback skills for building IFC/BIM → Godot viewers with live data. Loads alongside the xenodot base and references its capabilities.",
+      "version": "0.1.0",
+      "author": { "name": "Xenodot Twin" },
+      "source": "./plugin-twin",
+      "category": "development",
+      "tags": ["godot", "digital-twin", "bim", "ifc", "agents"]
     }
   ]
 }
