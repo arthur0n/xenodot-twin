@@ -107,9 +107,12 @@ status: "open", finding }` (`dim` = the id's `D`-prefix), plus an optional `patt
    they agree to (recommend which). If nothing framework-general survived step 5, say so plainly and
    write no findings (still record coverage). **Never auto-apply.**
 
-9. **Self-critique.** This is self-improvement — improve the loop, not just the findings. Suggest one
-   tweak to THIS command or the ledger format (a better signal to grep, a missing case), recorded as
-   the entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
+9. **Self-critique (in a subagent).** This is self-improvement — improve the loop, not just the
+   findings. Dispatch this critique to a throwaway subagent so its reasoning never becomes main-window
+   context debt: hand it the run's notes and have it propose one tweak to THIS command or the ledger
+   format (a better signal to grep, a missing case), and if a fix is obvious and safe apply it there.
+   It RETURNS ONLY the one-line verdict — record that as the entry's `Process note` (or `none`). Keep
+   the verdict, not the critique transcript.
 
 ## Do this
 

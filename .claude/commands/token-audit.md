@@ -120,9 +120,13 @@ select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter ma
        tokens) BEFORE vs the sessions since it landed. Moved clearly → `land --opp <id> --moved true|false`
        with the Δ; still ambiguous → leave it `pending` but SAY SO in the return + `Process note` so
        the next run re-checks it (the `pending` verb resurfaces it every run — that's the anti-rot guarantee).
-   - Critique: suggest fixes to THIS command, the CLI, or the ledger/history format (confusing
-     wording, a missing reference, a better signal, a step that didn't pay off). Record it as the
-     entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
+   - Critique (in a subagent): dispatch this critique to a throwaway subagent so its reasoning never
+     becomes main-window context debt — hand it the run's notes and have it propose one fix to THIS
+     command, the CLI, or the ledger/history format (confusing wording, a missing reference, a better
+     signal, a step that didn't pay off), and if a fix is obvious and safe apply it there. It RETURNS
+     ONLY the one-line verdict — record that as the entry's `Process note` (or `none`). Keep the
+     verdict, not the critique transcript. (The Adapt bullets above stay in the main window — they
+     feed the decision; only the critique reasoning moves out.)
 
 8. **Return.** Super-brief to the user: sessions covered, the single top offender, tasks filed,
    and one line on the trend. To APPLY an opportunity, point them at `/token-audit-fix <id>`.

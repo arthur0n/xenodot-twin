@@ -219,10 +219,13 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
       your recommendation first. Otherwise report the buckets terse and tell the human to run
       `/framework-audit-fix <ids>` with the ids they agree to. **Never auto-apply here.**
 
-7. **Self-critique.** This is self-improvement — improve the loop, not just the findings.
-   Suggest fixes to THIS command or the ledger format: a better signal to grep, a missing
-   dimension, a step that didn't pay off. Record it as the entry's `Process note` (or `none`).
-   If a fix is obvious and safe, make it here.
+7. **Self-critique (in a subagent).** This is self-improvement — improve the loop, not just the
+   findings. Dispatch this critique to a throwaway subagent (like the step-3 gather fan-out) so its
+   reasoning never becomes main-window context debt: hand it the run's notes and have it propose one
+   fix to THIS command or the ledger format (a better signal to grep, a missing dimension, a step
+   that didn't pay off), and if a fix is obvious and safe apply it there. It RETURNS ONLY the
+   one-line verdict — record that as the entry's `Process note` (or `none`). Keep the verdict, not
+   the critique transcript.
 
 ## Do this
 

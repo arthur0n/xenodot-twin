@@ -101,11 +101,14 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
    clears the LAST `open`/`fix-now` finding anywhere in the ledger (the whole backlog is resolved),
    set `lastAudit` to a fresh one-line summary. Leave `later`/`skip` and un-applied findings untouched.
    Then run `npm run ledger` to regenerate `LEDGER.md` / `ledger.html` (never hand-edit those).
-6. **Self-critique.** This is self-improvement — improve the loop, not just the fix. Note anything
-   that tripped the apply: a dimension playbook that misfit the finding, a blast-radius ref the
-   playbook forgot, an ambiguous ledger field, a step that didn't pay off. Since this command
-   REMOVES rows (no entry to hold a `Process note`), carry the note into the run's report + commit
-   message instead. If a fix to THIS command or a dimension playbook is obvious and safe, make it here.
+6. **Self-critique (in a subagent).** This is self-improvement — improve the loop, not just the fix.
+   Dispatch this critique to a throwaway subagent so its reasoning never becomes main-window context
+   debt: hand it the run's notes and have it flag anything that tripped the apply (a dimension
+   playbook that misfit the finding, a blast-radius ref the playbook forgot, an ambiguous ledger
+   field, a step that didn't pay off), and if a fix to THIS command or a dimension playbook is
+   obvious and safe apply it there. It RETURNS ONLY the one-line verdict. Since this command REMOVES
+   rows (no entry to hold a `Process note`), carry that one line into the run's report + commit
+   message instead. Keep the verdict, not the critique transcript.
 7. **Report — terse.** Per id: applied / skipped (+why), files changed, validate result, plus any
    self-critique note from step 6. This per-id summary IS the fix record now that rows are removed —
    carry it into the commit message (git, not the ledger, is the changelog; no separate changelog

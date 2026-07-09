@@ -170,14 +170,6 @@
       "finding": "agent-report/SKILL.md:31 contracts the relayed result to '<path> — gate PASS|FAIL' but nothing enforces it — no SubagentStop hook anywhere (verified 2026-07-08); review measured ~1.2k-char avg prose results vs the ~50-char contract; harden: SubagentStop regex validator + digest cap ≤6 lines (review P0B-3 merged schema)."
     },
     {
-      "id": "D9-critique-in-mainwindow",
-      "dim": "D9",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "Every self-improvement command runs its self-critique/verdict step in the MAIN window, not a subagent — framework-audit step7, framework-audit-fix step6, framework-feedback step7, harvest-sessions step9, token-audit step7 — so critique reasoning becomes orchestrator context debt. Dispatch each critique to a throwaway subagent (like framework-audit's step-3 gather fan-out) and keep only the one-line verdict: keep the verdict, not the transcript. Pairs with D9-audit-fanout."
-    },
-    {
       "id": "D9-tokens-per-accepted-change",
       "dim": "D9",
       "bucket": 5,
