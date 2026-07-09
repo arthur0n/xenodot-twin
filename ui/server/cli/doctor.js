@@ -172,13 +172,10 @@ if (hardFails > 0) {
 }
 console.log("doctor: OK");
 console.log(
-  "  Terminal use: install the plugin once —\n" +
+  "  Terminal use: install both plugins once —\n" +
     "    /plugin marketplace add " +
     path.dirname(FRAMEWORK_PLUGIN_DIR) +
-    "\n    /plugin install xenodot@xenodot-forge\n" +
-    "  (The web UI loads the plugin automatically — no install needed.)" +
-    (getProjectType() === "viewer"
-      ? "\n  Viewer note: the experimental xenodot-twin plugin is web-UI only for now —\n" +
-        "  it is not in the marketplace, so terminal sessions run without it."
-      : ""),
+    "\n    /plugin install xenodot@xenodot-twin\n" +
+    "    /plugin install xenodot-twin@xenodot-twin\n" +
+    "  (The web UI loads both automatically — no install needed.)",
 );
