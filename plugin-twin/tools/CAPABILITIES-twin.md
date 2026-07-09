@@ -140,6 +140,20 @@ Shared internals — one source, no forks: `bridge/mqtt_protocol.js` (MQTT codec
 directions), `bridge/map.js` (pure topic→tag/value), `../sim/protocol.js` (RFC 6455 WS
 server side, reused verbatim). Seam contract + map schema: skill `twin-bind-data`.
 
+## `bridge/demo_publish.js` — MQTT demo publisher
+
+```
+node tools/bridge/demo_publish.js --broker mqtt://localhost:1883 [--hz 2] [--user u --pass p]
+```
+
+The broker-side counterpart to the seeded sim, so the MQTT path can be tried end-to-end
+without hand-writing a `mosquitto_pub` loop: a dependency-free (bare `node`) MQTT client
+that PUBLISHes the six house demo topics — the ones
+`plugin-twin/examples/mqtt_map.example.json` maps — with smooth animated values (reusing
+`../sim/stream.js` `tagValue`), so `mqtt_ws.js` → viewer paints and moves. The topic table
+is kept in lockstep with the example map by `mqtt-demo.test.js` (change one, the test flags
+the other). Uses the SAME `bridge/mqtt_protocol.js` codec as the bridge.
+
 ## `check_playback.gd` — playback determinism gate
 
 ```
