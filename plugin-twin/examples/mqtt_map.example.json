@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "_about": "Example MQTT topic map for the xenodot-twin MQTT->WebSocket bridge (tools/bridge/mqtt_ws.js), paired with the smart-home story in binding_map.example.json beside this file. Each rule maps a broker topic to one of that binding map's DataBus tags. Run a broker (e.g. `mosquitto` or `docker run -p 1883:1883 eclipse-mosquitto`), point the bridge at it (`node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json --port 8766`), and point a viewer at the bridge (`TWIN_SOURCE_URL=ws://localhost:8766`, or a viewer.cfg `url=ws://localhost:8766`). Rule fields: `topic` is an exact topic or an MQTT wildcard filter (`+` one level, `#` remaining levels); `tag` names the DataBus tag explicitly (omit it to derive the tag from the concrete topic by slash->dot); `field` names the numeric key when the payload is a JSON object (omit it when the payload is a bare number). First matching rule wins, so put specific rules before broad wildcards. Non-numeric / unmapped payloads are counted and dropped, never fatal. Publish demo values e.g. `mosquitto_pub -t house/living_room/temp -m 21.5` and `mosquitto_pub -t house/solar/power -m '{\"watts\":3200}'`.",
+  "rules": [
+    { "topic": "house/living_room/temp", "tag": "living_room.temp" },
+    { "topic": "house/kitchen/temp", "tag": "kitchen.temp" },
+    { "topic": "house/bedroom_1/temp", "tag": "bedroom_1.temp" },
+    { "topic": "house/boiler/temp", "tag": "boiler.temp" },
+    { "topic": "house/solar/power", "tag": "solar.output_w", "field": "watts" },
+    { "topic": "house/entrance_door/state", "tag": "entrance_door.open" }
+  ]
+}

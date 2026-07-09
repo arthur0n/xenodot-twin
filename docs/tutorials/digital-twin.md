@@ -365,6 +365,32 @@ The web UI relays a real data source into the viewer through the framework's `/t
 for this demo the "real source" is the seeded sim, so start
 `node tools/sim/server.js --map binding_map.json` first and the frames fan out to the browser.
 
+### Point it at your MQTT broker (the real-source happy path)
+
+The seeded sim is the fixture; a real plant speaks MQTT. The **MQTT→WS bridge** plugs in behind the
+same relay seam — no viewer change. Write an `mqtt_map.json` mapping broker topics to your tags
+(example: `xenodot-twin/plugin-twin/examples/mqtt_map.example.json`), then:
+
+```bash
+# 1) a broker (any MQTT 3.1.1 broker; Mosquitto shown)
+brew install mosquitto && brew services start mosquitto      # or: docker run --rm -p 1883:1883 eclipse-mosquitto:2
+
+# 2) the bridge, in the project's tools/ (materialized there), speaking QoS-0 to the broker
+node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json --port 8766
+
+# 3) point the relay at the bridge instead of the sim
+export TWIN_SOURCE_URL=ws://localhost:8766        # or set twin.sourceUrl in .xenodot.json
+
+# 4) publish telemetry; the mapped elements paint live
+mosquitto_pub -t house/living_room/temp -m 21.5
+mosquitto_pub -t house/solar/power -m '{"watts":3200}'
+```
+
+Map rules: `topic` (exact or `+`/`#` wildcard), optional `tag` (else derived from the topic by
+slash→dot), optional `field` (a JSON payload's numeric key); first match wins, non-numeric/unmapped
+payloads are dropped. TLS, MQTT 5 and QoS 1/2 are out of scope for now (an `mqtts://` URL errors
+with a clear message). Full schema: skill `twin-bind-data` → "The MQTT→WS bridge".
+
 **This product scaffolds viewers only.** `new.js` refuses `--game` — there is no game path here. For
 Godot **games**, use the sibling framework: [github.com/arthur0n/xenodot-forge](https://github.com/arthur0n/xenodot-forge).
 
