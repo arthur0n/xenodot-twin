@@ -15,6 +15,7 @@ skills:
   - xenodot:godot-code-rules
   - xenodot:godot-verify
   - twin-import
+  - twin-asset-import
   - twin-bind-data
   - twin-playback
   - twin-verify
