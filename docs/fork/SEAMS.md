@@ -78,13 +78,16 @@ README.md / FEATURES.md (twin-section shrink — identity, always OURS)
 
 ## Identity — resolve as OURS (fully diverged)
 
-| File                                | Our divergence                                                                                                                                                 |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `package.json`                      | `name` = `xenodot-twin`; twin `description`; `repository.url` → `arthur0n/xenodot-twin`. Keep `arthur0n` lines so provenance stays.                            |
-| `.claude-plugin/marketplace.json`   | Twin `name`/`metadata`/`owner`; **lists BOTH plugins** — `xenodot` (`./plugin`) and `xenodot-twin` (`./plugin-twin`). Keep both plugin `name` values verbatim. |
-| `plugin/.claude-plugin/plugin.json` | `description` reframed as the engine-generic base. `name` stays `xenodot` (namespace — never rename).                                                          |
-| `README.md`                         | **Fully replaced** with the twin front page. Expect conflicts on upstream README edits; resolve by keeping ours.                                               |
-| `FEATURES.md`                       | **Fully replaced** with the twin catalog. The `## Agents (N)` section must list exactly the base agents (the pre-commit badge cross-check enforces it).        |
+| File                                | Our divergence                                                                                                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`                      | `name` = `xenodot-twin`; twin `description`; `repository.url` → `arthur0n/xenodot-twin`. Keep `arthur0n` lines so provenance stays.                                                                                                                     |
+| `.claude-plugin/marketplace.json`   | Twin `name`/`metadata`/`owner`; **lists BOTH plugins** — `xenodot` (`./plugin`) and `xenodot-twin` (`./plugin-twin`). Keep both plugin `name` values verbatim.                                                                                          |
+| `plugin/.claude-plugin/plugin.json` | `description` reframed as the engine-generic base. `name` stays `xenodot` (namespace — never rename).                                                                                                                                                   |
+| `README.md`                         | **Fully replaced** with the twin front page. Expect conflicts on upstream README edits; resolve by keeping ours.                                                                                                                                        |
+| `FEATURES.md`                       | **Fully replaced** with the twin catalog. The `## Agents (N)` section must list exactly the base agents (the pre-commit badge cross-check enforces it).                                                                                                 |
+| `package-lock.json`                 | Root `name`/`packages[""].name` = `xenodot-twin` (mirrors `package.json`). Regenerate with `npm install` on any identity change; a fresh clone must stay git-clean after install.                                                                       |
+| `docs/tutorials/digital-twin.md`    | Clone URL/dir + example-copy paths are `arthur0n/xenodot-twin` / `../xenodot-twin/…`; doctor counts + install hints reflect the twin (both plugins). No `xenodot-forge` branding — the repo IS the twin product. (Also in the protect-list; keep OURS.) |
+| `ui/index.html`                     | Page `<title>` = `Xenodot Twin` (the user-facing web-UI title). Never resurrect `Xenodot Forge`.                                                                                                                                                        |
 
 ## Upstream files we are allowed to edit (behavioral seams — keep this list SHORT)
 

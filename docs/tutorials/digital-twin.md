@@ -14,7 +14,7 @@ You build two things that sit side by side (the standard framework + project lay
 
 ```
 your-workspace/
-├── xenodot-forge/      the framework (a clone of this repo)
+├── xenodot-twin/       the framework (a clone of this repo)
 ├── house/              the viewer project the framework scaffolds for you
 └── x-shared-assets/    shared-asset library (models/textures), symlinked into the project
 ```
@@ -47,18 +47,14 @@ here), reads it in place, and the project stays pure. That is why there are two 
 
 ## Step 1 — clone the framework and prove it's green
 
-Clone the framework into `your-workspace/xenodot-forge`:
+Clone the framework into `your-workspace/xenodot-twin`:
 
 ```bash
 cd your-workspace
-git clone https://github.com/arthur0n/xenodot-forge.git xenodot-forge
-cd xenodot-forge
+git clone https://github.com/arthur0n/xenodot-twin.git xenodot-twin
+cd xenodot-twin
 npm install
 ```
-
-> Note: the experimental `xenodot-twin` plugin — and this kit — ship in the **twin release**. If
-> your clone has no `plugin-twin/` directory, you're on a plain fork; pull the branch/release that
-> carries the twin plugin before continuing.
 
 `npm install` pulls ~277 packages (a few seconds on a warm cache, up to a minute cold). Then prove
 a stranger's install is green:
@@ -100,7 +96,7 @@ per-project files, and health-checks. The output confirms the shape:
 new: scaffolded starter-viewer → .../your-workspace/house
   projectType: viewer
 materialize: ... tools copied 22/22, twin tools added 15 (0 collision(s)), library created, library-twin created, x-shared-assets created.
-doctor: ... ✓ plugin capabilities (20 agents, 47 skills)  ✓ library-twin/ symlinked
+doctor: ... ✓ plugin capabilities (10 agents, 16 skills)  ✓ library-twin/ symlinked
 doctor: OK
 ```
 
@@ -112,14 +108,14 @@ What landed and what stayed put:
 - `house/tools/` (the twin tooling: `ifc_convert.py`, `sim/`, `verify_twin.sh`, …) and
   `house/library`, `house/library-twin`, `house/x-shared-assets` are **symlinked/copied and
   gitignored** — framework-generated, never committed into the project.
-- The framework's agents/skills are **not** copied into the project. The web UI loads the
-  `xenodot` plugin automatically. For terminal Claude Code, doctor prints the one-time install:
+- The framework's agents/skills are **not** copied into the project. The web UI loads **both**
+  plugins (`xenodot` + `xenodot-twin`) automatically. For terminal Claude Code, doctor prints the
+  one-time install for both:
   ```
-  /plugin marketplace add /path/to/your-workspace/xenodot-forge
-  /plugin install xenodot@xenodot-forge
+  /plugin marketplace add /path/to/your-workspace/xenodot-twin
+  /plugin install xenodot@xenodot-twin
+  /plugin install xenodot-twin@xenodot-twin
   ```
-  (Note: the experimental `xenodot-twin` plugin is web-UI-only for now — terminal sessions run
-  without the twin skills.)
 
 ---
 
@@ -152,7 +148,7 @@ node names carry it, the property sidecar is keyed by it, and live tags bind thr
 folder at the workspace root):
 
 ```bash
-cp ../xenodot-forge/plugin-twin/examples/Duplex_A_20110907.ifc .
+cp ../xenodot-twin/plugin-twin/examples/Duplex_A_20110907.ifc .
 head -c 13 Duplex_A_20110907.ifc    # must print: ISO-10303-21;
 ```
 
@@ -198,8 +194,8 @@ The GLB + sidecar under `models/` are **gitignored** — they're runtime-loaded 
 kit ships one ready to use — copy it in:
 
 ```bash
-cp ../xenodot-forge/plugin-twin/examples/binding_map.example.json binding_map.json
-cp ../xenodot-forge/plugin-twin/examples/viewer.cfg.example viewer.cfg
+cp ../xenodot-twin/plugin-twin/examples/binding_map.example.json binding_map.json
+cp ../xenodot-twin/plugin-twin/examples/viewer.cfg.example viewer.cfg
 ```
 
 The example ids are for **this** IFC and are deterministic across converts of the same file, so
@@ -369,11 +365,8 @@ The web UI relays a real data source into the viewer through the framework's `/t
 for this demo the "real source" is the seeded sim, so start
 `node tools/sim/server.js --map binding_map.json` first and the frames fan out to the browser.
 
-**Switching back to a game.** The forge points at one project at a time via `.xenodot.json`. To go
-back to a normal (non-viewer) game, re-point it — `npm run new -- ../game` for a fresh scaffold, or
-`npm run doctor -- ../game` to re-wire an existing one — and the web UI serves that game with the
-plain `xenodot` plugin (no twin skills). Each command takes the path as `--game`-style argument, so
-nothing is destroyed by switching.
+**This product scaffolds viewers only.** `new.js` refuses `--game` — there is no game path here. For
+Godot **games**, use the sibling framework: [github.com/arthur0n/xenodot-forge](https://github.com/arthur0n/xenodot-forge).
 
 ---
 
