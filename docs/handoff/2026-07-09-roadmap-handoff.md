@@ -101,9 +101,18 @@ writes once?_ Honest verdicts, including NONE.
    scaffold + bundled Duplex + example map, ONE command): all gates green — **join 286/286,
    binding-smoke 6/6**, exit 0 — in **~19.5 s cold**, measured with machine caveats in
    [`plugin-twin/library/findings/twin-build-2026-07-09.md`](../../plugin-twin/library/findings/twin-build-2026-07-09.md).
-3. **De-game the internal persona prompts.** `ui/server/integrations/hermes/hermes-soul.md`
-   and `ui/lib/personas/{critic,researcher}/persona.js` still say "game-development
-   framework" — they shape agent behavior in every session. Small, flagged, do it early.
+3. ~~**De-game the internal persona prompts.**~~ ✅ **DONE (2026-07-09, built on
+   `feat/degame-personas` — landed + validated from the seat, pending merge to `main`).**
+   Built per [`2026-07-09-degame-personas-plan.md`](2026-07-09-degame-personas-plan.md):
+   `hermes-soul.md` reworded to domain-NEUTRAL family framing (both products named — the
+   soul is machine-global, shared with the forge seat), both `personas/{researcher,critic}`
+   briefs twin-branded with the behavioral sentences byte-identical, both MCP tools
+   (`hermes`/`promote`) to neutral "project" wording, `cli/new.js` gitignore banner
+   de-branded; plus the soul-upgrade trap fix (`LEGACY_SOUL_TEMPLATES` + replace-and-report
+   in `hermes-setup.js`, legacy-soul WARN in `hermes-check.js`). Landed on the dev machine:
+   `hermes:setup` reported replacing the legacy Xenodot soul template in `~/.hermes/SOUL.md`
+   (now the neutral family text), HOME=tmp both-paths proven (legacy replaced / customized
+   kept); `npm run validate` + `npm test` green.
 4. **Benched LOD/visibility-range recipe.** `--vis-ranges` applies documented defaults
    nobody measured. The bench harness exists (`bench_scene.gd`); turn the defaults into
    a measured recipe like chunking got. Keeps the "every number is gate-backed" promise.
