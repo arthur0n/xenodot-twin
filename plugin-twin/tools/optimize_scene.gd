@@ -30,6 +30,10 @@ const OCCLUDER_MIN_VOLUME_M3 := 10.0
 
 ## --vis-ranges size classes by world-AABB diagonal (metres) and the distance each class fades at.
 ## Small clutter can vanish close; medium fixtures a bit further; large structure always draws.
+## MEASURED (scoped win, kept as-is): these defaults (0.5/2 -> 40/120) win big on many-unique-mesh
+## scenes (unique-city aerial cpu -32%, perceptually clean at street) and no-op on single buildings
+## / fully-instanced scenes, so the pass stays opt-in. Sweep, tables and machine caveats:
+## library-twin/findings/twin-vis-range-recipe-2026-07-09.md.
 const VIS_SMALL_DIAGONAL_M := 0.5  # diagonal < 0.5 m -> "small"
 const VIS_MEDIUM_DIAGONAL_M := 2.0  # diagonal < 2 m -> "medium"; larger keeps no range
 const VIS_SMALL_END_M := 40.0  # small meshes fade past 40 m

@@ -97,10 +97,12 @@ Passes, in order:
   un-instanced mesh whose world-AABB volume exceeds 10 m³ (documented default) gets a child
   OccluderInstance3D + BoxOccluder3D sized to 90% of its local AABB — the shrink avoids
   self-occlusion artifacts, explicit box occluders need no bake.
-- **`--vis-ranges` (opt-in).** Size classes by world-AABB diagonal: small (< 0.5 m) →
-  `visibility_range_end = 40` m; medium (< 2 m) → 120 m; large → untouched (structure must
-  never pop out). Un-instanced meshes only — chunked fields already cull per chunk. The
-  distances are documented defaults, NOT a measured recipe yet (see TODO).
+- **`--vis-ranges` (opt-in, MEASURED — recipe below).** Size classes by world-AABB diagonal:
+  small (< 0.5 m) → `visibility_range_end = 40` m; medium (< 2 m) → 120 m; large → untouched
+  (structure must never pop out). Un-instanced meshes only — chunked fields already cull per
+  chunk. The defaults are now the benched **scoped winner** (big on many-unique-mesh scenes; skip
+  it on single buildings / instanced scenes) — recipe + numbers below and in
+  `library-twin/findings/twin-vis-range-recipe-2026-07-09.md`.
 
 Report JSON: `chunks` (`"auto"` or the fixed int as a string), `target_per_chunk`,
 `meshes_before`, `nodes_before/after`, `groups_total/instanced`, `multimeshes`,
@@ -195,6 +197,38 @@ So: **the primary camera decides.** A walkthrough viewer chunks; an overview das
 better single/coarse. When both matter, chunk and accept the overview tax — but say so in the
 report, with both vantages measured.
 
+## Recipe — visibility ranges (`--vis-ranges`), measured
+
+`--vis-ranges` sets `visibility_range_end` on un-instanced meshes by size class (small < 0.5 m
+diagonal → 40 m, medium < 2 m → 120 m, large untouched) — a hard distance cull with **no fade**.
+Swept 6 configs × 3 real-shaped scenes on M3 Pro Metal (full record:
+`library-twin/findings/twin-vis-range-recipe-2026-07-09.md`, seat sweep `a6c0707`). Verdict:
+**SCOPED WIN** — big on many-unique-mesh scenes, essentially nothing on single buildings, no-op on
+fully-instanced scenes.
+
+- **Reach for it on many-unique-mesh scenes** — heterogeneous clutter / plant-fitting regime, or a
+  single model's un-instanced leftovers when there are _thousands_ of them. On the 28,600-unique
+  city: aerial `cpu 4.13 → 2.81 ms (−32%)` at defaults, `→ 1.19 ms (−71%)` coarser,
+  `fps 163 → 530`; street `0.99 → 0.90 (−9%)` default to `0.54 (−45%)` aggressive. The win scales
+  with the count of small/medium unique meshes and camera distance.
+- **Skip it on single buildings / small unique-mesh counts.** The optimized duplex (256
+  un-instanced leftovers) is **flat at street** (nothing culls at walkthrough distance) and
+  ≤0.04 ms at aerial only with the most aggressive cutoff on a 0.15 ms scene — not worth the flag.
+- **No-op on fully-instanced scenes** — the instancing pass consumes every repeated mesh, so the
+  vis pass sets **0 ranges** (negative control asserted). `--vis-ranges` only matters on
+  mostly-unique geometry.
+- **Use the defaults (0.5/2 → 40/120).** They are the perceptually-clean winner (frame-reviewed
+  CLEAN at street, pending human fly-through) and already capture the city-scale win. Distances
+  are **absolute, not scene-relative** — the best cutoffs did NOT track scene bounds between the
+  duplex and the city, so there is no AABB-derived grid here. (The sub-0.5 m small class never
+  fired at default thresholds in the bench scenes — untested; re-bench for genuinely small clutter.)
+- **Don't reach for coarser/aggressive (1.0/4.0, 20/60) yet.** They win more cpu but **hard-pop
+  distant fixtures in at ~60 m** (the pass has no fade). Adopt only behind a
+  `visibility_range_fade_mode` / begin-margin — and only after benching that margin (see TODO).
+- Same discipline as chunking: `cpu_ms` leads (cap-immune), sub-cap fps second, then
+  `objects_rendered` delta; measure **both vantages** (street + aerial) — a street-only look misses
+  the −32% aerial win, an aerial-only look misses that `dist_double` no-ops at street.
+
 ## Occlusion culling — toggle discipline (it can be net-negative)
 
 Godot's occlusion culling is a **CPU Embree raster** every frame — it costs before it saves.
@@ -231,10 +265,11 @@ run on the same scene. Rules:
 
 The following are NOT yet proven recipes; treat them as open work, not folklore:
 
-- **LOD / `visibility_range_*` as a MEASURED recipe** — the optimizer's `--vis-ranges` pass
-  applies documented size-class defaults, but no bench has validated the distances (or added
-  hysteresis via `visibility_range_begin_margin`). Do not present visibility ranges as a
-  proven fps win until benched here.
+- **Fade margin / hysteresis for `--vis-ranges`** — the pass is now benched (scoped win, recipe
+  above) but sets `visibility_range_end` only: a hard pop at the cutoff. The coarser/aggressive
+  cutoffs win more cpu yet visibly hard-pop at ~60 m, so they are NOT adopted until a
+  `visibility_range_fade_mode` / `visibility_range_begin` margin is added AND benched. The
+  sub-0.5 m small class also never fired at default thresholds in the bench scenes — untested.
 - **Auto-LOD generation** (simplified proxy meshes for far ranges, procedural or via
   `ImporterMesh` LODs) — not built; `--vis-ranges` only hides, it never swaps.
 - **`--target-per-chunk` sweep across scene shapes** — auto-chunk (count-driven per group) ships
