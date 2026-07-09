@@ -1,0 +1,433 @@
+// tools/bridge/mqtt_ws.js — the MQTT → WebSocket bridge: the protocol adapter that plugs in
+// BEHIND the relay's `sourceUrl` seam (ui/server/features/twin/twin-data.js). It speaks MQTT
+// 3.1.1 client-side to a broker (QoS-0 subscribe), translates each PUBLISH into the DataBus wire
+// shape `{tag, value, seq, sent_ms}` (core/data_bus.gd) via map.js, and re-serves those as a tiny
+// WebSocket server — the exact shape the sim's server.js emits, so the relay and viewer are
+// unchanged. Point `TWIN_SOURCE_URL=ws://localhost:8766` (or a viewer's `viewer.cfg url=`) at it.
+//
+//   node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json \
+//       [--port 8766] [--user u --pass p] [--stats out.json]
+//
+// The WS server side reuses ../sim/protocol.js verbatim (handshake + encodeTextFrame + ping/close),
+// mirroring ../sim/server.js — the framing is a cross-file agreement, so there is exactly one copy.
+// The MQTT codec is ./mqtt_protocol.js; the pure topic→tag/value translation is ./map.js. The
+// broker connection reconnects on drop, mirroring the relay's own reconnect-to-source rationale.
+//
+// Honesty note carried in the frames: `seq` is a bridge-local monotonic counter and `sent_ms` is
+// stamped at translation, so DataBus drop/latency math measures the bridge→viewer hop only, not
+// broker→bridge loss — QoS 0 makes no delivery promise anyway.
+//
+// Out of scope v1 (see the plan): MQTT 5, QoS 1/2, TLS (mqtts://), and publishing viewer→broker.
+// Dependency-free by design — the materialized tools/ ships no package.json, bare `node` only.
+import http from "node:http";
+import net from "node:net";
+import { readFileSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+
+import { parseArgs } from "../sim/stream.js";
+import {
+  FIN_PONG_FRAME,
+  OPCODE_CLOSE,
+  OPCODE_PING,
+  secWebSocketAccept,
+  encodeTextFrame,
+  encodeServerFrame,
+  decodeFrames,
+} from "../sim/protocol.js";
+import {
+  PACKET_CONNACK,
+  PACKET_SUBACK,
+  PACKET_PUBLISH,
+  CONNACK_ACCEPTED,
+  SUBACK_GRANTED_QOS0,
+  encodeConnect,
+  encodeSubscribe,
+  encodePingreq,
+  encodeDisconnect,
+  decodePackets,
+} from "./mqtt_protocol.js";
+import { parseMap, filtersOf, translate } from "./map.js";
+
+// --- Port + timing constants (one cluster, like the sim's stream.js port doc) ---
+/** The bridge's default WebSocket port. One above the sim's DEFAULT_PORT (8765,
+ * ../sim/stream.js) and clear of the verify_twin.sh gate's sim on 8899, so a bridge, a dev sim,
+ * and the gate can all run at once. The viewer reaches the bridge only via `sourceUrl` /
+ * TWIN_SOURCE_URL / `viewer.cfg url=`, so nothing else needs to know this number. */
+export const DEFAULT_BRIDGE_PORT = 8766;
+
+/** Default broker port when a `mqtt://host` URL omits one — the MQTT 3.1.1 IANA-assigned port. */
+const DEFAULT_MQTT_PORT = 1883;
+
+/** Keep Alive advertised in CONNECT (seconds, §3.1.2.10): the broker may disconnect the bridge if
+ * it hears nothing for 1.5× this, so the client PINGs at half the interval to stay comfortably
+ * inside the window. */
+const KEEP_ALIVE_SEC = 60;
+const PING_INTERVAL_MS = (KEEP_ALIVE_SEC * 1000) / 2;
+
+/** Delay before retrying a dropped broker connection — mirrors the relay's DEFAULT_RECONNECT_MS
+ * (twin-data.js): long enough not to hammer a broker that's down, short enough to recover fast. */
+const DEFAULT_RECONNECT_MS = 1500;
+
+/** How often to emit the dropped-payload summary to stderr (only when drops occurred). A plant
+ * broker carries chatter the bridge doesn't own; drops are counted and reported, never fatal. */
+const DROP_SUMMARY_MS = 10000;
+
+/** HTTP status returned to a plain GET on this WebSocket-only endpoint (RFC 7231 §6.5.15). Same as
+ * ../sim/server.js — the bridge's WS surface behaves exactly like the sim's. */
+const HTTP_UPGRADE_REQUIRED = 426;
+
+/** Grace before force-exit if a socket lingers past server.close() on shutdown (ms). */
+const SHUTDOWN_BACKSTOP_MS = 200;
+
+/** The single SUBSCRIBE we send carries this packet id (§2.3.1); one subscribe, one id. */
+const SUBSCRIBE_PACKET_ID = 1;
+
+/** A stable MQTT client identifier (§3.1.3.1). Clean-session, so reusing it across reconnects is
+ * fine — the broker keeps no state for it. */
+const CLIENT_ID = "xenodot-twin-bridge";
+
+/** @typedef {import("./map.js").TopicMap} TopicMap */
+
+/** Answer complete viewer(client) frames: pong every ping, honour close. The viewer never sends
+ * data frames the bridge needs, so text/binary are consumed and dropped. Identical to the sim's
+ * pumpClientFrames — the WS server behaviour is shared by contract, copied only because the two
+ * tools materialize independently. @param {net.Socket} socket @param {Buffer} buf
+ * @returns {Buffer} the unconsumed remainder. */
+function pumpClientFrames(socket, buf) {
+  const { frames, rest } = decodeFrames(buf);
+  for (const f of frames) {
+    if (f.opcode === OPCODE_CLOSE) {
+      socket.end();
+      return Buffer.alloc(0);
+    }
+    if (f.opcode === OPCODE_PING) socket.write(encodeServerFrame(FIN_PONG_FRAME, f.payload));
+  }
+  return rest;
+}
+
+/** Wire the WebSocket upgrade handler onto `wsServer`: complete the RFC 6455 handshake, track each
+ * viewer socket in `clients`, answer its pings / honour close, drop it on close. Mirrors the sim's
+ * ../sim/server.js upgrade path. @param {import("node:http").Server} wsServer
+ * @param {Set<net.Socket>} clients @returns {void} */
+function attachWsUpgrade(wsServer, clients) {
+  wsServer.on("upgrade", (req, rawSocket) => {
+    const socket = /** @type {net.Socket} */ (rawSocket);
+    const key = req.headers["sec-websocket-key"];
+    if (typeof key !== "string") {
+      socket.destroy();
+      return;
+    }
+    socket.write(
+      "HTTP/1.1 101 Switching Protocols\r\n" +
+        "Upgrade: websocket\r\n" +
+        "Connection: Upgrade\r\n" +
+        `Sec-WebSocket-Accept: ${secWebSocketAccept(key)}\r\n\r\n`,
+    );
+    socket.setNoDelay(true);
+    clients.add(socket);
+    /** @type {Buffer} */
+    let rx = Buffer.alloc(0);
+    socket.on("data", (chunk) => {
+      rx = pumpClientFrames(socket, Buffer.concat([rx, /** @type {Buffer} */ (chunk)]));
+    });
+    const drop = () => clients.delete(socket);
+    socket.on("close", drop);
+    socket.on("error", drop);
+  });
+}
+
+/** The MQTT client half of the bridge: connect to the broker, CONNECT → CONNACK → SUBSCRIBE, feed
+ * each received PUBLISH to `onPublish`, keepalive-ping, and reconnect on drop (mirroring the
+ * relay's reconnect-to-source rationale). Returns start/stop handles.
+ * @param {{ brokerHost: string, brokerPort: number, username?: string, password?: string,
+ *   filters: string[], reconnectDelayMs: number,
+ *   onPublish: (topic: string, payload: Buffer) => void, log: (msg: string) => void }} cfg
+ * @returns {{ start: () => void, stop: () => void }} */
+function createMqttClient(cfg) {
+  const { brokerHost, brokerPort, username, password, filters, reconnectDelayMs, onPublish, log } =
+    cfg;
+  let stopped = false;
+  /** @type {net.Socket | null} */
+  let broker = null;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let reconnectTimer = null;
+  /** @type {ReturnType<typeof setInterval> | null} */
+  let pingTimer = null;
+
+  function stopPing() {
+    if (pingTimer) {
+      clearInterval(pingTimer);
+      pingTimer = null;
+    }
+  }
+  function scheduleReconnect() {
+    if (stopped || reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connect();
+    }, reconnectDelayMs);
+  }
+
+  /** @param {import("./mqtt_protocol.js").MqttPacket} p @param {net.Socket} sock @returns {void} */
+  function handlePacket(p, sock) {
+    switch (p.type) {
+      case PACKET_CONNACK:
+        if (p.returnCode !== CONNACK_ACCEPTED) {
+          log(`bridge: broker refused CONNECT (return code ${String(p.returnCode)}) — retrying`);
+          sock.destroy(); // 'close' schedules the reconnect
+          return;
+        }
+        sock.write(encodeSubscribe({ packetId: SUBSCRIBE_PACKET_ID, filters }));
+        stopPing();
+        pingTimer = setInterval(() => sock.write(encodePingreq()), PING_INTERVAL_MS);
+        break;
+      case PACKET_SUBACK: {
+        const codes = /** @type {number[]} */ (p.returnCodes ?? []);
+        const failed = codes.filter((c) => c !== SUBACK_GRANTED_QOS0).length;
+        log(
+          `bridge: subscribed to ${filters.length} filter(s)` +
+            (failed ? ` — ${failed} refused by broker` : ""),
+        );
+        break;
+      }
+      case PACKET_PUBLISH:
+        onPublish(/** @type {string} */ (p.topic), /** @type {Buffer} */ (p.payload));
+        break;
+      default:
+        break; // PINGRESP / unexpected server packet — nothing to do, stay live
+    }
+  }
+
+  function connect() {
+    if (stopped) return;
+    const sock = net.connect({ host: brokerHost, port: brokerPort });
+    broker = sock;
+    /** @type {Buffer} */
+    let rx = Buffer.alloc(0);
+    sock.on("connect", () => {
+      log(`bridge: connected to broker ${brokerHost}:${brokerPort}`);
+      sock.write(
+        encodeConnect({ clientId: CLIENT_ID, keepAlive: KEEP_ALIVE_SEC, username, password }),
+      );
+    });
+    sock.on("data", (chunk) => {
+      const { packets, rest } = decodePackets(Buffer.concat([rx, /** @type {Buffer} */ (chunk)]));
+      rx = rest;
+      for (const p of packets) handlePacket(p, sock);
+    });
+    sock.on("error", (e) => {
+      log(`bridge: broker connection error (${e.message})`); // 'close' handles the retry
+    });
+    sock.on("close", () => {
+      stopPing();
+      if (broker === sock) broker = null;
+      if (!stopped) scheduleReconnect();
+    });
+  }
+
+  function stop() {
+    stopped = true;
+    stopPing();
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    if (broker) {
+      try {
+        broker.write(encodeDisconnect()); // §3.14 clean disconnect
+      } catch {
+        /* socket already gone */
+      }
+      broker.destroy();
+      broker = null;
+    }
+  }
+
+  return { start: connect, stop };
+}
+
+/**
+ * Start the bridge: a WebSocket server that fans DataBus frames out to viewer clients, fed by an
+ * MQTT client subscribed to the broker. Pure of the filesystem (the CLI reads + parses the map;
+ * this takes the parsed map) so the integration test can drive it in-process against a fake broker.
+ *
+ * @param {object} opts
+ * @param {string} opts.brokerHost @param {number} opts.brokerPort
+ * @param {TopicMap} opts.map  parsed + validated topic map
+ * @param {number} [opts.port]  WS port (0 = ephemeral, for tests)
+ * @param {string} [opts.username] @param {string} [opts.password]
+ * @param {number} [opts.reconnectDelayMs]
+ * @param {(msg: string) => void} [opts.log]
+ * @returns {{ whenListening: Promise<number>, close: () => void, stats: () => { forwarded: number, dropped: { noRule: number, badPayload: number } } }}
+ */
+export function startBridge(opts) {
+  const {
+    brokerHost,
+    brokerPort,
+    map,
+    port = DEFAULT_BRIDGE_PORT,
+    username,
+    password,
+    reconnectDelayMs = DEFAULT_RECONNECT_MS,
+    log = () => {},
+  } = opts;
+  /** @type {Set<net.Socket>} viewer clients */
+  const clients = new Set();
+  let seq = 0; // bridge-local monotonic counter — the bridge→viewer hop (see header honesty note)
+  let forwarded = 0;
+  const dropped = { noRule: 0, badPayload: 0 };
+
+  // --- WebSocket server (mirror ../sim/server.js) ---
+  const wsServer = http.createServer((_req, res) => {
+    res.writeHead(HTTP_UPGRADE_REQUIRED, { "content-type": "text/plain" });
+    res.end("Upgrade Required — this is the MQTT→WS bridge tag source.\n");
+  });
+  attachWsUpgrade(wsServer, clients);
+
+  /** Translate one received PUBLISH and forward it to every viewer, or count the drop by reason.
+   * @param {string} topic @param {Buffer} payload @returns {void} */
+  function onPublish(topic, payload) {
+    const t = translate(map.rules, topic, payload);
+    if (!t.ok) {
+      if (t.reason === "no-rule") dropped.noRule++;
+      else dropped.badPayload++;
+      return;
+    }
+    const frame = encodeTextFrame(
+      JSON.stringify({ tag: t.tag, value: t.value, seq: seq++, sent_ms: Date.now() }),
+    );
+    for (const c of clients) c.write(frame);
+    forwarded++;
+  }
+
+  const mqtt = createMqttClient({
+    brokerHost,
+    brokerPort,
+    username,
+    password,
+    filters: filtersOf(map),
+    reconnectDelayMs,
+    onPublish,
+    log,
+  });
+
+  // Drop reporting (loud, periodic, never fatal).
+  const dropTimer = setInterval(() => {
+    if (dropped.noRule || dropped.badPayload) {
+      log(
+        `bridge: dropped ${dropped.noRule} unmapped + ${dropped.badPayload} non-numeric payload(s) so far`,
+      );
+    }
+  }, DROP_SUMMARY_MS);
+  dropTimer.unref();
+
+  mqtt.start();
+
+  /** @type {(port: number) => void} */
+  let resolveListening = () => {};
+  const whenListening = /** @type {Promise<number>} */ (
+    new Promise((resolve) => {
+      resolveListening = resolve;
+    })
+  );
+  wsServer.listen(port, () => {
+    const addr = wsServer.address();
+    const boundPort = typeof addr === "object" && addr !== null ? addr.port : port;
+    log(
+      `bridge: serving DataBus frames on ws://localhost:${boundPort} (broker ${brokerHost}:${brokerPort})`,
+    );
+    resolveListening(boundPort);
+  });
+
+  function close() {
+    mqtt.stop();
+    clearInterval(dropTimer);
+    for (const c of clients) c.destroy();
+    wsServer.close();
+  }
+
+  return {
+    whenListening,
+    close,
+    stats: () => ({ forwarded, dropped: { ...dropped } }),
+  };
+}
+
+// --- CLI ---
+/** Parse a `mqtt://host[:port]` broker URL into host + port, rejecting the unsupported schemes.
+ * @param {string} raw @returns {{ host: string, port: number }} */
+function parseBroker(raw) {
+  let u;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new Error(`--broker: not a URL: '${raw}'`);
+  }
+  if (u.protocol === "mqtts:") {
+    throw new Error("--broker: TLS (mqtts://) is not supported in v1 — use mqtt:// (see the plan)");
+  }
+  if (u.protocol !== "mqtt:") {
+    throw new Error(`--broker: only mqtt:// is supported (got '${u.protocol}//')`);
+  }
+  return { host: u.hostname, port: Number(u.port || DEFAULT_MQTT_PORT) };
+}
+
+/** CLI entry: read args, load + parse the map, start the bridge, wire shutdown + optional stats.
+ * @returns {void} */
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (!args.broker || !args.map) {
+    console.error(
+      "usage: node tools/bridge/mqtt_ws.js --broker mqtt://host:1883 --map mqtt_map.json " +
+        "[--port 8766] [--user u --pass p] [--stats out.json]",
+    );
+    process.exit(1);
+  }
+
+  let broker;
+  /** @type {TopicMap} */
+  let map;
+  try {
+    broker = parseBroker(args.broker);
+    map = parseMap(readFileSync(args.map, "utf8"));
+  } catch (e) {
+    console.error(`bridge: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+    return;
+  }
+
+  const handle = startBridge({
+    brokerHost: broker.host,
+    brokerPort: broker.port,
+    map,
+    port: Number(args.port ?? DEFAULT_BRIDGE_PORT),
+    username: args.user,
+    password: args.pass,
+    log: (m) => {
+      console.log(m);
+    },
+  });
+
+  const statsPath = args.stats;
+  function shutdown() {
+    handle.close();
+    if (statsPath) {
+      try {
+        writeFileSync(statsPath, JSON.stringify(handle.stats(), null, 2) + "\n");
+        console.log(`bridge: wrote stats → ${statsPath}`);
+      } catch (e) {
+        console.warn(
+          `bridge: could not write stats '${statsPath}' (${e instanceof Error ? e.message : String(e)})`,
+        );
+      }
+    }
+    setTimeout(() => process.exit(0), SHUTDOWN_BACKSTOP_MS).unref();
+  }
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}
+
+// Run only when invoked directly (`node .../mqtt_ws.js`), not when imported by the test.
+const invokedDirectly =
+  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) main();

@@ -83,11 +83,15 @@ writes once?_ Honest verdicts, including NONE.
 
 ### Must Have (credibility for the first real user/demo)
 
-1. **MQTT source adapter behind `sourceUrl`.** The first question every real visitor
-   asks is "can it talk to my broker?" The relay seam was designed for exactly this;
-   the sim's `stream.js`/`protocol.js` split means the adapter is a bounded Node module
-   with tests. Research-validated architecture: edge bridge → MQTT/WS → viewer.
-   (Agent-advantage low, product-necessity high — build it once, gate it.)
+1. ~~**MQTT source adapter behind `sourceUrl`.**~~ ✅ **DONE (2026-07-09, merged to `main`).**
+   The first question every real visitor asks is "can it talk to my broker?" The relay seam
+   was designed for exactly this; the sim's `stream.js`/`protocol.js` split means the adapter
+   is a bounded Node module with tests. Research-validated architecture: edge bridge →
+   MQTT/WS → viewer. Built per `2026-07-09-mqtt-adapter-plan.md`: dependency-free MQTT 3.1.1
+   QoS-0 bridge at `plugin-twin/tools/bridge/` (`mqtt_protocol.js` + `map.js` + `mqtt_ws.js`),
+   28 tests (codec + §4.7 mapping + in-process fake-broker integration), relay untouched, ships
+   via the materializer under bare `node`. Live-validated broker→bridge→viewer paint against
+   Mosquitto: `plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`.
 2. **One-command pipeline: import → optimize → verify.** The pieces exist as separate
    skills/tools; a single `twin-build` flow (or orchestrator behavior) that takes an IFC
    and yields an optimized, join-verified, bound viewer is the demo moment. Mostly
