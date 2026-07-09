@@ -53,16 +53,17 @@ On every conflict during a sync merge:
 Each entry = the smallest change, plus why it can't be additive. On a sync, keep our edit AND fold in
 upstream's real behavior change, hunk by hunk.
 
-| File                                                                                                                                             | Our edit                                                                                                                                                                            | Why it can't be additive                                                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `ui/server/core/config.js`                                                                                                                       | `getProjectType()` returns `"viewer"` unconditionally; `PROJECT_TYPES = ["viewer"]`; `ORCHESTRATOR_PROMPT` reads `orchestrator-viewer.md`; `ORCHESTRATOR_VIEWER_PROMPT` aliases it. | The domain resolver + orchestrator prompt are central resolved config; viewer-only collapses the game branch. |
-| `ui/server/cli/new.js`                                                                                                                           | Viewer-only: `--game` errors with a pointer to xenodot-forge; default target `../viewer`; always scaffolds `starter-viewer/`; passes `--viewer` to setup.                           | Scaffolding picks the starter + project type; the game path is gone.                                          |
-| `ui/server/cli/setup.js`                                                                                                                         | Viewer-only: `--game` errors; `projectType` is always `"viewer"`.                                                                                                                   | Setup writes the project type; game is unreachable.                                                           |
-| `ui/server/features/skills/skill-registry.js`                                                                                                    | `BUILDERS = ["godot-dev", "godot-refactor", "godot-visuals", "godot-assets"]` (dropped the gameplay specialists).                                                                   | The `builders` audience token expands to this list; it must name only agents that ship.                       |
-| `ui/server/cli/onboarding.check.js`                                                                                                              | Asserts `starter-viewer/` ships and scaffolds/boots a viewer (not `starter/`).                                                                                                      | The clean-install regression must target the shipped starter.                                                 |
-| `ui/server/core/session.test.js`                                                                                                                 | Relabeled the `projectType: "game"` case as a generic non-viewer negative test.                                                                                                     | The pure gating fn still accepts any token; the label was game-specific.                                      |
-| `plugin/agents/{godot-dev,godot-visuals,godot-assets}.md`                                                                                        | Trimmed game-aesthetic skills from `skills:` frontmatter (pixel-art, foliage, procedural placeholders, gridmap, playthrough-bot, greybox-to-asset, art-style).                      | The projection (`gen-skill-scope`) must match the skills that ship; those skills were dropped.                |
-| `plugin/skills/{agent-report,godot-code-rules,godot-verify,godot-hd-material-import,godot-mesh-import-hd,godot-runtime-smoke,graphify}/SKILL.md` | `agents:` audience tag retagged to remove dropped agents (`godot-playtester`, `asset-advisor`, `bug-triage`, gameplay builders).                                                    | An `agents:` token naming a dropped agent trips `gen-skill-scope`; retag to the surviving audience.           |
+| File                                                                                               | Our edit                                                                                                                                                                                                                                     | Why it can't be additive                                                                                                    |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ui/server/core/config.js`                                                                         | `getProjectType()` returns `"viewer"` unconditionally; `PROJECT_TYPES = ["viewer"]`; `ORCHESTRATOR_PROMPT` reads `orchestrator-viewer.md`; `ORCHESTRATOR_VIEWER_PROMPT` aliases it.                                                          | The domain resolver + orchestrator prompt are central resolved config; viewer-only collapses the game branch.               |
+| `ui/server/cli/new.js`                                                                             | Viewer-only: `--game` errors with a pointer to xenodot-forge; default target `../viewer`; always scaffolds `starter-viewer/`; passes `--viewer` to setup.                                                                                    | Scaffolding picks the starter + project type; the game path is gone.                                                        |
+| `ui/server/cli/setup.js`                                                                           | Viewer-only: `--game` errors; `projectType` is always `"viewer"`.                                                                                                                                                                            | Setup writes the project type; game is unreachable.                                                                         |
+| `ui/server/features/skills/skill-registry.js`                                                      | `BUILDERS = ["godot-dev", "godot-refactor", "godot-visuals", "godot-assets"]` (dropped the gameplay specialists).                                                                                                                            | The `builders` audience token expands to this list; it must name only agents that ship.                                     |
+| `ui/server/cli/onboarding.check.js`                                                                | Asserts `starter-viewer/` ships and scaffolds/boots a viewer (not `starter/`).                                                                                                                                                               | The clean-install regression must target the shipped starter.                                                               |
+| `ui/server/core/session.test.js`                                                                   | Relabeled the `projectType: "game"` case as a generic non-viewer negative test.                                                                                                                                                              | The pure gating fn still accepts any token; the label was game-specific.                                                    |
+| `ui/server/cli/doctor.js`                                                                          | Terminal-install hint installs BOTH plugins from the `xenodot-twin` marketplace (`xenodot@xenodot-twin` + `xenodot-twin@xenodot-twin`); dropped the stale "twin is web-UI only / not in the marketplace" note.                               | The printed marketplace name + plugin list must match our renamed marketplace that ships both plugins.                      |
+| `plugin/agents/{godot-dev,godot-visuals,godot-assets}.md`                                          | Trimmed dropped game skills from `skills:` frontmatter AND reworded the game-flavored prose/descriptions for the viewer domain (route to twin agents, no pixel-art/level/gameplay guidance). godot-assets is now core-only.                  | The projection (`gen-skill-scope`) must match the skills that ship, and the orchestrator reads these descriptions to route. |
+| `plugin/skills/{agent-report,godot-code-rules,godot-verify,godot-runtime-smoke,graphify}/SKILL.md` | `agents:` audience tag retagged to remove dropped agents (`godot-playtester`, `bug-triage`, gameplay builders); `godot-verify` + `godot-runtime-smoke` bodies reworded off the dropped `godot-playthrough-bot`/pixel-art/gridmap cross-refs. | An `agents:` token naming a dropped agent trips `gen-skill-scope`; a backticked dropped-skill body ref warns.               |
 
 ## Intentional upstream divergences (re-drop on EVERY sync)
 
@@ -82,7 +83,7 @@ Keep the 10 base agents: `godot-dev`, `godot-refactor`, `godot-visuals`, `godot-
 `transcript-researcher`, `handoff-summarizer`. (Roster authority: `ui/orchestrator-viewer.md` — the
 viewer routes to exactly these.)
 
-### 2. Game skills (30) — NOT carried
+### 2. Game skills (32) — NOT carried
 
 Delete `plugin/skills/`:
 
@@ -90,16 +91,23 @@ Delete `plugin/skills/`:
 `godot-data-driven-composition`, `godot-effect-composition`, `godot-enemy-ai`,
 `godot-enemy-ai-headless-smoke`, `godot-enemy-archetype`, `godot-first-person-controller`,
 `godot-foliage`, `godot-greybox`, `godot-greybox-to-asset`, `godot-gridmap-level`,
-`godot-looping-particle-vfx`, `godot-mesh-import-pixel-art`, `godot-navmesh-pathing-4-6`,
-`godot-oneshot-vfx`, `godot-orthographic-follow-camera`, `godot-pixel-lighting`, `godot-playgrade`,
+`godot-hd-material-import`, `godot-looping-particle-vfx`, `godot-mesh-import-hd`,
+`godot-mesh-import-pixel-art`, `godot-navmesh-pathing-4-6`, `godot-oneshot-vfx`,
+`godot-orthographic-follow-camera`, `godot-pixel-lighting`, `godot-playgrade`,
 `godot-playthrough-bot`, `godot-procedural-model`, `godot-procedural-texture`, `godot-runtime-arena`,
 `godot-shooter-enemy-combat`, `godot-stealth-perception`, `godot-texture-import-pixel-art`,
 `godot-travelling-projectile-3d`, `level-design-principles`.
 
-Keep the 17 base skills: `agent-report`, `autonomous-main-goal`, `caveman`, `godot-code-rules`,
-`godot-composition`, `godot-docs`, `godot-export-builds`, `godot-hd-material-import`,
-`godot-main-scene`, `godot-mesh-import-hd`, `godot-project-conventions`, `godot-runtime-smoke`,
-`godot-screen-effects`, `godot-verify`, `graphify`, `research-presenting`, `tasks-mcp`.
+> `godot-mesh-import-hd` + `godot-hd-material-import` are dropped too: they are FPS-flavored and
+> structurally built ON the pixel-art import skills (they defer their core steps to
+> `godot-mesh-import-pixel-art`), so they can't stand alone once those are gone. A viewer imports the
+> building via `xenodot-twin:twin-import`; ad-hoc `.glb`/texture wiring falls to `godot-assets` on its
+> core skills.
+
+Keep the 15 base skills: `agent-report`, `autonomous-main-goal`, `caveman`, `godot-code-rules`,
+`godot-composition`, `godot-docs`, `godot-export-builds`, `godot-main-scene`,
+`godot-project-conventions`, `godot-runtime-smoke`, `godot-screen-effects`, `godot-verify`,
+`graphify`, `research-presenting`, `tasks-mcp`.
 
 > After a new upstream release: any NEW `godot-*` skill/agent that lands is game payload UNLESS the
 > viewer orchestrator routes to it or a twin agent composes it. Judge it, drop it if game, and add it
@@ -154,6 +162,7 @@ All must be green after a sync (`npm run validate` bundles the first four):
 
 ## Baseline divergence count (v0.2.1 fork point, upstream `37ee71c`)
 
-Dropped: **10 game agents + 30 game skills + 1 game orchestrator + 1 game starter + 3 roadmap docs +
-2 art files + 4 game library record groups**. Seam-edited: **8 framework files/dirs**. Identity: **5
-files**. Namespaces + `plugin-twin/` kept verbatim.
+Dropped: **10 game agents + 32 game skills + 1 game orchestrator + 1 game starter + 3 roadmap docs +
+2 art files + 4 game library record groups**. Seam-edited: **9 framework files/dirs** (config, new,
+setup, skill-registry, onboarding, session.test, doctor, the 3 trimmed builders, the retagged
+skills). Identity: **5 files**. Namespaces + `plugin-twin/` kept verbatim.
