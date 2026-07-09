@@ -165,6 +165,16 @@ echo "$XENO_GATE: PASS import ($GLB + $SIDECAR)"
 
 # --- stage 3: optimize (GLB → optimized .tscn + report) ----------------------------------------
 _stage 3/5 "optimize (optimize_scene.gd)"
+# optimize_scene.gd resolves the TwinChunks/TwinHints class_name globals (tools/lib/), and Godot
+# only registers class_name scripts during a resource-import scan. A freshly scaffolded project
+# that was never opened has run no such scan, so a clean-stranger --script run parse-fails with
+# "Identifier TwinChunks not declared". Populate the global class cache with a one-off headless
+# import when it does not yet list the twin libs. Cheap + idempotent; a warm project skips it. A
+# failed/incomplete import is NOT swallowed as a pass — optimize below still gates on the .tscn.
+if ! grep -q "TwinChunks" .godot/global_script_class_cache.cfg 2>/dev/null; then
+	echo "$XENO_GATE: optimize — registering class_name globals (first-run headless import)"
+	"$GODOT" --headless --path . --import >/dev/null 2>&1 || true
+fi
 OPT_ARGS=("--in=$GLB" "--out=$OPT_SCENE" "--report=$REPORT")
 [ -n "$CHUNKS" ] && OPT_ARGS+=("--chunks=$CHUNKS")
 [ -n "$MIN_INSTANCES" ] && OPT_ARGS+=("--min-instances=$MIN_INSTANCES")
