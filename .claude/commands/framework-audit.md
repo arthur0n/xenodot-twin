@@ -1,6 +1,6 @@
 ---
-description: Framework self-audit — score agents/skills/orchestrator/commands across 9 quality dimensions, record findings in the ledger, propose fixes, critique itself. Manual, human-run. Forge-local (not shipped).
-argument-hint: "[D1..D9 | all]"
+description: Framework self-audit — score agents/skills/orchestrator/commands across 10 quality dimensions, record findings in the ledger, propose fixes, critique itself. Manual, human-run. Forge-local (not shipped).
+argument-hint: "[D1..D10 | all]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Agent, Skill, mcp__ui__form, mcp__ui__tasks, mcp__ui__ask
 model: opus
 ---
@@ -157,6 +157,31 @@ misses one ref leaves contamination behind. Completeness → `rg`; concepts → 
        Model-upgrade ritual: on a major model release, strip one scaffold on a sample task, measure,
        decide keep/strip/retier — record as D9 findings. Expect most D9 flags to need a real
        before/after measurement, not a hunch — say which are measured vs hypothesised.
+
+   - **D10 — Abstraction-level / domain-layering.** Does each capability sit at ONE altitude — a
+     GENERIC baseline (engine/quality/way-of-work: renderer defaults, folder layout, naming,
+     warnings-as-errors, structural import/viewer workflows) OR a DOMAIN payload (a specific source
+     format's semantics: IFC/BIM property model, CAD-layer conventions, point-cloud framing) — and
+     never fuse the two into one un-swappable block? D2 catches one PROJECT's facts; D10 catches one
+     DOMAIN's payload smuggled into a capability whose name or role promises generality. The tell: a
+     generic-tier capability (name/role says 'conventions', 'baseline', 'keystone', 'the viewer core',
+     'use FIRST') that hardcodes a source-format constant as 'non-negotiable' — an IFC-only assumption
+     (the GlobalId join key, an ifcopenshell property schema, an IfcSpace/storey hierarchy) baked into
+     a skill sold as the generic import/join/binding layer, so a CAD or point-cloud model silently
+     inherits an IFC contract it can't satisfy. **The probe is the SECOND-DOMAIN TEST:** read the
+     capability as a model source this framework also spans that does NOT share the payload (a CAD or
+     glTF import where an IFC one taught) — does the generic half (convert → node tree → property
+     sidecar → join-by-stable-id → color-by-value) still apply cleanly and the IFC specifics fall away
+     as a swappable layer? Also flag DEPENDENCY-DIRECTION INVERSIONS: a generic workflow living INSIDE
+     a domain-named capability so a second source-format must depend on the first — the generic core
+     (import→join→bind→view) should be the base BOTH formats import, IFC and CAD layering their own
+     property-extraction delta on top. Fix pattern: split the generic baseline into its own neutral
+     capability; the domain payload becomes a thin layer on top. Expect false positives: a
+     payload-tier capability (an IFC-specific importer) SHOULD carry IFC constants — only flag them
+     where the declared tier is GENERIC. Origin (upstream forge): godot-project-conventions fused a
+     quality baseline with a 3D-pixel-art payload; invisible to every single-domain loop
+     (contamination gates catch one project's facts, session mining only sees the domain in use) —
+     surfaced only by a fork's second-domain strip (this very twin fork is that strip).
 
 4. **Judge + id each finding.** EXPECT most findings to be false positives on inspection — they are
    hypotheses until checked against the actual files: generic industry vocabulary (tank/grunt/runner)
