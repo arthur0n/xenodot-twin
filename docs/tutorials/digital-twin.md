@@ -368,20 +368,27 @@ for this demo the "real source" is the seeded sim, so start
 ### Point it at your MQTT broker (the real-source happy path)
 
 The seeded sim is the fixture; a real plant speaks MQTT. The **MQTT→WS bridge** plugs in behind the
-same relay seam — no viewer change. Write an `mqtt_map.json` mapping broker topics to your tags
-(example: `xenodot-twin/plugin-twin/examples/mqtt_map.example.json`), then:
+same relay seam — no viewer change. It is a client: **you point it at a broker you already have.**
+Its only dependency is `node` (materialized into the project's `tools/`, bare `node`, no
+`npm install`) — **no Docker, nothing to deploy.** Write an `mqtt_map.json` mapping your broker's
+topics to your tags (example: `xenodot-twin/plugin-twin/examples/mqtt_map.example.json`), then:
 
 ```bash
-# 1) a broker (any MQTT 3.1.1 broker; Mosquitto shown)
-brew install mosquitto && brew services start mosquitto      # or: docker run --rm -p 1883:1883 eclipse-mosquitto:2
+# 1) point the bridge at YOUR broker (host, port, and credentials if it needs them)
+node tools/bridge/mqtt_ws.js --broker mqtt://broker.myplant.local:1883 \
+    --map mqtt_map.json --port 8766 [--user U --pass P]
 
-# 2) the bridge, in the project's tools/ (materialized there), speaking QoS-0 to the broker
-node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json --port 8766
-
-# 3) point the relay at the bridge instead of the sim
+# 2) point the relay at the bridge instead of the sim
 export TWIN_SOURCE_URL=ws://localhost:8766        # or set twin.sourceUrl in .xenodot.json
+```
 
-# 4) publish telemetry; the mapped elements paint live
+That's the whole real-world setup — your broker is already publishing plant telemetry, so the mapped
+elements paint live. **No broker handy?** Spin up a throwaway one just to try it (either works; Docker
+is only one option):
+
+```bash
+brew install mosquitto && brew services start mosquitto   # native — or: docker run --rm -p 1883:1883 eclipse-mosquitto:2
+# then use --broker mqtt://localhost:1883 above, and fake some telemetry:
 mosquitto_pub -t house/living_room/temp -m 21.5
 mosquitto_pub -t house/solar/power -m '{"watts":3200}'
 ```
