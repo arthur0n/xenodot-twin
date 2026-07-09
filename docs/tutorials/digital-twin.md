@@ -328,9 +328,11 @@ through the _same_ binding runtime live data uses.
 
 ## Driving it from the web UI
 
-Instead of running the steps by hand you can let the agent Hive do them. From the clone, launch
-the server **detached** with the bundled launcher (it writes a PID + log under `.xenodot-run/`
-and keeps running after you close the terminal):
+Instead of running the steps by hand you can let the agent Hive do them — the whole pipeline as
+plain-language requests. There's a dedicated walkthrough for that: **[Digital twin from the web UI —
+just ask the Hive](./digital-twin-web-ui.md)**. The short version: from the clone, launch the server
+**detached** with the bundled launcher (it writes a PID + log under `.xenodot-run/` and keeps running
+after you close the terminal):
 
 ```bash
 ./start_server                # serves the web UI on :8338, loads the xenodot plugin automatically
