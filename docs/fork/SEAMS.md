@@ -101,8 +101,10 @@ Delete `plugin/skills/`:
 > `godot-mesh-import-hd` + `godot-hd-material-import` are dropped too: they are FPS-flavored and
 > structurally built ON the pixel-art import skills (they defer their core steps to
 > `godot-mesh-import-pixel-art`), so they can't stand alone once those are gone. A viewer imports the
-> building via `xenodot-twin:twin-import`; ad-hoc `.glb`/texture wiring falls to `godot-assets` on its
-> core skills.
+> building via `xenodot-twin:twin-import`; NON-BIM equipment/props (vendor GLB/FBX, CC0 models) come
+> in via `xenodot-twin:twin-asset-import` (the twin-native replacement — mints a synthetic GlobalId so
+> a prop joins the data layer), and ad-hoc one-off `.glb`/texture dressing falls to `godot-assets` on
+> its core skills.
 
 Keep the 15 base skills: `agent-report`, `autonomous-main-goal`, `caveman`, `godot-code-rules`,
 `godot-composition`, `godot-docs`, `godot-export-builds`, `godot-main-scene`,

@@ -12,6 +12,7 @@ tools: Read, Glob, Grep, Write, Edit, Skill, mcp__ui__form, mcp__ui__tasks
 skills:
   - xenodot:caveman
   - twin-import
+  - twin-asset-import
   - twin-optimize
   - twin-bind-data
   - twin-verify
