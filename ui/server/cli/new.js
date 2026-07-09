@@ -6,11 +6,10 @@
 // plugin: automatically in the web UI, and in terminal Claude Code after a one-time
 // `/plugin install` (printed by doctor). The committed game stays pure game.
 //
-// Usage: npm run new -- ../mygame           (scaffold an empty folder, or wire an existing Godot project)
-//        npm run new -- ../mytwin --viewer   (scaffold a digital-twin VIEWER from starter-viewer/
-//                                             and save projectType "viewer")
-//        npm run new -- ../mygame --game     (wire a GAME explicitly — the way back after a
-//                                             viewer: projectType is sticky otherwise)
+// Usage: npm run new -- ../myviewer          (scaffold an empty folder into a digital-twin VIEWER,
+//                                             or wire an existing Godot project in place)
+//        npm run new -- ../myviewer --viewer  (--viewer is accepted but redundant — viewer is the
+//                                             only domain xenodot-twin ships)
 import { existsSync, cpSync, readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
@@ -20,20 +19,26 @@ const here = path.dirname(fileURLToPath(import.meta.url)); // ui/server/cli
 const FRAMEWORK_DIR = path.join(here, "..", "..", "..");
 
 const argv = process.argv.slice(2);
-// `--viewer` / `--game` are the ONLY flags this command takes; any other (`--help`/`--project`)
-// must fail loudly, not silently scaffold the default sibling path (or, resolved raw, a literal
-// `--help/` dir). `--game` exists as the explicit way back from a sticky "viewer" projectType.
-const viewer = argv.includes("--viewer");
-const game = argv.includes("--game");
-const flagArg = argv.find((a) => a.startsWith("-") && a !== "--viewer" && a !== "--game");
-if (flagArg) {
+// xenodot-twin scaffolds digital-twin VIEWERS only — the game domain lives upstream in
+// xenodot-forge. `--game` is refused with that pointer rather than silently doing the wrong thing.
+if (argv.includes("--game")) {
   console.error(
-    `new: ${flagArg} is not a project path. Usage: npm run new -- ../mygame [--viewer|--game]`,
+    "new: xenodot-twin builds digital-twin VIEWERS, not games — there is no game starter or game\n" +
+      "orchestrator in this fork. For a Godot game, use xenodot-forge (github.com/arthur0n/xenodot-forge).",
   );
   process.exit(1);
 }
+// `--viewer` is the only accepted flag (and it's the default); any other (`--help`/`--project`)
+// must fail loudly, not silently scaffold the default sibling path (or, resolved raw, a literal
+// `--help/` dir).
+const viewer = true; // xenodot-twin is viewer-only
+const flagArg = argv.find((a) => a.startsWith("-") && a !== "--viewer");
+if (flagArg) {
+  console.error(`new: ${flagArg} is not a project path. Usage: npm run new -- ../myviewer`);
+  process.exit(1);
+}
 const target = path.resolve(
-  argv.find((a) => !a.startsWith("-")) ?? path.join(FRAMEWORK_DIR, "..", "game"),
+  argv.find((a) => !a.startsWith("-")) ?? path.join(FRAMEWORK_DIR, "..", "viewer"),
 );
 
 /** Run a child step, inheriting stdio so its output streams through. @param {string[]} args */
@@ -71,10 +76,10 @@ function ensureIgnores(dir) {
 }
 
 // 1. Scaffold the starter (project + thin CLAUDE.md + .claude/settings.json + .gitignore)
-//    into an empty/new target — starter-viewer/ (the digital-twin viewer starter) with
-//    `--viewer`, starter/ (the game) otherwise. An existing Godot project is kept and wired
+//    into an empty/new target — always starter-viewer/ (the digital-twin viewer starter; the
+//    game starter was dropped with the game domain). An existing Godot project is kept and wired
 //    in place.
-const starterDir = path.join(FRAMEWORK_DIR, viewer ? "starter-viewer" : "starter");
+const starterDir = path.join(FRAMEWORK_DIR, "starter-viewer");
 if (!existsSync(path.join(target, "project.godot"))) {
   if (!existsSync(starterDir)) {
     console.error(`new: ${starterDir} is missing — cannot scaffold. Is the framework complete?`);
@@ -87,9 +92,9 @@ if (!existsSync(path.join(target, "project.godot"))) {
 }
 ensureIgnores(target);
 
-// 2. Remember the path (+ projectType — a viewer session loads plugin-twin and the viewer
-//    orchestrator; see config.js getProjectType). Writes .xenodot.json.
-node(path.join(here, "setup.js"), target, ...(viewer ? ["--viewer"] : game ? ["--game"] : []));
+// 2. Remember the path (+ projectType "viewer" — a viewer session loads plugin-twin and the
+//    viewer orchestrator; see config.js getProjectType). Writes .xenodot.json.
+node(path.join(here, "setup.js"), target, "--viewer");
 
 // 3. Materialize the plugin's per-game files: tools/ copied, library/ symlinked.
 node(path.join(here, "materialize.js"), target);

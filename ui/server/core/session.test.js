@@ -253,10 +253,10 @@ test("resolveSessionPlugins: viewer project + twin on disk → twin entry append
   ]);
 });
 
-test("resolveSessionPlugins: game project (default) → base only, even with twin on disk", () => {
+test("resolveSessionPlugins: non-viewer projectType → base only, even with twin on disk", () => {
   const plugins = resolveSessionPlugins({
     baseDir,
-    projectType: "game",
+    projectType: "game", // any non-"viewer" token — xenodot-twin only ever passes "viewer"
     twinDir,
     codexEnabled: false,
     codexDir: missingDir,

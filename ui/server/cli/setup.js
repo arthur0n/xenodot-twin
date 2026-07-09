@@ -3,12 +3,10 @@
 // Merges the absolute path into .xenodot.json (gitignored) in the framework root,
 // preserving any `engine` / `hermes` block already there (see config.js / docs/engines.md).
 //
-// Usage: npm run setup -- ../game        (or any path to your project)
-//        npm run setup                    (defaults to ../game, the sibling folder)
-//        npm run setup -- ../mytwin --viewer   (mark the project a digital-twin VIEWER —
-//                                               loads plugin-twin + the viewer orchestrator)
-//        npm run setup -- ../game --game       (explicitly mark it a GAME — the way BACK
-//                                               from viewer: type is sticky otherwise)
+// Usage: npm run setup -- ../viewer      (or any path to your digital-twin viewer project)
+//        npm run setup                    (defaults to ../viewer, the sibling folder)
+// Every project is a digital-twin VIEWER (loads plugin-twin + the viewer orchestrator); the game
+// domain lives upstream in xenodot-forge, so `--game` is refused here.
 //
 // Hermes (external researcher) can be switched on here too — these only touch the
 // `hermes` block, never the project path (use the web UI ⚙ Settings panel for the same):
@@ -28,6 +26,13 @@ import {
 const argv = process.argv.slice(2);
 /** @param {string} name @returns {boolean} */
 const flag = (name) => argv.includes(`--${name}`);
+// xenodot-twin is viewer-only — refuse a game marker rather than write an unreachable projectType.
+if (flag("game")) {
+  console.error(
+    "setup: xenodot-twin is viewer-only — there is no game domain here. Use xenodot-forge for games.",
+  );
+  process.exit(1);
+}
 /** @param {string} name @returns {string | undefined} */
 const val = (name) =>
   argv
@@ -63,25 +68,16 @@ if (hermesArgs) {
 // `npm run hermes` never clobbers the saved project path with the ../game default.
 const arg = argv.find((a) => !a.startsWith("--"));
 if (arg || !hermesArgs) {
-  const target = path.resolve(arg ?? path.join(FRAMEWORK_DIR, "..", "game"));
+  const target = path.resolve(arg ?? path.join(FRAMEWORK_DIR, "..", "viewer"));
   // Preserve any existing config (e.g. a manually-added `engine` / `hermes` block).
   /** @type {Record<string, unknown>} */
   let saved = {};
   try {
     saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
   } catch {}
-  // Project type: `--viewer` marks a digital-twin viewer, `--game` explicitly marks a game
-  // (the way BACK from viewer — without it a previously saved "viewer" is preserved, so a
-  // plain re-setup can't accidentally demote a twin project); everything else normalizes to
-  // the "game" default — an old .xenodot.json without the key keeps working, it just gains
-  // an explicit projectType on the next setup.
-  const projectType = flag("viewer")
-    ? "viewer"
-    : flag("game")
-      ? "game"
-      : saved.projectType === "viewer"
-        ? "viewer"
-        : "game";
+  // Project type: xenodot-twin ships one domain, so every project is a digital-twin viewer
+  // (loads plugin-twin + the viewer orchestrator). `--viewer` is accepted but redundant.
+  const projectType = "viewer";
   writeFileSync(
     CONFIG_FILE,
     JSON.stringify({ ...saved, projectDir: target, projectType }, null, 2) + "\n",

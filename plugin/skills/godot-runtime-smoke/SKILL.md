@@ -1,6 +1,6 @@
 ---
 name: godot-runtime-smoke
-agents: [godot-dev, godot-enemy, godot-weapons-abilities, godot-player, godot-playtester]
+agents: [godot-dev]
 description: >-
   The L2 runtime-smoke layer for a Godot-family game (4.x) WITHOUT
   GdUnit4 — a headless SceneTree tool script (`tools/smoke_*.gd`, run via
@@ -17,9 +17,7 @@ description: >-
   the logic is wrong, not the syntax. Reuses a project's own proven
   integration-test pattern. NOT the render/draw/pipeline-count
   checks (those need a real window — godot-verify layer 3 /
-  `verify_render_action.gd`), NOT the load-and-renders gate (godot-verify),
-  NOT a feel/polish sweep (not yet a skill), NOT the input-driven playthrough
-  bot (`godot-playthrough-bot`).
+  `verify_render_action.gd`), NOT the load-and-renders gate (godot-verify).
 ---
 
 # Godot runtime smoke (L2 — headless logic asserts)
@@ -248,13 +246,13 @@ move_forward, move_back, jump`) plus any game-specific actions the project defin
    there is gitignored + overwritten on re-materialization. Each script self-reports
    pass/fail counts and sets the exit code; the gate only needs the exit code.
 
-## Input-driven playthrough → `godot-playthrough-bot`
+## Driving the input / interaction layer
 
-The signal/state smoke above drives ONE seam by calling its method. Driving the actual _input_
-layer instead (walk/jump/crouch/aim/fire on a timeline, mouse-look, toggle/pause seams) and the
-**navigability smoke** (a level that renders but is unwalkable) are the companion skill
-`godot-playthrough-bot` — same `extends SceneTree` family, no GdUnit4. Reach for it when the bug
-is in the input path or trigger wiring, not in a directly-callable seam.
+The signal/state smoke above drives ONE seam by calling its method. When the bug is in the actual
+_input / interaction_ layer instead (camera navigation, an element pick → property panel, a toggle
+seam) rather than a directly-callable seam, drive it the same way — an `extends SceneTree` harness
+that feeds the input path on a timeline and asserts the resulting state — using the same
+pattern as the twin data-binding smoke (skill `twin-verify`).
 
 ## Engine-error log capture
 
@@ -323,9 +321,9 @@ THE HEADLESS / WINDOWED SPLIT (critical — do NOT assume headless catches every
 | `material.*is null` never fires headless                                          | Render-path errors don't execute under the `--headless` dummy renderer — needs a windowed/Xvfb run (deferred, tech_debt #4); do not expect headless to catch it.                                                                                                                                                               |
 | Spatial-seam smoke passes but the transform reference (local vs global) is wrong  | Every case used an identity / yaw=0 origin, where local==global. Drive >=1 case with a NON-identity origin (rotated yaw AND translated) so a `rotation.y` vs `global_rotation.y` (or local-vs-world basis) bug is forced to diverge; assert a discriminating OFF-AXIS target. (Per-domain coverage rule, Project conventions.) |
 
-For input-path / navigability failures (bot input had no effect, mouse-look, toggle/UI "does
-nothing", player falls through the floor, an unbounded gate `await` hangs), see
-`godot-playthrough-bot`.
+For input-path / interaction failures (fed input had no effect, camera-nav, a toggle/UI "does
+nothing", an unbounded gate `await` hangs), drive the input layer with the same `extends SceneTree`
+harness described above.
 
 Authored from a project's own proven integration-test pattern; no external
 library source.

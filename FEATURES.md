@@ -1,25 +1,27 @@
 # Features
 
-What Xenodot Forge actually does, as a capability catalog. For the philosophy,
+What Xenodot Twin actually does, as a capability catalog. For the philosophy,
 positioning, and setup, see the [README](README.md); for the wire protocol, see
 [`ui/PROTOCOL.md`](ui/PROTOCOL.md).
 
 Counts below are badge-tracked (`npm run badges` rewrites them and cross-checks
-the agent list against `plugin/agents/`; wired into pre-commit). The live source
-of truth is the **Agents** tab in the UI and the plugin dirs
-(`plugin/agents/`, `plugin/skills/`) — this file groups them so it doesn't drift.
+the base-agent list against `plugin/agents/`; wired into pre-commit). The live
+source of truth is the **Agents** tab in the UI and the plugin dirs
+(`plugin/agents/`, `plugin/skills/`, `plugin-twin/agents/`, `plugin-twin/skills/`).
 
 ## The pipeline
 
 ```
-idea → game-designer   interviews you, refuses vague scope, writes a one-page design doc
-     → godot-dev       implements exactly that doc — nothing more, nothing less
-     → godot-verify    headless engine checks; catches what Godot silently drops
-     → you             one look in the editor — that's your job
+idea → twin-architect   interviews you, refuses vague scope, writes a one-page design doc
+     → twin-import       IFC/BIM → GLB + property sidecar, joined by GlobalId
+     → scene-optimizer   measured LOD / MultiMesh / chunking to hit a frame budget
+     → data-binder       master data + live time-series bound to the actual elements
+     → twin-verify       headless engine checks + join / binding / playback gates
+     → you               one look in the running viewer — that's your job
 ```
 
 Design decisions move **before** inference, not during it. Push-back is the
-product: nothing is reported "done" without passing real engine checks.
+product: nothing is reported "done" without passing real engine + twin checks.
 
 ## Multi-agent orchestration (the Hive)
 
@@ -38,32 +40,44 @@ product: nothing is reported "done" without passing real engine checks.
   partitions scope to disjoint file sets, re-verifies a transient gate fail
   during a concurrent build, and accepts the residual race rather than chase it.
 
-## Agents (20)
+## Twin agents & skills (`xenodot-twin:<name>`)
 
-Framework agents, namespaced `xenodot:<name>`. Grouped by role:
+The digital-twin domain plugin (`plugin-twin/`). Three agents:
 
-- **Design & scope** — `game-designer` (the entry point: interviews, locks a
-  design doc), `level-designer` (reads a drawn grid, briefs a level concept-first).
-- **Builders** — `godot-dev` (core build/glue/export), `godot-player`
-  (first-person + follow camera + animation), `godot-enemy` (enemy entities, AI,
-  data-driven archetypes), `godot-weapons-abilities` (weapons, projectiles, the
-  data-driven ability/effect layer), `godot-vfx` (one-shot + looping combat
-  particles), `godot-assets` (import/generate models & textures),
-  `godot-visuals` (3D-pixel-art rig, lighting, post-process),
-  `godot-refactor` (mechanical modularization into components).
-- **Art direction & assets** — `art-director` (visual-style direction),
-  `asset-advisor` (art-asset sourcing specs + post-upload verification).
+- `twin-architect` — the design gate: interviews you, owns the scene / join /
+  overlay architecture, writes a `design/` doc small enough to build and verify
+  in one step.
+- `scene-optimizer` — heavy converted geometry: LOD, MultiMesh instancing,
+  chunking, occlusion, draw-call cleanup — every change measured against a stated
+  frame budget.
+- `data-binder` — the data join: master data + time-series joined by IFC
+  GlobalId, DataBus subscriptions, live value → material/label updates, element
+  pick → property panel, and recorded-history playback.
+
+Five twin skills: `twin-import` (IFC → GLB + property sidecar), `twin-optimize`
+(measured ≥4.4× on repeated-geometry scenes), `twin-bind-data`, `twin-playback`
+(sha-gated determinism), `twin-verify` — the composed gate `tools/verify_twin.sh`
+that layers the base `xenodot:godot-verify` render floor under three twin-specific
+gates (frame budget, data-binding smoke, GlobalId join coverage).
+
+## Agents (10)
+
+Engine-generic base agents, namespaced `xenodot:<name>`. The twin agents above
+compose these. Grouped by role:
+
+- **Builders** — `godot-dev` (the default builder: scaffolding, main scene,
+  camera/navigation rig, UI panels, exports, generic Godot glue), `godot-visuals`
+  (the rendered look: lighting, environment, post-process), `godot-assets`
+  (asset-import wiring — a sourced `.glb`/texture, HD meshes + PBR materials),
+  `godot-refactor` (behaviour-preserving modularization into components).
 - **Researchers (pull-based growth, human-gated)** — `addon-researcher`
   (buy-vs-build for free Godot addons), `skill-researcher` (find a skill when no
-  `godot-*` one fits), `cli-researcher` (new agent/tooling capabilities),
+  base one fits), `cli-researcher` (new agent/tooling capabilities),
   `transcript-researcher` (harvest video knowledge into the library),
-  `godot-docs-evangelist` (authoritative API verification; needs the docs MCP).
-- **Evaluation & support** — `godot-playtester` (the embodied evaluator: plays
-  the build via adversarial bots + the playgrade grader, never fixes it),
-  `bug-triage` (root-cause + what the framework should learn),
-  `handoff-summarizer` (the ≤5-line builder-report digest).
+  `godot-docs-evangelist` (authoritative Godot API verification; needs the docs MCP).
+- **Support** — `handoff-summarizer` (the ≤5-line builder-report digest).
 
-## Skills (47)
+## Skills (15)
 
 Procedures (one canonical path, observable outcome), not references. Loaded by
 the implementers that own them, not invoked directly. Across these domains:
@@ -71,25 +85,15 @@ the implementers that own them, not invoked directly. Across these domains:
 - **Meta / procedural** — `agent-report`, `autonomous-main-goal`, `caveman`,
   `graphify`, `research-presenting`, `tasks-mcp`.
 - **Godot core** — project conventions, typed-GDScript code rules, composition
-  (SOLID via component nodes), data-driven + effect composition, main-scene
-  shell, docs lookup, export builds.
-- **Verification & playtesting** — `godot-verify`, runtime smoke, runtime
-  arena, the playgrade grader, the playthrough input-bot, enemy-AI headless smoke.
-- **Rendering & visuals** — 3D pixelation (SubViewport), pixel-readability
-  lighting, screen-space effects, orthographic follow camera, foliage,
-  one-shot + looping particle VFX, art style.
-- **3D mechanics & AI** — first-person controller, travelling projectiles,
-  enemy AI (NavigationAgent3D + state machine) + enemy archetypes, shooter
-  enemy combat contract, stealth perception, the 4.6 navmesh landmines,
-  GridMap levels.
-- **Level & spatial design** — greybox authoring, greybox-to-asset, arena
-  spatial design, level-design principles.
-- **Art & assets** — animation libraries, mesh/texture pixel-art + HD import,
-  HD materials, procedural model & texture generation.
+  (SOLID via component nodes), the main-scene shell, docs lookup, export builds.
+- **Verification** — `godot-verify` (scenes load, render, no silent drops) and
+  runtime smoke.
+- **Rendering** — screen-space post-process effects.
 
 ## Web UI
 
-Runs the same agents from a browser (`npm start` → `http://localhost:8338`):
+Runs the same agents from a browser (`npm start` / `./start_server` →
+`http://localhost:8338`; override with `PORT=<n>`):
 
 - **Chat** — composer + message history.
 - **Activity feed + FleetView** — live event stream (tool calls, agent prose,
@@ -98,15 +102,15 @@ Runs the same agents from a browser (`npm start` → `http://localhost:8338`):
 - **Approval gates** — agent questions render as clickable choices
   (`AskUserQuestion`), typed **forms** (`mcp__ui__form`), and tool calls as
   allow/deny cards. Questions always reach you regardless of permission policy.
-- **Promotions board** — approve/reject promoting a game-local skill/agent/tool
+- **Promotions board** — approve/reject promoting a project-local skill/agent/tool
   into the framework plugin.
 - **Sessions** — browse, resume (full context), and `compact` a session in place.
 - **Settings** — Hermes, Codex, Godot-docs MCP toggles; model/provider; skill scope.
   **Set up** buttons run `codex:setup` / `hermes:setup` from the UI (restart to activate;
   Hermes still needs the one-time `hermes portal` browser auth).
-- **Draw Level** — sketch a level on a grid; hands off to `level-designer`.
+- **Level editor** — grid-based scene sketching that hands off to a builder.
 - **Get Assets** — request/upload PNG textures or `.glb` models; placed into the
-  game (`assets/`) or the shared library (`x-shared-assets/`) and wired + verified.
+  project (`assets/`) or the shared library (`x-shared-assets/`) and wired + verified.
 - **Autonomous panel** — set a standing Main Goal and watch the check loop.
 - **Project tree** — read-only browse of scenes/scripts/design docs.
 - **Context meter** — live context-window usage (green→amber→red) per session.
@@ -116,17 +120,14 @@ Runs the same agents from a browser (`npm start` → `http://localhost:8338`):
 - **`godot-verify` gate** — `verify_scene.gd` / `verify_render.gd`: scenes load,
   node paths resolve, properties aren't silently dropped, and frames actually
   render. Godot exits 0 on parse errors, so this exists because "verified" bugs shipped.
-- **Validate gate + smoke tests** — GDScript lint/format checks and headless
-  scene/playthrough smoke runs.
-- **Playgrade rubric — 3 of 5 criteria live.** The playtester's grader gates on
-  `runs-clean`, `core-loop-functional`, and (when a display is present)
-  `renders-healthy` via the flat-color floor; `data-driven-adherence` and
-  `feel-responsive` are declared but SKIP until they graduate to deterministic
-  checks.
+- **Twin gates (`tools/verify_twin.sh`)** — layered on top of the render floor:
+  the **frame-budget** gate (bench vs the stated budget), the **data-binding
+  smoke** (seeded simulator → assert the overlay state actually moved), the
+  **GlobalId join coverage** check (every model node resolves to a data row), and
+  **playback determinism** (`check_playback.gd` run twice → identical hash).
 - **Typed-export NodePath gate** — `check_typed_export_nodepath` catches a silent Godot
   trap: a concretely-typed node-ref `@export` (e.g. `var x: Node3D`) assigned a `NodePath`
   in a `.tscn` resolves to **null** at runtime with no error — green validate, dead feature.
-  Static check on the validate/playgrade floor.
 - **Permission policy** — per-session, live-switchable: `ask` (default, every
   un-allowlisted tool prompts) / `edits` (edits auto-allowed) / `all`.
 - **PreToolUse safety hooks** — guard destructive operations and protect the
@@ -152,35 +153,17 @@ the same approvals. Off by default; set/cleared from the Autonomous panel
 - **Godot-docs MCP** — official Godot 4.x docs as an MCP source, powering
   `godot-docs-evangelist`; enabled in Settings.
 
-## Digital-twin viewer (experimental second domain)
-
-The **xenodot-twin** plugin (`plugin-twin/`) turns the same pipeline onto a
-non-game target: a digital-twin 3D **viewer** — an IFC/BIM model rendered in
-Godot with live sensor values bound to the actual building elements and a
-timeline to scrub recorded history.
-
-- **Opt-in only**: activates for projects scaffolded `npm run new -- <path> --viewer`
-  (`projectType: "viewer"`); game projects never load it. `--game` switches back.
-- **Own agents & skills**: `twin-architect` / `scene-optimizer` / `data-binder`,
-  with `twin-import` (IFC → GLB + property sidecar), `twin-optimize` (measured
-  ≥4.4× on repeated-geometry scenes), `twin-bind-data`, `twin-playback`,
-  `twin-verify` — all gated the same way the game side is (join coverage,
-  binding smoke, playback-determinism hash, frame budget).
-- **Try it**: the from-scratch walkthrough is
-  [`docs/tutorials/digital-twin.md`](docs/tutorials/digital-twin.md), with a
-  bundled sample kit (IFC + example binding map + viewer config) in
-  [`plugin-twin/examples/`](plugin-twin/examples/).
-
 ## Growth loop
 
-A new skill/agent/tool starts **game-local** in `<game>/.claude/` and is usable
-immediately. When one proves broadly useful, file a promotion
+A new skill/agent/tool starts **project-local** in `<viewer>/.claude/` and is
+usable immediately. When one proves broadly useful, file a promotion
 (`mcp__ui__promote`); you approve it on the board and run
 `npm run promote -- …` to move it into the plugin. **Tools carry a domain** — _universal_
-(scene-agnostic; promotable, materialises into every game) vs _game_ (hardcodes a game
-scene; stays local). A promotion guard rejects a game-domain tool so orphan bots don't
-pollute every game — see [`docs/process/promotion.md`](docs/process/promotion.md).
-Researchers write findings back into the knowledge base (`library/`, a symlink to `plugin/library/`).
+(scene-agnostic; promotable, materialises into every project) vs _project_ (hardcodes a
+specific scene/dataset; stays local). A promotion guard rejects a project-domain tool so
+site-specific checks don't pollute every viewer — see
+[`docs/process/promotion.md`](docs/process/promotion.md). Researchers write findings back
+into the knowledge base (`library/`, a symlink to `plugin/library/`).
 
 ## Provider flexibility
 

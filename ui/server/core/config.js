@@ -329,26 +329,20 @@ export function saveHermesConfig(patch) {
   }
 }
 
-/** The kinds of project this framework can drive: a Godot game (the default) or a
- * digital-twin viewer (3D scene from converted BIM/CAD + master-data + live overlays).
- * Drives which orchestrator prompt and which optional plugin a session loads. */
-export const PROJECT_TYPES = ["game", "viewer"];
+/** The kinds of project this framework can drive. Xenodot Twin ships ONE domain — the
+ * digital-twin viewer (3D scene from converted BIM/CAD + master-data + live overlays). The game
+ * domain lives in the upstream source (xenodot-forge); it was dropped in this fork, so "game" is
+ * no longer a reachable project type here (see docs/fork/SEAMS.md). The "game" branch survives in
+ * the pure gating functions (resolveSessionPlugins etc.) as a documented negative case only. */
+export const PROJECT_TYPES = ["viewer"];
 
-/** Effective project type, resolved fresh on every call from `.xenodot.json`'s optional
- * `projectType` key ("game" | "viewer"; written by `npm run setup` / `forge new --viewer`).
- * Defaults to "game" when the key is absent/unknown, so existing config files keep working
- * unchanged. Read live so a re-setup takes effect on the next new session without a server
- * restart (same pattern as getCodexConfig).
+/** Effective project type. Xenodot Twin is viewer-only, so this always resolves to "viewer": a
+ * viewer session loads the xenodot-twin plugin and the viewer orchestrator. Kept as a function
+ * (not a constant) so the many `getProjectType() === "viewer"` call sites read unchanged and a
+ * future re-home of the game domain would only touch this one body.
  * @returns {"game" | "viewer"} */
 export function getProjectType() {
-  try {
-    const saved = /** @type {{ projectType?: unknown }} */ (
-      parseJSON(readFileSync(CONFIG_FILE, "utf8"))
-    );
-    return saved.projectType === "viewer" ? "viewer" : "game";
-  } catch {
-    return "game";
-  }
+  return "viewer";
 }
 
 /** Effective Codex config, resolved fresh on every call (env `CODEX_ENABLED` →
@@ -501,7 +495,7 @@ export const AUTO_ALLOW_TOOLS = [
 export const DOCS_GET_CLASS_TOOL = "mcp__godot-docs__godot_docs_get_class";
 
 // The main loop is an orchestrator: pinned model (not the user's default) and a
-// routing-focused system prompt, editable in ui/orchestrator.md.
+// routing-focused system prompt, editable in ui/orchestrator-viewer.md.
 export const MODEL = args.find((a) => a.startsWith("--model="))?.split("=")[1] ?? "claude-opus-4-8";
 // Reasoning effort for the orchestrator turn. The main loop routes and dispatches
 // rather than reasoning hard, so default to a modest level; each sub-agent's own
@@ -510,14 +504,15 @@ export const MODEL = args.find((a) => a.startsWith("--model="))?.split("=")[1] ?
 export const EFFORT = /** @type {import("@anthropic-ai/claude-agent-sdk").EffortLevel} */ (
   args.find((a) => a.startsWith("--effort="))?.split("=")[1] ?? "medium"
 );
-export const ORCHESTRATOR_PROMPT = readFileSync(path.join(UI_DIR, "orchestrator.md"), "utf8");
-/** The viewer-domain variant of the orchestrator prompt — same contracts and hook expectations,
- * digital-twin routing instead of game routing. session.js appends this INSTEAD of
- * ORCHESTRATOR_PROMPT when `getProjectType() === "viewer"`. */
-export const ORCHESTRATOR_VIEWER_PROMPT = readFileSync(
+/** The orchestrator system prompt. Xenodot Twin is viewer-only, so this IS the digital-twin
+ * routing prompt (ui/orchestrator-viewer.md); the game orchestrator was dropped with the game
+ * domain (see docs/fork/SEAMS.md). ORCHESTRATOR_VIEWER_PROMPT aliases it so session.js's
+ * `viewer ? viewer : base` branch resolves to the same viewer prompt either way. */
+export const ORCHESTRATOR_PROMPT = readFileSync(
   path.join(UI_DIR, "orchestrator-viewer.md"),
   "utf8",
 );
+export const ORCHESTRATOR_VIEWER_PROMPT = ORCHESTRATOR_PROMPT;
 export const HERMES_BLOCK = readFileSync(path.join(UI_DIR, "hermes-block.md"), "utf8");
 /** Absolute path to the vendored Codex companion CLI (OpenAI's `codex-plugin-cc`) — the same
  * Node script the `/codex:*` slash commands wrap. The orchestrator does NOT call this directly;
