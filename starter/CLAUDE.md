@@ -25,5 +25,9 @@ See the `xenodot:graphify` skill.
 
 ## Project conventions
 
+This game's declared genre/style live in its **profile** (`.xenodot/manifest.json` →
+`profile`, set at `forge new` / `npm run setup`) — read it via `tools/forge-facts
+profile.genre`. The profile decides which `genre-*`/`style-*` skills a session sees.
+
 _(empty — the `godot-project-baseline` skill fills this in on first setup; your project-local
 game-conventions skill appends the aesthetic decisions.)_

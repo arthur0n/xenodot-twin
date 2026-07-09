@@ -7,6 +7,8 @@
 // `/plugin install` (printed by doctor). The committed game stays pure game.
 //
 // Usage: npm run new -- ../mygame           (scaffold an empty folder, or wire an existing Godot project)
+//        npm run new -- ../mygame --genre=genre-fps --style=style-hd   (declare the profile up front;
+//        without flags, setup.js prompts on a TTY — see ui/lib/profile.js)
 import { existsSync, cpSync, readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
@@ -16,11 +18,15 @@ const here = path.dirname(fileURLToPath(import.meta.url)); // ui/server/cli
 const FRAMEWORK_DIR = path.join(here, "..", "..", "..");
 
 const argv = process.argv.slice(2);
-// This command takes NO flags; any flag-shaped arg (`--help`/`--project`) must fail loudly, not
-// silently scaffold the default sibling path (or, resolved raw, a literal `--help/` dir).
-const flagArg = argv.find((a) => a.startsWith("-"));
+// Only the profile flags are forwarded (to setup.js); any OTHER flag-shaped arg
+// (`--help`/`--project`) must fail loudly, not silently scaffold the default sibling
+// path (or, resolved raw, a literal `--help/` dir).
+const profileFlags = argv.filter((a) => a.startsWith("--genre=") || a.startsWith("--style="));
+const flagArg = argv.find((a) => a.startsWith("-") && !profileFlags.includes(a));
 if (flagArg) {
-  console.error(`new: ${flagArg} is not a project path. Usage: npm run new -- ../mygame`);
+  console.error(
+    `new: ${flagArg} is not a project path. Usage: npm run new -- ../mygame [--genre=…] [--style=…]`,
+  );
   process.exit(1);
 }
 const target = path.resolve(
@@ -74,8 +80,9 @@ if (!existsSync(path.join(target, "project.godot"))) {
 }
 ensureIgnores(target);
 
-// 2. Remember the path. Writes .xenodot.json.
-node(path.join(here, "setup.js"), target);
+// 2. Remember the path + the game's profile ({genre, style} — flags here, or setup.js
+//    prompts on a TTY thanks to inherited stdio). Writes .xenodot.json.
+node(path.join(here, "setup.js"), target, ...profileFlags);
 
 // 3. Materialize the plugin's per-game files: tools/ copied, library/ symlinked.
 node(path.join(here, "materialize.js"), target);

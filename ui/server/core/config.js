@@ -55,7 +55,7 @@ const args = process.argv.slice(2);
  * Read once: it carries both the saved project path and the engine block. */
 const SAVED = (() => {
   try {
-    return /** @type {{ projectDir?: string, engine?: EngineConfig, assetLibrary?: string, hermes?: HermesConfig }} */ (
+    return /** @type {{ projectDir?: string, engine?: EngineConfig, assetLibrary?: string, hermes?: HermesConfig, profile?: { genre?: string | null, style?: string | null } }} */ (
       parseJSON(readFileSync(CONFIG_FILE, "utf8"))
     );
   } catch {
@@ -98,6 +98,16 @@ export const ENGINE = {
 };
 /** Capitalized engine name for UI/CLI copy, e.g. "Godot", "Redot", "Blazium". */
 export const ENGINE_LABEL = ENGINE.name.charAt(0).toUpperCase() + ENGINE.name.slice(1);
+
+/** The game's declared profile ({genre, style}) — captured by `npm run setup` /
+ * `forge new` into `.xenodot.json` (the write-of-record; the manifest only carries a
+ * stamped copy, re-sourced from here on every regen). Both fields null when never
+ * declared — a soft state doctor points out, never an error.
+ * @type {import("../../lib/profile.js").Profile} */
+export const PROFILE = {
+  genre: SAVED.profile?.genre ?? null,
+  style: SAVED.profile?.style ?? null,
+};
 
 /** Merge a resolved engine binary into `.xenodot.json` so the lookup is one-time, not
  * per-boot — every other saved field (projectDir, hermes, …) is preserved. Best-effort:

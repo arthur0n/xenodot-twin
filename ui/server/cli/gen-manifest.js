@@ -13,13 +13,15 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { ENGINE, RES_ASSET_MOUNT } from "../core/config.js";
+import { ENGINE, PROFILE, RES_ASSET_MOUNT } from "../core/config.js";
 
+/** @typedef {import("../../lib/profile.js").Profile} Profile */
 /** @typedef {{ renderer: string|null, engine_version: string|null, viewport_width: number|null,
  *   viewport_height: number|null, stretch_mode: string, stretch_aspect: string,
  *   stretch_scale_mode: string|null }} RenderConfig */
 /** @typedef {{ engine: { name: string, bin: string|null, version: string|null, projectFile: string },
- *   render: RenderConfig, commands: Record<string,string>, input_actions: string[],
+ *   profile: Profile, render: RenderConfig, commands: Record<string,string>,
+ *   input_actions: string[],
  *   layout: { entry_point: string|null, tools_dir: string, library: string, asset_mount: string },
  *   capabilities: { registry: string, tools: string[] } }} Manifest */
 
@@ -114,6 +116,11 @@ export function generateManifest(projectDir) {
       version: render.engine_version,
       projectFile: ENGINE.projectFile,
     },
+    // The DECLARED {genre, style} (not derivable from the project tree) — stamped from
+    // .xenodot.json's `profile` block (the write-of-record, see config.js PROFILE) on every
+    // regen, so this derived-only file can be wiped freely without losing the declaration.
+    // Drives which genre-*/style-* skills a session sees (M2). Nulls = never declared.
+    profile: PROFILE,
     // Effective render pipeline — read this instead of re-parsing project.godot's [display].
     render,
     // Canonical build/verify/drive commands (the "/run" payload). $GODOT is preset in the session.
@@ -160,7 +167,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const m = generateManifest(target);
   console.log(
     `gen-manifest: ${target}/.xenodot/manifest.json — engine ${m.engine.name} ${m.engine.version ?? "?"} ` +
-      `(bin ${m.engine.bin ?? "unresolved"}), ${m.input_actions.length} input actions, ` +
-      `${m.capabilities.tools.length} tools.`,
+      `(bin ${m.engine.bin ?? "unresolved"}), profile ${m.profile.genre ?? "?"}/${m.profile.style ?? "?"}, ` +
+      `${m.input_actions.length} input actions, ${m.capabilities.tools.length} tools.`,
   );
 }
