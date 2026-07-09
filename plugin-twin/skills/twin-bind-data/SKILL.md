@@ -4,11 +4,14 @@ agents: [twin-architect, data-binder]
 description: >-
   Bind live tag data to a digital-twin scene — the DataBus autoload contract (WebSocketPeer with the
   four gotchas that make it actually work), tag→node binding through the IFC GlobalId join,
-  overlay/state response, and the seeded simulator as the deterministic test fixture. Use when
-  wiring a live (or simulated) data stream into the viewer, when "the socket connects but nothing
-  arrives" (poll), when frames back up or drop on reconnect, when binding a tag to a model element,
-  or when a binding change needs a repeatable test source. NOT the IFC conversion/join itself
-  (twin-import) and NOT scale work (twin-optimize).
+  overlay/state response, the seeded simulator as the deterministic test fixture, AND the built
+  MQTT→WS bridge (tools/bridge/mqtt_ws.js) that plugs a real MQTT broker in behind the `sourceUrl`
+  seam. Use when wiring a live (or simulated) data stream into the viewer, when connecting a real
+  MQTT broker / plant telemetry (point the viewer at the broker, "talk to my broker", topic→tag
+  mapping) — the bridge is ALREADY BUILT, run it, don't rebuild it — when "the socket connects but
+  nothing arrives" (poll), when frames back up or drop on reconnect, when binding a tag to a model
+  element, or when a binding change needs a repeatable test source. NOT the IFC conversion/join
+  itself (twin-import) and NOT scale work (twin-optimize).
 ---
 
 # Twin bind-data (DataBus, GlobalId binding, seeded fixture)
