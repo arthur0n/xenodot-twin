@@ -55,7 +55,15 @@ protect-list from HEAD **before** committing, and resolve every shared-file twin
 ```
 plugin-twin  starter-viewer  ui/orchestrator-viewer.md  ui/server/features/twin
 docs/tutorials  ui/server/cli/materialize.test.js
+plugin-twin/tools/twin_build.sh  plugin-twin/skills/twin-build
 ```
+
+> `plugin-twin/tools/twin_build.sh` (the one-command IFC→verified-twin driver) and
+> `plugin-twin/skills/twin-build/` (its operator manual) are the load-bearing surface of
+> Must-Have #2 and are named explicitly so the protect audit stays a complete inventory. They
+> already sit **inside** the whole-`plugin-twin` restore above (and are fork-only files upstream
+> never had, so a sync's `e250d11` re-deletion can't touch them either) — the explicit lines are
+> belt-and-suspenders, not a second mechanism.
 
 **Shared-file twin-unwiring — reject to OURS every sync** (upstream's `e250d11` stripped twin
 awareness from these; the fork keeps its twin wiring — restore from HEAD, then fold in any SEPARABLE

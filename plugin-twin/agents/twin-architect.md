@@ -16,6 +16,7 @@ skills:
   - twin-optimize
   - twin-bind-data
   - twin-verify
+  - twin-build
   - xenodot:tasks-mcp
 effort: high
 ---

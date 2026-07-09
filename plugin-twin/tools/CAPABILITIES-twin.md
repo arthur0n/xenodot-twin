@@ -4,6 +4,29 @@ Materialize merges these into the project's `tools/` **alongside the base xenodo
 (`validate.sh`, `lib/checks.sh`, `verify_scene.gd`, …) — twin scripts compose the shared
 `tools/lib/checks.sh` from the merged set; nothing from the base plugin is copied here.
 
+## `twin_build.sh` — one command: IFC → verified, data-bound twin
+
+```
+tools/twin_build.sh <model.ifc> [--map binding_map.json] [--out-dir models/] \
+    [--chunks auto|N] [--min-instances N] [--hints h.json] [--occluders] \
+    [--vis-ranges] [--wire]
+```
+
+The deterministic driver that chains the four tools below into ONE gate: **preflight**
+(engine + the `.venv-ifc`/ifcopenshell venv) → **import** (`ifc_convert.py`) → **optimize**
+(`optimize_scene.gd`; registers the `class_name` globals with a one-off headless import when
+a fresh project's class cache is missing them) → **verify** (`verify_twin.sh` pinned to the
+built artifacts — join gate on the import, smoke + static floor on the optimized scene) →
+**summary** with the artifact list and the exact boot command. Same discipline as
+`verify_twin.sh`: loud stage labels, exit nonzero on the FIRST failure, a SKIP is never a
+pass (no `--map` → the binding smoke SKIPs loudly and the summary names `twin-bind-data`).
+Orchestrates ONLY — every number stays gate-backed; `--occluders` / `--vis-ranges` pass
+through to the optimizer and NEVER default on. The venv is never auto-created (a missing
+`.venv-ifc` FAILs loud with the two `uv` lines). `--wire` is the one opt-in that touches
+user data — it points `viewer.cfg [viewer] model=` at the optimized scene (keeps a `.bak`).
+Operator manual: skill `twin-build`. Measured one-command wall time (clean-stranger seat
+run): `plugin-twin/library/findings/twin-build-2026-07-09.md`.
+
 ## `ifc_convert.py` — IFC → GLB + property sidecar
 
 ```

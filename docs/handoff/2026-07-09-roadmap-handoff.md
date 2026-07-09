@@ -92,10 +92,15 @@ writes once?_ Honest verdicts, including NONE.
    28 tests (codec + §4.7 mapping + in-process fake-broker integration), relay untouched, ships
    via the materializer under bare `node`. Live-validated broker→bridge→viewer paint against
    Mosquitto: `plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`.
-2. **One-command pipeline: import → optimize → verify.** The pieces exist as separate
-   skills/tools; a single `twin-build` flow (or orchestrator behavior) that takes an IFC
-   and yields an optimized, join-verified, bound viewer is the demo moment. Mostly
-   orchestration glue — exactly what the framework is for.
+2. ~~**One-command pipeline: import → optimize → verify.**~~ ✅ **DONE (2026-07-09, built on
+   `feat/twin-build` — validated from the seat, pending merge to `main`).** Built per
+   [`2026-07-09-twin-build-plan.md`](2026-07-09-twin-build-plan.md): `plugin-twin/tools/twin_build.sh`
+   (preflight → import → optimize → verify → summary, loud stages, SKIP-is-not-pass) + the
+   `twin-build` operator skill; the viewer now loads the optimizer's `.tscn` at runtime and the
+   gate's binding smoke is pinned to that optimized scene. Clean-stranger seat run (fresh
+   scaffold + bundled Duplex + example map, ONE command): all gates green — **join 286/286,
+   binding-smoke 6/6**, exit 0 — in **~19.5 s cold**, measured with machine caveats in
+   [`plugin-twin/library/findings/twin-build-2026-07-09.md`](../../plugin-twin/library/findings/twin-build-2026-07-09.md).
 3. **De-game the internal persona prompts.** `ui/server/integrations/hermes/hermes-soul.md`
    and `ui/lib/personas/{critic,researcher}/persona.js` still say "game-development
    framework" — they shape agent behavior in every session. Small, flagged, do it early.
