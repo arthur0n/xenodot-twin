@@ -1,7 +1,7 @@
 ---
 type: finding
 title: "Synthetic plant demo asset — the optimizer is a NO-OP on it at any scale (honest read), + recording + shot-list"
-description: "The synthetic tank-farm/pump-skid demo model (gen_plant_ifc.py) gets ZERO instancing from optimize_scene.gd at BOTH the vendored default (18 elements) and a 189-element --tanks 40 --pumps 30 preset — groups_instanced 0/18 and 0/189, multimeshes 0, est_draw_items unchanged. This CONTRADICTS the sourcing-spike hypothesis that repeated pipe runs make it an instancing showcase: the generator authors a fresh IfcExtrudedAreaSolid per element (0 IfcRepresentationMap), so ifc_convert.py emits a distinct Mesh resource per element and the optimizer's mesh-resource grouping finds no repeats — scale makes it WORSE, not better. The Duplex only instances because it either uses IfcRepresentationMap (227 in-model) for its repeated fixtures OR is spatially duplicated (the city benchmark's node.duplicate() shares one Mesh resource across 100 copies → 224/224 groups instanced). Plus: one deterministic plant recording (4800 frames / 59.9 s / 8 tags, byte-identical on re-record) and a human-paced marketing shot-list note. One machine, M3 Pro/Metal, Godot 4.6.3, ifcopenshell 0.8.5."
+description: "The synthetic tank-farm/pump-skid demo model (gen_plant_ifc.py) gets ZERO instancing from optimize_scene.gd at BOTH the vendored default (18 elements) and a 189-element --tanks 40 --pumps 30 preset — groups_instanced 0/18 and 0/189, multimeshes 0, est_draw_items unchanged. This CONTRADICTS the sourcing-spike hypothesis that repeated pipe runs make it an instancing showcase: the generator authors a fresh IfcExtrudedAreaSolid per element (0 IfcRepresentationMap), so ifc_convert.py emits a distinct Mesh resource per element and the optimizer's mesh-resource grouping finds no repeats — scale makes it WORSE, not better. The Duplex only instances because it either shares geometry via mapped representations (60 IfcRepresentationMap referenced by 167 IfcMappedItem in-model) for its repeated fixtures OR is spatially duplicated (the city benchmark's node.duplicate() shares one Mesh resource across 100 copies → 224/224 groups instanced). Plus: one deterministic plant recording (4800 frames / 59.9 s / 8 tags, byte-identical on re-record) and a human-paced marketing shot-list note. One machine, M3 Pro/Metal, Godot 4.6.3, ifcopenshell 0.8.5."
 timestamp: 2026-07-10T16:00:00+01:00
 tags: [multimesh, optimizer, instancing, ifc, plant, synthetic, recording, provenance]
 ---
@@ -52,12 +52,12 @@ and collapses any group of `>= --min-instances` (default 8) into region-chunked 
 `groups_instanced` / `multimeshes` are the report fields verbatim; `est_draw_items` is the
 scene-graph estimate (`before → after`).
 
-| scene                   | elements / meshes | groups_total | groups_instanced | multimeshes            | est_draw_items    | instancing verdict                                                                                |
-| ----------------------- | ----------------- | ------------ | ---------------- | ---------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
-| **plant default**       | 18                | 18           | **0**            | 0                      | 18 → 18           | **none** — every group is count 1                                                                 |
-| **plant big (40T/30P)** | 189               | 189          | **0**            | 0                      | 189 → 189         | **none** — every group is STILL count 1                                                           |
-| Duplex single (ref)     | 286 meshes        | 224          | —                | —                      | —                 | 286 meshes → 224 groups: the model reuses geometry (`IfcRepresentationMap`) for repeated fixtures |
-| Duplex city ×100 (ref)  | 28,600            | 224          | **224 (100%)**   | 896 (c2) / 14,336 (c8) | 34,800 → 964 (c2) | **full** — spatial duplication shares one Mesh resource across 100 copies                         |
+| scene                   | elements / meshes | groups_total | groups_instanced | multimeshes            | est_draw_items    | instancing verdict                                                                                                    |
+| ----------------------- | ----------------- | ------------ | ---------------- | ---------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **plant default**       | 18                | 18           | **0**            | 0                      | 18 → 18           | **none** — every group is count 1                                                                                     |
+| **plant big (40T/30P)** | 189               | 189          | **0**            | 0                      | 189 → 189         | **none** — every group is STILL count 1                                                                               |
+| Duplex single (ref)     | 286 meshes        | 224          | —                | —                      | —                 | 286 meshes → 224 groups: the model reuses geometry (`IfcRepresentationMap` via `IfcMappedItem`) for repeated fixtures |
+| Duplex city ×100 (ref)  | 28,600            | 224          | **224 (100%)**   | 896 (c2) / 14,336 (c8) | 34,800 → 964 (c2) | **full** — spatial duplication shares one Mesh resource across 100 copies                                             |
 
 Duplex reference rows are from [`twin-optimizer-benchmark-2026-07-08.md`](twin-optimizer-benchmark-2026-07-08.md)
 (not re-run here). The plant rows are this session, both `--chunks=auto`, `--min-instances=8`.
@@ -70,8 +70,8 @@ are — but the optimizer never sees them as identical, because the identity it 
 **Godot `Mesh` resource**, not the geometry bytes:
 
 - **The generator authors a fresh `IfcExtrudedAreaSolid` (its own `IfcShapeRepresentation`) per
-  element** — grep the big IFC: **0** `IfcMappedItem` / `IfcRepresentationMap`, **378** shape
-  reps for 189 elements. Nothing is a mapped/shared representation.
+  element** — grep the big IFC: **0** `IfcMappedItem` / `IfcRepresentationMap`, and **189**
+  `IfcShapeRepresentation` — one per element, none shared.
 - `ifc_convert.py` converts each element's geometry independently → the GLB carries **189 distinct
   glTF meshes** → `GLTFDocument` loads **189 distinct in-memory `Mesh` resources** (empty
   `resource_path`, unique `instance_id`).
@@ -84,7 +84,8 @@ are — but the optimizer never sees them as identical, because the identity it 
 
 The Duplex is the instructive contrast on BOTH mechanisms that DO produce instancing:
 
-1. **In-model geometry reuse.** The real Duplex uses `IfcRepresentationMap` (227 in the file) so
+1. **In-model geometry reuse.** The real Duplex shares geometry via mapped representations
+   (**60** `IfcRepresentationMap` referenced by **167** `IfcMappedItem` in the file) so
    its repeated windows/doors/furniture reference **shared** representations → `ifc_convert.py`
    emits shared meshes → 286 mesh instances collapse to 224 distinct groups. A synthetic model
    would have to author `IfcRepresentationMap`s (or `ifc_convert.py` would have to dedup identical

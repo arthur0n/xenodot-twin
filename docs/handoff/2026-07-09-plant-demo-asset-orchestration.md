@@ -84,7 +84,8 @@ tick naming the track.
       and a `--tanks 40 --pumps 30` big preset (189 elem) — **groups_instanced 0/18 and 0/189,
       multimeshes 0, est_draw_items unchanged** at both scales. HONEST verdict CORRECTS the spike
       hypothesis: the plant is NOT an instancing showcase — the generator authors unique per-element
-      geometry (0 `IfcRepresentationMap` vs the Duplex's 227) so every element is a distinct mesh
+      geometry (0 `IfcRepresentationMap` vs the Duplex's 60, referenced by 167 `IfcMappedItem`)
+      so every element is a distinct mesh
       resource; scale makes it worse, not better. Big IFC is a scratch artifact (generator+seed
       reproduce it — NOT vendored). Recording `plant-shift.ndjson` (4800 frames / 59.9 s / 8 tags,
       byte-identical on re-record, seat `twin-plant-validate/recordings/` per the `house-day.ndjson`
