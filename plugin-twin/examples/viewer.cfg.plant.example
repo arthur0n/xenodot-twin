@@ -1,0 +1,30 @@
+; viewer.cfg.plant.example — example viewer configuration for the xenodot-twin try-it kit's
+; PLANT demo (the synthetic tank-farm / pump-skid model). Copy this to `viewer.cfg` in your
+; scaffolded viewer project (Godot ConfigFile / INI format). Read by main.gd at boot. Every
+; value is documented below; command-line user args (--model=, --recording=) override anything
+; set here.
+;
+; DEFAULT BOOT IS LIVE: no recording= is set on purpose, so a fresh `$GODOT --path .` connects
+; to the running sim (LIVE mode, green HUD) and you see the live-data path first. To replay a
+; recording instead, pass it on the command line:
+;   $GODOT --path . -- --recording=recordings/plant-shift.ndjson
+; (or uncomment the recording= line under [twin]).
+
+[viewer]
+; Runtime-loaded GLB (GLTFDocument, no editor import). Node names carry IFC GlobalIds.
+; Build it from the bundled plant.ifc with tools/ifc_convert.py (see examples/README.md), or
+; let tools/twin_build.sh produce the optimized scene and boot with its printed --model=.
+model="res://models/plant.glb"
+; Default live data source. The seeded sim (tools/sim/server.js) listens here by default.
+url="ws://localhost:8765"
+
+[twin]
+; Tag->GlobalId binding map (project-relative). The sim derives its tags + ranges from it.
+; Copy binding_map.plant.example.json to binding_map.json in the project.
+binding_map="binding_map.json"
+; Per-frame budget in milliseconds. 16.7 ms = the 60 fps floor the frame-budget gate checks
+; (verify_twin.sh, TWIN_BENCH=1). 1000 ms / 60 fps = 16.666... ms.
+frame_budget_ms=16.7
+; recording= is intentionally UNSET so the default boot is LIVE. Uncomment to boot into
+; playback of a fixture you recorded (tools/sim/record.js) instead:
+; recording="recordings/plant-shift.ndjson"
