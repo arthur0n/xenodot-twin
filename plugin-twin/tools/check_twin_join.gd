@@ -23,8 +23,10 @@ extends SceneTree
 ## it. If the path already holds a JSON object (e.g. ifc_convert.py --metrics wrote import time /
 ## shapes / schema there), the join fields are MERGED in — one file carries the whole import result.
 ## The join struct: join_matched, join_total, join_pct, join_gate (OK|FAIL), join_min_pct,
-## sidecar_keys, mesh_nodes, multimesh_ids, join_checked_at (ISO-8601 UTC). It is written on BOTH the
-## OK and FAIL paths — a failing join is a recorded fact, not a hole.
+## sidecar_keys, mesh_nodes, multimesh_ids, join_checked_at (ISO-8601 UTC). It is written on the OK
+## path and on FAIL paths that reach a verdict (threshold not met, zero candidates) — a failing join
+## is a recorded fact, not a hole. It is NOT written on early-exit failures that never reach a verdict
+## (unreadable/empty sidecar, scene-load failure) — there is no join struct to report yet.
 
 ## IFC GlobalId length in chars (buildingSMART base64) — the join key is this 22-char prefix, the
 ## same fact TwinHints.GUID_LEN and binding_map.gd GLOBALID_LEN encode.
@@ -142,11 +144,24 @@ func _write_json(
 ) -> void:
 	if json_path == "":
 		return
-	var abs := _globalized(json_path)
+	var out_path := _globalized(json_path)
 	var merged: Dictionary = {}
-	var existing: Variant = JSON.parse_string(FileAccess.get_file_as_string(abs))
+	var raw_txt := FileAccess.get_file_as_string(out_path)
+	var existing: Variant = JSON.parse_string(raw_txt)
 	if existing is Dictionary:
 		merged = existing
+	elif raw_txt != "":
+		# The file exists and has content, but failed to parse as JSON — most likely a
+		# corrupt metrics file (would otherwise carry ifc_convert.py's schema/shape counts).
+		# Don't silently clobber it: warn and write the join verdict to a sibling file instead
+		# so the corrupt original survives for inspection alongside the fresh join result.
+		push_error(
+			(
+				"JOIN: --json=%s exists but is not valid JSON — leaving it untouched, writing"
+				+ " join verdict to a sibling file instead"
+			) % json_path
+		)
+		out_path += ".join.json"
 	merged["join_matched"] = matched
 	merged["join_total"] = total
 	merged["join_pct"] = snappedf(pct, 0.1)
@@ -156,13 +171,15 @@ func _write_json(
 	merged["mesh_nodes"] = meshes
 	merged["multimesh_ids"] = multis
 	merged["join_checked_at"] = Time.get_datetime_string_from_system(true) + "Z"
-	var fh := FileAccess.open(abs, FileAccess.WRITE)
+	var fh := FileAccess.open(out_path, FileAccess.WRITE)
 	if fh == null:
-		push_error("JOIN: could not write --json=%s (%s)" % [json_path, error_string(FileAccess.get_open_error())])
+		push_error(
+			"JOIN: could not write --json=%s (%s)" % [out_path, error_string(FileAccess.get_open_error())]
+		)
 		return
 	fh.store_string(JSON.stringify(merged, " "))
 	fh.close()
-	print("JOIN-JSON: %s" % json_path)
+	print("JOIN-JSON: %s" % out_path)
 
 
 ## res:// stays project-mapped; absolute OS paths pass through; bare paths are res://-relative.

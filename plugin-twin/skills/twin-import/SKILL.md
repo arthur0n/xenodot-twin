@@ -246,7 +246,9 @@ The shipped `tools/check_twin_join.gd` also takes **`--json=<path>`**, which wri
 **struct** (`join_matched`/`join_total`/`join_pct`/`join_gate`/`sidecar_keys`), merging into the
 `--metrics` file from Step 1 when you point both at `models/<model>.metrics.json`. That single file
 is the contract the assets panel's import card reads — the join gate becomes a number the product
-shows, not only a log line. It writes on BOTH the OK and FAIL paths (a failing join is a fact).
+shows, not only a log line. It writes on the OK path and on FAIL paths that reach a verdict (a
+failing join is a fact) — early-exit failures before a verdict (unreadable/empty sidecar,
+scene-load failure) skip the write; there is nothing to report yet.
 
 ## Error → Fix
 
