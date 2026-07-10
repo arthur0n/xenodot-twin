@@ -308,20 +308,35 @@ unverified** — see the caveat there, do not claim Safari works):
   `application/wasm` / `.pck` MIME types, and `Cache-Control: no-store` for dev. It is a **dev/local**
   server (127.0.0.1, no TLS); for a hosted deploy send the same two headers from your own server/CDN.
 
-- **Grafana embed** — a Text panel in HTML mode (Grafana started with
-  `GF_PANELS_DISABLE_SANITIZE_HTML=true`):
+- **Grafana embed** — a Text panel in **HTML mode**, in a Grafana started with
+  `GF_PANELS_DISABLE_SANITIZE_HTML=true` (without it Grafana strips the iframe on render). The exact
+  bring-up used and re-confirmed live (Grafana OSS 11.6.1 user-space, and 13.0.2 in Docker before it):
+
+  ```
+  GF_SERVER_HTTP_PORT=3001 GF_PANELS_DISABLE_SANITIZE_HTML=true \
+    GF_AUTH_ANONYMOUS_ENABLED=true GF_AUTH_ANONYMOUS_ORG_ROLE=Admin  <grafana server | docker grafana-oss>
+  ```
+
+  **Do not hand-author the iframe** — `twin_publish_web.sh` emits **`embed.html`** beside every built
+  demo (a ready-to-paste `<iframe>` with the hosted URL inferred from the demos repo's `origin`
+  remote, or `--embed-base`); `--emit-embed-only` regenerates it without a rebuild. Paste its
+  `<iframe>` line into the panel:
 
   ```html
   <iframe
-    src="http://your-host:8070/index.html?scene=duplex&vantage=street"
+    src="https://<user>.github.io/<repo>/<demo>/index.html"
     width="1000"
     height="640"
     style="border:0"
   ></iframe>
   ```
 
-  Measured inside a real Grafana OSS text/HTML panel: the no-threads build booted **live-bound at
-  120 fps, 0 drops**.
+  A published demo bakes a single scene + autoplay recording (`url=""`), so it needs **no** `?scene=`/
+  `?vantage=` query args. Measured inside a real Grafana text/HTML panel, captured from **inside the
+  iframe**: the no-threads build boots **live-bound at 120 fps, 6/6 bindings, 0 drops**, no
+  COI/SharedArrayBuffer error, no mixed-content block (an https hosted demo is safe because `url=""`
+  means there is no live socket). Full evidence + the fair OpenTwins side-by-side:
+  `plugin-twin/library/findings/twin-grafana-embed-2026-07-10.md`.
 
 - **Mixed-content rule (the relay behind https).** The DataBus opens a WebSocket to the source. An
   `https` page may only open a **`wss://`** socket — a browser blocks plain `ws://` from a secure page.
