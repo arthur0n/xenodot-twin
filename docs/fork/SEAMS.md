@@ -56,6 +56,7 @@ protect-list from HEAD **before** committing, and resolve every shared-file twin
 plugin-twin  starter-viewer  ui/orchestrator-viewer.md  ui/server/features/twin
 docs/tutorials  ui/server/cli/materialize.test.js
 plugin-twin/tools/twin_build.sh  plugin-twin/skills/twin-build
+plugin-twin/tools/analyze  plugin-twin/skills/twin-analyze
 ```
 
 > `plugin-twin/tools/twin_build.sh` (the one-command IFC→verified-twin driver) and
@@ -64,6 +65,15 @@ plugin-twin/tools/twin_build.sh  plugin-twin/skills/twin-build
 > already sit **inside** the whole-`plugin-twin` restore above (and are fork-only files upstream
 > never had, so a sync's `e250d11` re-deletion can't touch them either) — the explicit lines are
 > belt-and-suspenders, not a second mechanism.
+>
+> `plugin-twin/tools/analyze/` (the deterministic analysis-bundle packager `bundle.js` + pure
+> `stats.js`) and `plugin-twin/skills/twin-analyze/` (its operator manual + the two contract
+> references + the three task templates) are the load-bearing surface of Nice-to-Have #5 (the
+> multi-model analysis seam) and are named explicitly for the same reason. The seam's framework
+> half — the worker adapters, the `analyze`/`analysis:check` CLIs, and the report writer — lives
+> under `ui/server/features/twin/` (already whole-restored above); these two lines cover its
+> fork-only tool + skill surface. Both are inside the whole-`plugin-twin` restore and are fork-only
+> files upstream never carried — belt-and-suspenders, not a second mechanism.
 
 **Shared-file twin-unwiring — reject to OURS every sync** (upstream's `e250d11` stripped twin
 awareness from these; the fork keeps its twin wiring — restore from HEAD, then fold in any SEPARABLE

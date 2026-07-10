@@ -128,13 +128,25 @@ writes once?_ Honest verdicts, including NONE.
 
 ### Nice to Have (differentiation + the human's stated direction)
 
-5. **Multi-model analysis seam.** The human's explicit direction: Claude Code/Anthropic
-   remains the build-and-verify system; OTHER models plug in later for **analysis** —
-   narrating anomalies in a recording, summarizing a day of tag history, drafting
-   inspection reports from binding data. The Hermes integration (own provider, own
-   billing, advisory-only) is the in-house precedent to generalize: recordings
-   (NDJSON) + binding maps + property sidecars are clean, typed inputs for any LLM.
-   Design the seam as data-in/report-out so the analysis worker is swappable.
+5. ~~**Multi-model analysis seam.**~~ ✅ **DONE (2026-07-10, built on `feat/analysis-seam` —
+   seat-validated, pending merge to `main`). Outcome: real non-Anthropic report, all guardrails
+   held.** Built in three phases per
+   [`2026-07-09-analysis-seam-plan.md`](2026-07-09-analysis-seam-plan.md): the seam IS the two
+   contracts — `plugin-twin/tools/analyze/{bundle,stats}.js` packs a recording (+ binding map +
+   property sidecar) into ONE deterministic, byte-stable, size-budgeted bundle (**data-in**), and the
+   framework writes an advisory Markdown report to `reports/analysis/` naming its provider+model+bundle
+   hash (**report-out**). The worker is a swappable adapter (`openai-compatible` endpoint, `hermes`, or
+   a human pasting the bundle into any chat UI) driven by `npm run analyze`; `twin-analyze` is the
+   operator skill. **AC4 (the point — a NON-Anthropic model):** seat run recorded a house-sim window
+   (synth seed 42, 18 000 frames), packed an **87.6 KB** bundle (byte-identical on re-pack), and
+   dispatched `summarize-window` through the **Hermes** worker to the user's own gateway (Nous Portal,
+   `z-ai/glm-5.2`; frontmatter label `nousresearch/hermes-4-70b` — the documented "label only"
+   caveat) — one billable run, first attempt. The returned report cites only stats-block numbers, names
+   the bound IFC element per tag, flags `seed:42` as synthetic (no simulation claim), and proposes no
+   action; all five guardrails demonstrated. Gateway was started by its documented mechanism for the one
+   run and **stopped afterward** to restore the found (down) state. Worked example + measured run:
+   [`plugin-twin/library/findings/twin-analyze-2026-07-10.md`](../../plugin-twin/library/findings/twin-analyze-2026-07-10.md)
+   (report also at `plugin-twin/skills/twin-analyze/references/example-report.md`).
 6. **Web/Grafana embed story.** OpenTwins proved the pattern on Unity WebGL; our web
    export boots (38 MB) but browser fps was never measured. Measure the WASM ceiling
    honestly, then ship an embed recipe (COI headers exist). If the ceiling is bad,

@@ -17,6 +17,8 @@
     "hermes:check": "node ui/server/integrations/hermes/hermes-check.js",
     "codex:setup": "node ui/server/integrations/codex/codex-setup.js",
     "codex:check": "node ui/server/integrations/codex/codex-check.js",
+    "analyze": "node ui/server/features/twin/analyze-cli.js",
+    "analysis:check": "node ui/server/features/twin/analysis-check.js",
     "new": "node ui/server/cli/new.js",
     "fork": "node ui/server/cli/fork.js",
     "promote": "node ui/server/features/promotions/promote.js",
