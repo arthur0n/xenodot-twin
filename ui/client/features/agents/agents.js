@@ -28,8 +28,9 @@ let nextIdx = 0;
 // Agents outside this map still draw from the rotating PALETTE.
 /** @type {Record<string, string>} */
 const ROLE_COLOR = {
-  "game-designer": "oklch(0.74 0.13 300)", // violet — concept work
-  "level-designer": "oklch(0.74 0.12 255)", // blue — space & blockout
+  "twin-architect": "oklch(0.74 0.13 300)", // violet — scene/data architecture
+  "scene-optimizer": "oklch(0.74 0.12 255)", // blue — geometry & scene scale
+  "data-binder": "oklch(0.71 0.16 25)", // red — live telemetry & alarm state
   "godot-dev": "oklch(0.78 0.13 85)", // amber — hot iron at the forge
   "godot-refactor": "oklch(0.78 0.1 210)", // cyan — inspection steel
   "addon-researcher": "oklch(0.76 0.13 150)", // verdigris — the library
@@ -38,7 +39,7 @@ const ROLE_COLOR = {
 };
 
 /** Strip "namespace:" prefix from a plugin-namespaced agent id.
- *  "xenodot:game-designer" → "game-designer", "hermes" → "hermes"
+ *  "xenodot-twin:twin-architect" → "twin-architect", "hermes" → "hermes"
  * @param {string} name @returns {string} */
 function stripNs(name) {
   if (!name) return name;
@@ -54,8 +55,9 @@ function stripNs(name) {
 /** @type {Record<string, string>} */
 const DISPLAY = {
   main: "Xenodot Hive",
-  "game-designer": "Xenodot Designer",
-  "level-designer": "Xenodot Level Designer",
+  "twin-architect": "Xenodot Architect",
+  "scene-optimizer": "Xenodot Optimizer",
+  "data-binder": "Xenodot Data Binder",
   "godot-dev": "Xenodot Developer",
   "godot-refactor": "Xenodot Refactor",
   "addon-researcher": "Xenodot Researcher",
@@ -71,7 +73,7 @@ export function agentLabel(name) {
   const bare = stripNs(name);
   if (DISPLAY[bare]) return DISPLAY[bare];
   // Fallback for any agent not in the map: brand first, domain prefix dropped.
-  const role = bare.replace(/^(godot|game|addon|level|transcript)-/, "").replace(/-/g, " ");
+  const role = bare.replace(/^(godot|addon|transcript|twin)-/, "").replace(/-/g, " ");
   const titled = role.replace(/\b\w/g, (c) => c.toUpperCase());
   return `Xenodot ${titled}`;
 }

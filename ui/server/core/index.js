@@ -35,8 +35,6 @@ import { projectState } from "./http/project-state.js";
 import { recentSessions, deleteSession } from "../features/transcripts/transcripts.js";
 import { writeTranscript } from "../features/transcripts/transcript-write.js";
 import { writeAsset, writeAssetFromPath } from "../features/assets/asset-write.js";
-import { writeLevel } from "../features/levels/level-write.js";
-import { listLevels } from "../features/levels/level-read.js";
 import { readTasks, reapHandoffs } from "../features/tasks/tasks-store.js";
 import { serveStatic } from "./http/static.js";
 import { reclaimPortIfBusy } from "./http/port.js";
@@ -103,31 +101,6 @@ function handleAssetPost(req, res) {
       result = body.srcPath
         ? writeAssetFromPath(body.name ?? "", body.srcPath, body.place)
         : writeAsset(body.name ?? "", body.dataUrl ?? "", body.place);
-    } catch {
-      result = { error: "bad request" };
-    }
-    res.writeHead("error" in result ? 400 : 200, { "content-type": "application/json" });
-    res.end(JSON.stringify(result));
-  });
-}
-
-/** Read a drawn blockout grid (JSON) and write it into the game's
- * levels/drawn/current.json; respond with the project-relative path or an error.
- * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
-function handleLevelPost(req, res) {
-  /** @type {Buffer[]} */
-  const chunks = [];
-  req.on("data", (/** @type {Buffer} */ c) => {
-    chunks.push(c);
-  });
-  req.on("end", () => {
-    /** @type {{ path: string } | { error: string }} */
-    let result;
-    try {
-      const body = /** @type {{ grid?: unknown }} */ (
-        parseJSON(Buffer.concat(chunks).toString("utf8"))
-      );
-      result = writeLevel(body.grid ?? null);
     } catch {
       result = { error: "bad request" };
     }
@@ -431,7 +404,6 @@ const GET_ROUTES = {
   "/api/state": projectState,
   "/api/sessions": recentSessions,
   "/api/tasks": readTasks,
-  "/api/levels": listLevels,
   "/api/usage": computeUsage,
   "/api/skills": skillsConfig,
   "/api/agent-skills": listAgentSkills,
@@ -443,7 +415,6 @@ const GET_ROUTES = {
 const POST_ROUTES = {
   "/api/transcript": handleTranscriptPost,
   "/api/asset": handleAssetPost,
-  "/api/level": handleLevelPost,
   "/api/settings": handleSettingsPost,
   "/api/skills": handleSkillsPost,
   "/api/setup/skills": handleSkillSetupPost,

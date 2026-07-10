@@ -82,7 +82,7 @@ test("update then remove: the summary tracks closing and dropping the task", asy
 test("complete_open: closes only the caller's own open agent tasks", async () => {
   const { t, lastTasks } = makeTool();
   await t.handler(args({ op: "add", title: "dig tunnels", _by: "godot-dev" }), {});
-  await t.handler(args({ op: "add", title: "paint sky", _by: "level-designer" }), {});
+  await t.handler(args({ op: "add", title: "paint sky", _by: "scene-optimizer" }), {});
   await t.handler(
     args({ op: "add", title: "approve palette", owner: "user", _by: "godot-dev" }),
     {},
