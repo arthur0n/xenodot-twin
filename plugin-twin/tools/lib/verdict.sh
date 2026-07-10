@@ -22,13 +22,18 @@
 #   ...
 #   verdict_pass                                # the gate wrote its own PASS manifest inline — keep it
 #
-# The safety net: verdict_arm installs a single EXIT trap. If the script exits having neither marked
-# verdict_pass nor written an explicit verdict_fail — i.e. it DIED on an unrouted path (a set -u
-# unbound var, a killed subshell, a plain command whose failure was never routed through the gate's
-# fail helper) — the trap writes a fail-closed FAIL manifest OVER whatever stale green was there, so
-# no reader (a UI badge, CI) inherits a pass the run never earned. The trap is INLINE (not a named
-# handler) on purpose: a function invoked only from a trap trips shellcheck SC2317 on older versions,
-# and the whole point here is to add a gate without a new suppression.
+# The safety net: verdict_arm installs a single EXIT trap. If the script EXITS having neither marked
+# verdict_pass nor written an explicit verdict_fail, the trap writes a fail-closed FAIL manifest OVER
+# whatever stale green was there, so no reader (a UI badge, CI) inherits a pass the run never earned.
+# Its coverage is precisely "exited without a terminal verdict on record" — a set -u unbound-var abort,
+# a killed/signalled process, or a bare `exit <nonzero>` that skipped the fail helper. It is NOT a
+# substitute for `set -e`: these gates run set -u ONLY, so a plain command that fails but does not halt
+# the shell (its nonzero status ignored, the script continuing on to verdict_pass) is INVISIBLE to the
+# trap — the trap never fires because the script never dies, and a PASS ends up on record. Guarding
+# such commands (route each load-bearing command through the fail helper, or check its status) stays
+# the gate author's job; the trap only catches the death, not the silent miss. The trap is INLINE (not
+# a named handler) on purpose: a function invoked only from a trap trips shellcheck SC2317 on older
+# versions, and the whole point here is to add a gate without a new suppression.
 
 # Guard against double-sourcing (a composing gate could pull in both checks.sh and this).
 [ -n "${XENO_VERDICT_SH:-}" ] && return 0

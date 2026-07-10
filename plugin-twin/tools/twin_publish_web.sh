@@ -275,16 +275,29 @@ fi
 
 # The export preset: use export_presets.cfg's named preset if present; else GENERATE the no-threads
 # preset. Never CLOBBER an existing export_presets.cfg that lacks the preset (the twin never rewrites
-# user export config behind their back) — FAIL loud. The generated preset mirrors the canonical
-# annotated example (plugin-twin/examples/export_presets.web-nothreads.cfg) — thread_support=false
-# (the embed-anywhere / no-COI-headers build) — but sets include_filter so the RAW, FileAccess-read
-# files (viewer.cfg CONFIG, binding map JSON, recording NDJSON — none of them imported resources) bake
-# into the pck. viewer.cfg is the load-bearing one: the web viewer reads res://viewer.cfg for model=/
-# recording=/url=, and a plain .cfg is neither a resource (export_filter skips it) nor json/ndjson, so
-# WITHOUT *viewer.cfg the config is dropped entirely → the viewer boots with no model (0 nodes → every
-# binding resolves 0/N), no recording (no playback), and the DEFAULT url (ws:// spam). The raw json/
-# ndjson likewise ride in via their globs. It is embedded here (not read from examples/) so the tool is
-# self-contained when materialized into a project, where examples/ is not present.
+# user export config behind their back) — FAIL loud. An existing preset is used VERBATIM, so a seat
+# that defines its own exclude_filter is honored as-is (this default only applies to the generated one).
+# The generated preset mirrors the canonical annotated example
+# (plugin-twin/examples/export_presets.web-nothreads.cfg) — thread_support=false (the embed-anywhere /
+# no-COI-headers build) — but sets include_filter so the RAW, FileAccess-read files (viewer.cfg CONFIG,
+# binding map JSON, recording NDJSON — none of them imported resources) bake into the pck. viewer.cfg
+# is the load-bearing one: the web viewer reads res://viewer.cfg for model=/recording=/url=, and a
+# plain .cfg is neither a resource (export_filter skips it) nor json/ndjson, so WITHOUT *viewer.cfg the
+# config is dropped entirely → the viewer boots with no model (0 nodes → every binding resolves 0/N),
+# no recording (no playback), and the DEFAULT url (ws:// spam). The raw json/ndjson likewise ride in
+# via their globs. It is embedded here (not read from examples/) so the tool is self-contained when
+# materialized into a project, where examples/ is not present.
+#
+# exclude_filter is the counterweight to export_filter=all_resources, which otherwise sweeps EVERY
+# imported resource in the tree into the pck — including a seat's spike/debug SCREENSHOTS. A tiny
+# source PNG imports into a multi-megabyte VRAM texture (mipmaps + compression), so a handful of
+# evidence captures under spikes/ ballooned one bim pck from ~35 MB to ~71 MB. We exclude, by
+# DIRECTORY (Godot's `*` spans `/`, so `spikes/*` is recursive — same convention as the seat's own
+# desktop preset), the dev-only trees a web demo never renders: spike evidence, build reports, the
+# desktop ship output, the framework tooling, and any top-level evidence dir. This is deliberately
+# CONSERVATIVE — it does NOT exclude *.png globally (a model's own external textures are PNGs), only
+# the known non-runtime directories — so it leaves a duplex/plant seat's scene, models/data and viewer
+# core untouched while dropping the debris.
 GENERATED_PRESET=0
 if [ -f export_presets.cfg ]; then
 	if ! awk -F= -v want="$PRESET" '
@@ -311,7 +324,7 @@ dedicated_server=false
 custom_features=""
 export_filter="all_resources"
 include_filter="*viewer.cfg,*.json,*.ndjson,*.glb"
-exclude_filter=""
+exclude_filter="spikes/*,reports/*,dist/*,tools/*,evidence/*"
 export_path="builds/web/index.html"
 patches=PackedStringArray()
 encryption_include_filters=""
@@ -338,7 +351,7 @@ html/experimental_virtual_keyboard=false
 progressive_web_app/enabled=false
 PRESET_EOF
 	GENERATED_PRESET=1
-	echo "$XENO_GATE: preflight — generated export_presets.cfg (no-threads, include_filter=*viewer.cfg,*.json,*.ndjson,*.glb)"
+	echo "$XENO_GATE: preflight — generated export_presets.cfg (no-threads, include=*viewer.cfg,*.json,*.ndjson,*.glb; exclude=spikes/*,reports/*,dist/*,tools/*,evidence/*)"
 fi
 
 # Model discovery (flag → viewer.cfg [viewer] model= → newest models/*_opt.tscn, else newest *.glb).
