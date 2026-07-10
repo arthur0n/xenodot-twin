@@ -20,12 +20,12 @@ NOT default `--vis-ranges` on until #4 lands.
 
 ## Nice to Have (differentiation + the human's stated direction)
 
-| #   | Item                                             | Plan doc                                                                   | Status                                                    |
-| --- | ------------------------------------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------- |
-| 5   | Multi-model analysis seam (data-in/report-out)   | [2026-07-09-analysis-seam-plan.md](2026-07-09-analysis-seam-plan.md)       | Plan only — generalizes the Hermes precedent              |
-| 6   | Web/Grafana embed story                          | [2026-07-09-web-embed-plan.md](2026-07-09-web-embed-plan.md)               | Plan only — WASM ceiling never measured                   |
-| 7   | `twin-ship` packaging skill                      | [2026-07-09-twin-ship-plan.md](2026-07-09-twin-ship-plan.md)               | Plan only — viewer not export-safe yet (the real blocker) |
-| 8   | Second demo asset (plant/factory-flavored model) | [2026-07-09-plant-demo-asset-plan.md](2026-07-09-plant-demo-asset-plan.md) | Plan only — sourcing spike not run                        |
+| #   | Item                                             | Plan doc                                                                   | Status                                                                                                                                                                                                                                                |
+| --- | ------------------------------------------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 5   | Multi-model analysis seam (data-in/report-out)   | [2026-07-09-analysis-seam-plan.md](2026-07-09-analysis-seam-plan.md)       | ✅ Built on `feat/analysis-seam` (3 phases) — seat-validated: 87.6 KB byte-stable bundle → `summarize-window` through the Hermes worker to a NON-Anthropic model (Nous Portal `z-ai/glm-5.2`), one billable run, all 5 guardrails held; pending merge |
+| 6   | Web/Grafana embed story                          | [2026-07-09-web-embed-plan.md](2026-07-09-web-embed-plan.md)               | Plan only — WASM ceiling never measured                                                                                                                                                                                                               |
+| 7   | `twin-ship` packaging skill                      | [2026-07-09-twin-ship-plan.md](2026-07-09-twin-ship-plan.md)               | Plan only — viewer not export-safe yet (the real blocker)                                                                                                                                                                                             |
+| 8   | Second demo asset (plant/factory-flavored model) | [2026-07-09-plant-demo-asset-plan.md](2026-07-09-plant-demo-asset-plan.md) | Plan only — sourcing spike not run                                                                                                                                                                                                                    |
 
 Item #5's build stands on the Hermes precedent, recorded as-built in
 [hermes-researcher-subagent-poc.md](hermes-researcher-subagent-poc.md) (built and in use;

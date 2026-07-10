@@ -147,6 +147,39 @@ Bare `node`; no engine needed. Without `--seconds`, SIGINT flushes and summarize
 Playback consumes these files (starter-viewer `core/recording.gd`). Contract: skill
 `twin-playback`.
 
+## `analyze/bundle.js` — analysis-bundle packager (Contract 1, data-in)
+
+```
+node tools/analyze/bundle.js --recording recordings/day.ndjson \
+    [--map binding_map.json] [--sidecar models/duplex_props.json] \
+    [--from-ms A --to-ms B] [--tags t1,t2] [--points-per-tag N] \
+    [--allow-oversize] --out bundle.json
+```
+
+The **data-in** half of the multi-model analysis seam: packs a twin recording (plus an
+optional binding map + property sidecar) into ONE deterministic JSON document
+(`kind:"twin-analysis-bundle"`) that a swappable worker — another model, or a human
+pasting into a chat UI — narrates. Same inputs + same flags ⇒ **byte-identical bundle**
+(equal sha256, like a recording): fixed key order, every tag-keyed collection a sorted
+array. Carries per-tag pure stats (count, min/max/mean/population-stddev, first/last,
+seq-gaps, range-crossings vs the map/header limits, max-step-delta — computed in
+`analyze/stats.js`, unit-tested against seeded fixtures with exact expected values),
+endpoint-preserving stride-decimated `[t_ms,value]` series (default 200/tag), tag→GlobalId→
+curated sidecar subset bindings, and the sha256 + byte size of every input file
+(provenance). Size-budgeted to ≤ **102400 bytes** so it inlines into any provider's context;
+over budget the CLI hard-FAILs (no file written) unless `--allow-oversize` (loud). Bare
+`node`, dependency-free — rides the recursive tools copy into projects like the sim.
+
+The **report-out** half and the dispatch surface are framework-side (not materialized): the
+worker adapters + report writer live in `ui/server/features/twin/`, driven by
+`npm run analyze -- --task <summarize-window|narrate-anomalies|inspection-report>
+(--bundle b.json | --recording r.ndjson …)` — the framework writes the advisory report to
+`reports/analysis/<date>-<task>.md`, naming its provider+model and the bundle hash; the
+worker never writes a file. Probe a configured worker with `npm run analysis:check` (no
+model run, no charge). Operator manual + config + the five guardrails: skill `twin-analyze`;
+the two contracts: `plugin-twin/skills/twin-analyze/references/{bundle-schema,report-format}.md`.
+Seat-proven worked example: `plugin-twin/library/findings/twin-analyze-2026-07-10.md`.
+
 ## `bridge/mqtt_ws.js` — MQTT → WebSocket bridge
 
 ```
