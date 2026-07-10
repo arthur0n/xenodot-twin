@@ -56,6 +56,10 @@ const INJECTED_LATENCY_MS := 0.0
 
 ## WebSocket URL of the tag source. Default comes from viewer.cfg ([viewer] url=...)
 ## when present, else DEFAULT_URL. Set it before the next (re)connect to redirect.
+## An EMPTY/blank url is the "live source OFF" contract: the bus never opens a socket and
+## never retries (no ERR_CONNECTION_REFUSED spam) — used by playback-only deployments (a
+## GitHub-Pages demo has no sim to reach; the baked recording drives every visual). Playback
+## still works via inject_frame(); reconnect("ws://…") re-enables live at any time.
 var url: String = DEFAULT_URL
 
 ## Data-source mode: MODE_LIVE or MODE_PLAYBACK. Read freely (the overlay colours its
@@ -104,12 +108,22 @@ func _ready() -> void:
 		var cfg := ConfigFile.new()
 		if cfg.load(cfg_path) == OK:
 			url = str(cfg.get_value("viewer", "url", DEFAULT_URL))
+	if _live_disabled():
+		return  # live source OFF (empty url=) — never connect, never retry (see `url`)
 	_open_socket()
 
 
+## True when the live source is OFF: a blank url= disables the socket entirely (no connect,
+## no reconnect). Playback still injects frames; reconnect("ws://…") flips it back on.
+func _live_disabled() -> bool:
+	return url.strip_edges() == ""
+
+
 func _process(delta: float) -> void:
-	if mode == MODE_PLAYBACK:
-		return  # socket closed by set_mode(); no poll, no reconnect until MODE_LIVE returns
+	if mode == MODE_PLAYBACK or _live_disabled():
+		return  # playback closed the socket, or the live source is OFF: no poll, no reconnect
+	if _ws == null:
+		return  # defensive: never opened (disabled at boot) — nothing to poll
 	if _reconnect_cooldown > 0.0:
 		_reconnect_cooldown -= delta
 		if _reconnect_cooldown <= 0.0:
@@ -209,6 +223,8 @@ func stats() -> Dictionary:
 
 
 func _open_socket() -> void:
+	if _live_disabled():
+		return  # live source OFF (empty url=): don't allocate a peer or attempt a connection
 	_ws = WebSocketPeer.new()  # fresh peer per attempt (see gotcha above)
 	var err := _ws.connect_to_url(url)
 	if err != OK:
