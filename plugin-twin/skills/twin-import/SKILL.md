@@ -92,6 +92,32 @@ A vetted copy of the Duplex sample (plus an example binding map + viewer config)
 try-it kit at `plugin-twin/examples/` — see its `README.md` for the copy-in-and-convert
 quickstart and `NOTICE.md` for provenance.
 
+### Fetch + verify + stamp in one command: `tools/twin_fetch_model.sh`
+
+Don't hand-run the download/verify/provenance chore — `tools/twin_fetch_model.sh` does all of it:
+download → **Git-LFS media-endpoint handling** → **sha256 verify** against the expected digest →
+**STEP-header** (`ISO-10303-21;`) sanity → schema read → **stamp `models/PROVENANCE.md`**
+(URL, license, sha256, size, schema). It's idempotent (an output whose sha256 already matches is
+reused) and never leaves a half-verified file.
+
+```bash
+rtk tools/twin_fetch_model.sh <url> --sha256 <hex> --out models/<name>.ifc --license "<line>"
+```
+
+**The Git-LFS trap:** the buildingSMART community sample repo tracks its `.ifc` files with Git
+LFS, so a plain `raw.githubusercontent.com` / GitHub `blob` URL serves a ~130-byte **text
+pointer**, not the model. The tool auto-detects the pointer and re-fetches from the
+`media.githubusercontent.com/media/` endpoint (which serves the real bytes); pass a media URL
+directly and it just works.
+
+**Verified working sample — Schependomlaan** (a real 62 MB IFC2X3 Dutch row-house project, the
+BIM-seat model; CC BY 4.0, credit line required — see the seat's `PROVENANCE.md`):
+
+```
+https://media.githubusercontent.com/media/buildingsmart-community/Community-Sample-Test-Files/main/IFC%202.3.0.1%20(IFC%202x3)/Schependomlaan/As%20Planned%20models/IFC%20Schependomlaan%20incl%20planningsdata.ifc
+  65,078,748 bytes  IFC2X3  sha256 57fafa59f03b18c05be211a456e346bdd0445d5c35d66522e598d339e81dfcf4
+```
+
 ### More dead / trap URLs — DO NOT RE-WALK (plant-asset sourcing spike, 2026-07-10)
 
 Sourcing an industrial/plant-flavored public model (roadmap #8) re-confirmed the dead-URL trap

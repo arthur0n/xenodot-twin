@@ -116,6 +116,21 @@ valid `.venv-ifc` is **reused**, a missing one is **provisioned** (`uv venv --py
 rebuild — same drift-visible discipline as `twin_build.sh`). `--run` executes a script with the
 venv's python once the venv is ready. Needs `uv`; no engine.
 
+## `twin_fetch_model.sh` — fetch IFC + integrity + provenance stamp
+
+```
+tools/twin_fetch_model.sh <url> --sha256 <hex> [--out models/x.ifc] [--license <line>] \
+    [--models-dir models] [--name <label>] [--no-lfs-rewrite]
+```
+
+Download → **Git-LFS handling** (a raw/blob GitHub URL for an LFS file serves a text pointer;
+auto-rewrites to the `media.githubusercontent.com/media/` endpoint and re-fetches) → **sha256
+verify** against the expected digest → **STEP-header** (`ISO-10303-21;`) sanity (dead-URL guard)
+→ schema read → **stamp `models/PROVENANCE.md`** (URL, license, sha256, size, schema). Idempotent
+(reuses an output whose sha256 already matches) and never leaves a half-verified file at the
+output path. Verified sample (Schependomlaan, IFC2X3, 62 MB) is pinned in skill `twin-import`.
+Needs `curl`; no engine.
+
 ## `optimize_scene.gd` — the scene optimizer
 
 ```
