@@ -61,6 +61,7 @@ plugin-twin/tools/web  plugin-twin/examples/export_presets.web-nothreads.cfg  pl
 plugin-twin/tools/twin_ship.sh  plugin-twin/skills/twin-ship
 plugin-twin/examples/plant.ifc  plugin-twin/examples/binding_map.plant.example.json  plugin-twin/examples/viewer.cfg.plant.example  plugin-twin/examples/gen_plant_ifc.py  plugin-twin/examples/NOTICE.md  plugin-twin/examples/README.md
 plugin-twin/tools/bench_sweep.sh  plugin-twin/tools/bench  plugin-twin/examples/bench_sweep.vis-fade.example.json
+plugin-twin/examples/gen_city.gd
 ```
 
 > `plugin-twin/tools/twin_build.sh` (the one-command IFC→verified-twin driver) and
@@ -101,12 +102,19 @@ plugin-twin/tools/bench_sweep.sh  plugin-twin/tools/bench  plugin-twin/examples/
 > exe-adjacent `viewer.cfg`, `--quit-after=` — live under `starter-viewer/`, already whole-restored.)
 >
 > `plugin-twin/tools/bench_sweep.sh` (the reusable declarative optimize→bench→merge recipe sweep) +
-> `plugin-twin/tools/bench/` (its dependency-free `merge_sweep.py` analysis/determinism-assert half)
-> and `plugin-twin/examples/bench_sweep.vis-fade.example.json` (the worked fade-sweep matrix) are the
+> `plugin-twin/tools/bench/` (its dependency-free `merge_sweep.py` analysis/determinism-assert half,
+> **plus the perceptual pair `pop_series.gd` + `pop_analyze.py`** — the windowed pop-capture +
+> ffmpeg diff promoted from the fade spike as the sweep's documented perceptual mode) and
+> `plugin-twin/examples/bench_sweep.vis-fade.example.json` (the worked fade-sweep matrix) are the
 > tool promotion from open item #6 (the third spike to hand-roll the sweep loop earned it a framework
-> tool) and are named explicitly for the same reason. All sit **inside** the whole-`plugin-twin`
-> restore above and are fork-only files upstream never carried (a sync's `e250d11` re-deletion can't
-> touch them) — belt-and-suspenders, not a second mechanism.
+> tool) and are named explicitly for the same reason. `plugin-twin/examples/gen_city.gd` (the
+> repeated-BIM scale/bench city generator — the demo scene the vis/occluder/fade findings + the
+> example matrix's `scene_in` are built from; a demo asset generator that stays in `examples/`, never
+> materialized, exactly like `gen_plant_ifc.py`) is the seat-promotions companion and is listed above
+> for the same reason. All sit **inside** the whole-`plugin-twin` restore above and are fork-only
+> files upstream never carried (a sync's `e250d11` re-deletion can't touch them) — belt-and-suspenders,
+> not a second mechanism. The perceptual pair rides the recursive `tools/` materialize into user
+> projects (it is a pipeline-adjacent tool); `gen_city.gd` does NOT (examples/ is never materialized).
 >
 > The **plant demo kit** — the six example files of Nice-to-Have #8 (Track B, synthetic):
 > `plugin-twin/examples/plant.ifc` (the vendored synthetic demonstration model — a generated
