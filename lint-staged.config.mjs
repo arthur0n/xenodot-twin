@@ -24,4 +24,10 @@ export default {
     return cmds;
   },
   "**/*.{json,md,css}": ["prettier --write"],
+  // Shell floor on staged scripts (see ui/server/cli/shellcheck.check.js for the full-tree gate).
+  // Same flags as check:sh. Skips gracefully when shellcheck is absent — mirroring the pre-commit
+  // gitleaks precedent; the authoritative, always-fail gate is `npm run validate` (which CI runs).
+  "**/*.sh": (staged) => [
+    `sh -c 'command -v shellcheck >/dev/null 2>&1 || { echo "check:sh: shellcheck not installed — skipping (npm run validate / CI enforce it)"; exit 0; }; exec shellcheck -x --source-path=SCRIPTDIR --source-path=plugin/tools "$@"' _ ${staged.join(" ")}`,
+  ],
 };

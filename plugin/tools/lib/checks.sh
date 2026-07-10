@@ -361,6 +361,7 @@ run_gd_bots() {
 		if [ -n "$_bots_glob" ]; then
 			local base
 			base="$(basename "$bot")"
+			# shellcheck disable=SC2254 # intentional: XENO_BOTS_GLOB is a caller-supplied glob, matched as a glob
 			case "$base" in
 			$_bots_glob) ;;
 			*) continue ;;
