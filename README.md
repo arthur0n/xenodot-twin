@@ -66,9 +66,12 @@ Numbers from the spike + benchmark findings in [`plugin-twin/library/findings/`]
   optimizer is measured against a stated frame budget, not eyeballed.
 - **Join: 100%.** IFC → GLB carries the IFC **GlobalId** as the node name, so the model joins to a
   master-data sidecar by id at ~100% of mesh nodes — verified headless as a gate, not by hand.
-- **Playback: sha-gated.** Recorded history replays deterministically — `check_playback.gd` runs
-  twice and the gate asserts an identical `PLAYBACK-HASH`, so "it replays the same" is a check, not a
-  hope.
+- **Playback: sha256-gated.** Every live demo above replays a recorded run of telemetry — the same
+  tank levels, temperatures, and valve states a live system would send. To prove that replay is
+  trustworthy, not just "close enough," the framework runs the exact same recording twice through the
+  real playback engine and takes a SHA-256 fingerprint of every value it paints, in order. If the two
+  fingerprints don't match byte-for-byte, the build fails before it ships. So what you're watching
+  isn't an animation approximating the data — it's a checked, reproducible replay of it.
 - **Import: ~1.1 s.** A 2.3 MB sample IFC converts to GLB + property sidecar in about a second
   (ifcopenshell in a Python 3.12 venv); live telemetry streams clean over a WebSocket at 10 Hz.
 
