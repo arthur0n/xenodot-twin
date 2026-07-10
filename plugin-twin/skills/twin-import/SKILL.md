@@ -29,7 +29,18 @@ Proven end-to-end on the Duplex sample: 2.3 MB IFC → GLB + sidecar in ~1.1 s w
 ## Step 0 — the Python venv (the version trap)
 
 ifcopenshell ships **no wheel for Python 3.14** (the current macOS system python) — `pip install
-ifcopenshell` on 3.14 fails with "no matching distribution". Pin **3.12**:
+ifcopenshell` on 3.14 fails with "no matching distribution". The venv MUST pin **3.12**, and
+**0.8.5** is the proven version. `tools/twin_venv.sh` owns that recipe so you never hand-run it:
+
+```bash
+rtk tools/twin_venv.sh                         # ensure .venv-ifc (idempotent)
+rtk tools/twin_venv.sh --run tools/ifc_convert.py model.ifc   # ensure, then convert inside it
+```
+
+It is **idempotent**: an existing valid `.venv-ifc` is reused; a missing one is provisioned
+(`uv venv --python 3.12` + `uv pip install ifcopenshell==0.8.5`); a different ifcopenshell
+already installed **FAILs loud** with the fix (it never silently rebuilds — drift stays visible).
+The equivalent by hand, if you ever need it:
 
 ```bash
 rtk uv venv --python 3.12 .venv-ifc
@@ -175,7 +186,7 @@ GlobalIds — diagnose from `MISS_SAMPLE`, never ship a low-join model into bind
 
 | Symptom                                                       | Fix                                                                                                                            |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `pip install ifcopenshell` — no matching distribution         | Python too new (3.14 has no wheel). `uv venv --python 3.12`, install `ifcopenshell==0.8.5`                                     |
+| `pip install ifcopenshell` — no matching distribution         | Python too new (3.14 has no wheel). Run `tools/twin_venv.sh` (pins 3.12 + `ifcopenshell==0.8.5`)                               |
 | Downloaded "IFC" fails to open / parses as garbage            | Dead buildingSMART URL served HTML. Use the XBimDemo raw.githubusercontent.com mirror; validate `head -c 13` = `ISO-10303-21;` |
 | GLB node names are display names, not 22-char ids             | `use-element-guids` not set on **serializer_settings** (it is a serializer setting, not a geometry setting)                    |
 | `json.dump` raises TypeError on psets                         | Missing `default=str` — pset values include IFC entity refs/dates                                                              |

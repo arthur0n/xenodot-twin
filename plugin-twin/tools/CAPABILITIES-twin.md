@@ -100,8 +100,21 @@ Converts an IFC model to GLB with node names carrying the IFC GlobalIds
 (`get_psets`, `json.dump default=str`). Validates the STEP header first — the guard
 against dead sample URLs that download HTML.
 
-Needs a **Python 3.12** venv with `ifcopenshell==0.8.5` (3.14 has no wheel) — setup in
-skill `twin-import`. No engine needed.
+Needs a **Python 3.12** venv with `ifcopenshell==0.8.5` (3.14 has no wheel) — provisioned by
+`twin_venv.sh` (below); setup in skill `twin-import`. No engine needed.
+
+## `twin_venv.sh` — provision the pinned ifcopenshell venv (idempotent)
+
+```
+tools/twin_venv.sh [--dir .venv-ifc] [--python 3.12] [--ifcopenshell 0.8.5]
+tools/twin_venv.sh --run tools/ifc_convert.py <model.ifc>
+```
+
+Folds the venv bootstrap the IFC convert path needs into one idempotent command: an existing
+valid `.venv-ifc` is **reused**, a missing one is **provisioned** (`uv venv --python 3.12` +
+`uv pip install ifcopenshell==0.8.5`), and a **version mismatch FAILs loud** (never a silent
+rebuild — same drift-visible discipline as `twin_build.sh`). `--run` executes a script with the
+venv's python once the venv is ready. Needs `uv`; no engine.
 
 ## `optimize_scene.gd` — the scene optimizer
 

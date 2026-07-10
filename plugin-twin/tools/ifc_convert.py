@@ -2,13 +2,14 @@
 """IFC -> GLB (node names = IFC GlobalIds) + property sidecar JSON keyed by GlobalId.
 
 The twin-import pipeline's build step (skill: twin-import). Requires ifcopenshell,
-which has NO wheel for Python 3.14 -- run inside a Python 3.12 venv:
+which has NO wheel for Python 3.14 -- run inside the pinned 3.12 venv. Let
+tools/twin_venv.sh provision it and run this script inside it in one command:
 
-    uv venv --python 3.12 .venv-ifc && source .venv-ifc/bin/activate
-    uv pip install ifcopenshell==0.8.5
+    tools/twin_venv.sh --run tools/ifc_convert.py model.ifc
 
-Usage:
-    python tools/ifc_convert.py model.ifc
+or provision once and call directly:
+
+    tools/twin_venv.sh && source .venv-ifc/bin/activate
     python tools/ifc_convert.py model.ifc --glb out/model.glb --sidecar out/model_props.json
 
 Defaults derive from the input stem: model.ifc -> model.glb + model_props.json.
@@ -26,8 +27,9 @@ try:
     import ifcopenshell.util.element
 except ImportError:
     sys.exit(
-        "ifcopenshell not importable — activate the 3.12 venv first "
-        "(uv venv --python 3.12; uv pip install ifcopenshell==0.8.5). "
+        "ifcopenshell not importable — provision + run inside the pinned 3.12 venv: "
+        "tools/twin_venv.sh --run tools/ifc_convert.py <model.ifc> "
+        "(or tools/twin_venv.sh then activate .venv-ifc). "
         "Python 3.14 has no ifcopenshell wheel."
     )
 
