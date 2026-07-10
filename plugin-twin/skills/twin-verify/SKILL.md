@@ -179,6 +179,36 @@ two-leg comparison is robust. **Loud SKIP** (a SKIP is not a pass) when `node`, 
 `tools/check_playback.gd`, or `core/playback.gd` is missing. The synthesized fixture is always cleaned
 (EXIT trap), like the binding-smoke sim.
 
+## Step 6 — browser evidence (web builds) — CDP screenshot + console
+
+A web build that returns HTTP 200 and smokes green on desktop can still be **dead in a real
+browser** (both an HTTP 200 and a desktop smoke have lied here once each). For any WEB artifact —
+a `twin_publish_web.sh` demo, a `serve_coi.py` preview, an embed page — verify it in a **real
+headed browser** over the DevTools Protocol: `tools/web/twin_evidence.js` captures a screenshot
+plus the **verbatim** console/exception log and **exits non-zero on any un-allowlisted console
+error**. It is the same proof that feeds a demo's card art.
+
+```bash
+# serve a local build dir (COOP/COEP via serve_coi.py) and capture:
+rtk node tools/web/twin_evidence.js --dir builds/web --out .xenodot/evidence [--seconds 14]
+# or point at an already-served / hosted URL:
+rtk node tools/web/twin_evidence.js --url http://127.0.0.1:8070/ --out .xenodot/evidence
+```
+
+Writes `<out>/screenshot.png` + `<out>/console.log`. Contract:
+
+- **Exit 0** = captured, no un-allowlisted console errors; **exit 1** = errors seen (they are
+  printed, capped at 10); **exit 2** = setup failure (no Chrome, server never came up).
+- **Godot web exports route engine warnings through `console.error`** (e.g. "Occlusion culling is
+  disabled at build-time" + its `_print_warning` backtrace). Those are benign — allowlist them so
+  they don't red the gate, and only them: `--allow "Occlusion culling|_print_warning"` (repeatable,
+  each a JS regex). Everything not allowlisted stays a failure — never widen the allowlist to hide
+  a real error.
+- Auto-attaches (flatten) to child frames, so an **embedded** build's console is captured too
+  (the Grafana-iframe case). Needs Chrome (`$CHROME` or the macOS app path); Node built-ins only.
+- Inspect `screenshot.png` before claiming a web build works — a blank/flat frame is a dead boot
+  even at exit 0 (the tool flags an EMPTY capture, but a rendered-but-wrong frame is yours to read).
+
 ## Pass criteria
 
 1. `xenodot:godot-verify` floor: per that skill (verify_twin.sh runs its headless layers;
@@ -196,6 +226,9 @@ two-leg comparison is robust. **Loud SKIP** (a SKIP is not a pass) when `node`, 
    change — two `check_playback.gd` legs over the same synthesized fixture + seeks print the SAME
    `PLAYBACK-HASH`, each leg's `PLAYBACK-GATE: OK`. Loud SKIP only when node/the recorder/the gate
    script/the player is genuinely absent (a SKIP is not a pass).
+6. Browser evidence (web builds only): `tools/web/twin_evidence.js` exits 0 with a rendered
+   `screenshot.png` and a `console.log` free of un-allowlisted errors (Godot's `console.error`
+   engine warnings allowlisted, nothing else). Not applicable to a desktop-only change.
 
 If the engine binary or a display is unavailable: say so explicitly — never claim a layer you
 didn't run.

@@ -395,6 +395,24 @@ ceiling, the threads-vs-no-threads no-delta finding, and the Grafana-embed evide
 `plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`. Recipe + embed snippet: skill
 `twin-bind-data` → "Serving to the browser / Grafana embed".
 
+## `web/twin_evidence.js` — browser evidence capture (CDP screenshot + console)
+
+```
+node tools/web/twin_evidence.js (--url <url> | --dir <build>) --out <dir> [--seconds N] \
+    [--allow <regex>]... [--port N] [--chrome <path>]
+```
+
+Verify a web build in a **real headed browser** over the DevTools Protocol — the proof an HTTP 200
+and a desktop smoke can't give (both have lied). Given a URL, or a local build dir it serves via
+`serve_coi.py`, it drives Chrome, collects the **verbatim** console/exception log (auto-attaching
+to child frames, so an embedded build's console is captured too), takes a **screenshot**, and
+writes `<out>/screenshot.png` + `<out>/console.log`. **Exits non-zero on any un-allowlisted
+console error** (exit 1; exit 2 = setup fail) — Godot web exports route engine warnings through
+`console.error`, so allowlist those with `--allow "Occlusion culling|_print_warning"` and nothing
+more. Node built-ins only (global WebSocket + fetch) — no npm deps, same runtime policy as the sim;
+needs Chrome (`$CHROME` or the macOS app path). Generalized from the archived `web-ceiling` CDP
+drivers. Wired as `twin-verify` step 6 (browser evidence); feeds demo card art.
+
 ## Referenced (NOT bundled) — base xenodot capabilities
 
 Twin sessions load both plugins; these resolve from the base plugin / the merged project
