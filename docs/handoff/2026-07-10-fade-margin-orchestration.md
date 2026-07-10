@@ -113,5 +113,16 @@ worked examples. SEAMS/CAPABILITIES accordingly.
       ticked. Proven end-to-end in the seat (house-twin, duplex 2-config matrix): stages, determinism
       assert PASS, 3 loud negatives (unknown key / missing baseline / doctored-row variance), shellcheck
       clean, materializes via the recursive copy.
-- [ ] Scoped review + seat check
-- [ ] Merged to main, docs updated
+- [x] Scoped review (independent Opus): MERGE-READY. Refactor verified faithful
+      no-op; coupling rule correct; 10/10 numbers reconciled with independent
+      retention recomputation; honesty labeling verified in every surface. 3
+      bench_sweep robustness findings fixed in `3f7c0dc`: F1 bench/repeat stages
+      could false-green with zero rows on headless (now asserts a measured BENCH
+      row — SKIP never a pass — headless FAIL proven both stages; also dodged a
+      second pipe-subshell status trap in \_repeat), F2 vantage grammar validated
+      at preflight, F3 refresh_hz>0 guard. Positive regression run green.
+- [x] Orchestrator seat check: fade5-built ucity scene boots in the current
+      viewer, visibility_range_end_margin serialized in the artifact.
+- [x] Merged to main (no-ff), pushed. Item #6 CLOSED. Human fly-through of
+      aggressive+fade5 remains the standing human item (recorded in the finding +
+      open-items).

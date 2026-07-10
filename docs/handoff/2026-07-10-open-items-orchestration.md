@@ -47,8 +47,18 @@ per item; an item that grows phases gets its own companion doc.
       violation proven exit 1. Full gate + twin_build happy path green.
       Proportionality call: line-by-line orchestrator review only, no separate
       review agent (+8/−4 source diff + one new gate file).
-- [ ] #5 occluder bench
-- [ ] #6 fade margin
+- [x] #5 occluder bench — merged `8dfbc90`. Stays opt-in with measured guidance:
+      ucity street −0.15 ms lossless at the 10 m³ default (measured sweet spot),
+      duplex net-negative + interior artifact published, aerial structural no-op,
+      instanced 0 occluders. Full log: 2026-07-10-occluder-bench-orchestration.md.
+      Lesson institutionalized: measurement rules worded per-vantage-class from
+      now on (the both-vantages bar was unreachable for occlusion).
+- [x] #6 fade margin — merged. Aggressive vis tier adopts
+      --vis-fade-margin=5 --vis-fade-mode=self (97% retention, cost ≤ noise,
+      pending human fly-through); Forward+-only caveat (web keeps the pop);
+      coarser+fade fails. PLUS human-directed bench_sweep tool promotion
+      (declarative matrix sweeps, determinism asserts, SKIP-never-a-pass).
+      Full log: 2026-07-10-fade-margin-orchestration.md.
 - [ ] #7 UI de-branding
 - [ ] #8 analysis MCP surface
 - [ ] #9 upstream PR offers (prepared; human gate before opening)
