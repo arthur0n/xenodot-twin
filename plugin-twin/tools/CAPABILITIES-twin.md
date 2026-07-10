@@ -237,8 +237,10 @@ worker adapters + report writer live in `ui/server/features/twin/`, driven by
 `npm run analyze -- --task <summarize-window|narrate-anomalies|inspection-report>
 (--bundle b.json | --recording r.ndjson …)` — the framework writes the advisory report to
 `reports/analysis/<date>-<task>.md`, naming its provider+model and the bundle hash; the
-worker never writes a file. Probe a configured worker with `npm run analysis:check` (no
-model run, no charge). Operator manual + config + the five guardrails: skill `twin-analyze`;
+worker never writes a file. The same seam is reachable from a running Hive session via the
+`mcp__ui__analyze` tool (same shared dispatch core; gated per call, returns an advisory summary +
+the report path) — the CLI stays canonical. Probe a configured worker with `npm run analysis:check`
+(no model run, no charge). Operator manual + config + the five guardrails: skill `twin-analyze`;
 the two contracts: `plugin-twin/skills/twin-analyze/references/{bundle-schema,report-format}.md`.
 Seat-proven worked example: `plugin-twin/library/findings/twin-analyze-2026-07-10.md`.
 

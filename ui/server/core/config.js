@@ -253,6 +253,13 @@ export const COMPACT_TOOL = "mcp__ui__compact";
 // frontmatter lists it, so only the foreground Hive can call it.
 export const HERMES_TOOL = "mcp__ui__hermes";
 
+// In-process MCP tool that dispatches the multi-model analysis seam from a Hive session (see
+// mcp-tools/analyze-tool.js). Like HERMES_TOOL it is a REAL side effect (a billable model call + a
+// report written to reports/analysis/), so it deliberately has NO auto-allow branch in canUseTool —
+// it is absent from uiControlAllow, so every dispatch hits the per-call permission gate (allow/deny
+// in the web UI). `npm run analyze` stays the canonical CLI path; this is the same seam, gated.
+export const ANALYZE_TOOL = "mcp__ui__analyze";
+
 /** Hermes model ids for the settings dropdown; the user can also enter a custom id. The Nous
  * Portal (provider `nous`) routes non-Nous ids too (e.g. `qwen/*`, `z-ai/*`), so they're valid
  * picklist entries as long as they're in the Portal model catalog.
