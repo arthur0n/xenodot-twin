@@ -1,6 +1,17 @@
+<p align="center">
+  <img src="assets/full_logo.png" alt="Xenodot Twin" width="380" />
+</p>
+
 # Xenodot Twin
 
-<p align="center"><img src="assets/full_logo.png" alt="Xenodot Twin" width="340"></p>
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
+![Skills: 16](https://img.shields.io/badge/Skills-16-purple.svg)
+![Agents: 10](https://img.shields.io/badge/Agents-10-orange.svg)
+![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
+
+> **Turn a real building or plant model into a live, data-bound 3D digital twin on Godot — driven by a
+> deliberate pipeline, not a chat box.**
 
 <p align="center">
   <a href="https://arthur0n.github.io/xenodot-twin-demos/plant/">
@@ -8,19 +19,10 @@
   </a>
 </p>
 
-> **Turn a real building or plant model into a live, data-bound 3D digital twin on Godot — driven by a
-> deliberate pipeline, not a chat box.**
-
 **▶ Live demos** — no install, runs in your browser (no-threads Godot/WASM, autoplaying recorded
 telemetry): **[plant](https://arthur0n.github.io/xenodot-twin-demos/plant/)** ·
 **[duplex](https://arthur0n.github.io/xenodot-twin-demos/duplex/)** ·
 [all demos](https://arthur0n.github.io/xenodot-twin-demos/)
-
-![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
-![Skills: 16](https://img.shields.io/badge/Skills-16-purple.svg)
-![Agents: 10](https://img.shields.io/badge/Agents-10-orange.svg)
-![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
 An AI agent framework on the **Claude Code SDK** that works _with_ you to build **digital-twin
 visualization apps on Godot** — using **a deliberate pipeline instead of a chat box**.
