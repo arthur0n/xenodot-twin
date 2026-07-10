@@ -198,11 +198,14 @@ fi
 # preset. Never CLOBBER an existing export_presets.cfg that lacks the preset (the twin never rewrites
 # user export config behind their back) — FAIL loud. The generated preset mirrors the canonical
 # annotated example (plugin-twin/examples/export_presets.web-nothreads.cfg) — thread_support=false
-# (the embed-anywhere / no-COI-headers build) — but sets include_filter so the RAW data files (binding
-# map JSON + recording NDJSON, both FileAccess-read, NOT imported resources) bake into the pck. Without
-# it the exporter bakes resources (the .tscn) but drops the raw json/ndjson → the demo boots with no
-# bindings / no playback. It is embedded here (not read from examples/) so the tool is self-contained
-# when materialized into a project, where examples/ is not present.
+# (the embed-anywhere / no-COI-headers build) — but sets include_filter so the RAW, FileAccess-read
+# files (viewer.cfg CONFIG, binding map JSON, recording NDJSON — none of them imported resources) bake
+# into the pck. viewer.cfg is the load-bearing one: the web viewer reads res://viewer.cfg for model=/
+# recording=/url=, and a plain .cfg is neither a resource (export_filter skips it) nor json/ndjson, so
+# WITHOUT *viewer.cfg the config is dropped entirely → the viewer boots with no model (0 nodes → every
+# binding resolves 0/N), no recording (no playback), and the DEFAULT url (ws:// spam). The raw json/
+# ndjson likewise ride in via their globs. It is embedded here (not read from examples/) so the tool is
+# self-contained when materialized into a project, where examples/ is not present.
 GENERATED_PRESET=0
 if [ -f export_presets.cfg ]; then
 	if ! awk -F= -v want="$PRESET" '
@@ -228,7 +231,7 @@ advanced_options=false
 dedicated_server=false
 custom_features=""
 export_filter="all_resources"
-include_filter="*.json,*.ndjson,*.glb"
+include_filter="*viewer.cfg,*.json,*.ndjson,*.glb"
 exclude_filter=""
 export_path="builds/web/index.html"
 patches=PackedStringArray()
@@ -256,7 +259,7 @@ html/experimental_virtual_keyboard=false
 progressive_web_app/enabled=false
 PRESET_EOF
 	GENERATED_PRESET=1
-	echo "$XENO_GATE: preflight — generated export_presets.cfg (no-threads, include_filter=*.json,*.ndjson,*.glb)"
+	echo "$XENO_GATE: preflight — generated export_presets.cfg (no-threads, include_filter=*viewer.cfg,*.json,*.ndjson,*.glb)"
 fi
 
 # Model discovery (flag → viewer.cfg [viewer] model= → newest models/*_opt.tscn, else newest *.glb).
@@ -275,6 +278,33 @@ fi
 [ -n "$MODEL" ] || _fail "no model found (pass --model, set viewer.cfg [viewer] model=, or build one with twin_build.sh)"
 MODEL="${MODEL#res://}"
 [ -f "$MODEL" ] || _fail "no such model: $MODEL"
+
+# WEB-CORRECT MODEL. A web build has no exe-adjacent filesystem: every asset must live INSIDE the
+# pck. A raw .glb/.gltf that Godot has IMPORTED (a sibling <model>.import exists) does NOT ride in the
+# pck as raw bytes — the exporter packs only the IMPORTED .scn + a tiny remap stub, so a runtime
+# GLTFDocument read (FileAccess.get_file_as_bytes) comes back EMPTY and the model never loads (0
+# nodes → every binding resolves 0/N). That is exactly how a "smoke passed on desktop / blank on
+# the web" divergence happens: a dev checkout reads the raw .glb off disk, the web pck cannot. So for
+# an imported source glb we publish the OPTIMIZED SCENE RESOURCE (<stem>_opt.tscn from twin_build.sh)
+# instead — a real Godot resource, always packed by export_filter=all_resources, loaded via
+# load()/PackedScene, node names (the IFC GlobalIds) preserved. A NON-imported glb (no .import) is
+# left as-is: include_filter bakes its raw bytes and the runtime GLTFDocument path works on web.
+case "$MODEL" in
+*.glb | *.gltf | *.GLB | *.GLTF)
+	if [ -f "$MODEL.import" ]; then
+		MODEL_OPT="${MODEL%.*}_opt.tscn"
+		if [ -f "$MODEL_OPT" ]; then
+			echo "$XENO_GATE: preflight — model '$MODEL' is an IMPORTED glb (won't ride in a web pck as raw bytes);"
+			echo "  publishing the optimized scene resource '$MODEL_OPT' instead (packs + loads from the pck)."
+			MODEL="$MODEL_OPT"
+		else
+			_fail "model '$MODEL' is an imported glb — its raw bytes can't be read from a web pck, and no
+    optimized scene '$MODEL_OPT' exists to publish instead. Build one first (twin_build.sh) or pass
+    --model <scene.tscn>. (A web demo bakes a packed SCENE resource, not a runtime-loaded raw glb.)"
+		fi
+	fi
+	;;
+esac
 
 # Map discovery (flag → viewer.cfg [twin] binding_map= → binding_map.json).
 if [ -z "$MAP" ]; then
@@ -311,7 +341,9 @@ _stage 2/7 "wire (res:// model/map/recording → autoplay)"
 # The web build reads res://viewer.cfg from the pck; rewrite its model=/binding_map=/recording= to
 # res:// paths (baked-in), preserving comments — the twin_ship.sh assemble idiom (ConfigFile-validate
 # then line-rewrite). recording= makes the viewer AUTOPLAY on boot (main.gd _start_playback → play()).
-# url= is left untouched (harmless on a Pages demo — no sim; the recording drives the visuals).
+# url= is BLANKED to "" (the DataBus "live source OFF" contract, data_bus.gd _live_disabled): a Pages
+# demo has no sim, so a non-empty url would spam ws:// ERR_CONNECTION_REFUSED forever. Empty = no
+# connect, no retry; the recording drives every visual (playback also closes the socket as defence).
 [ -f viewer.cfg ] && cp viewer.cfg viewer.cfg.bak || printf '[viewer]\nurl="ws://localhost:8765"\n' >viewer.cfg
 WORK="$(mktemp -d)"
 # Invoked via `trap _cleanup EXIT` below (shellcheck can't see the indirect call).
@@ -419,13 +451,14 @@ func _flush(out: Array, pending: Dictionary, sect: String) -> void:
 CFG_EOF
 CFG_SETS=(
 	"--set=viewer|model|$MODEL_RES"
+	"--set=viewer|url|"
 	"--set=twin|binding_map|$MAP_RES"
 	"--set=twin|recording|$REC_RES"
 )
 if ! "$GODOT" --headless --path . --script "$CFG_GD" -- "--cfg=$PWD/viewer.cfg" "${CFG_SETS[@]}"; then
 	_fail "failed to wire viewer.cfg (model=$MODEL_RES map=$MAP_RES recording=$REC_RES)"
 fi
-echo "$XENO_GATE: PASS wire (viewer.cfg → model=$MODEL_RES, binding_map=$MAP_RES, recording=$REC_RES)"
+echo "$XENO_GATE: PASS wire (viewer.cfg → model=$MODEL_RES, url=\"\" [live off], binding_map=$MAP_RES, recording=$REC_RES)"
 
 # --- stage 3: export (Web no-threads) ----------------------------------------------------------
 _stage 3/7 "export (--export-release '$PRESET' → no-threads WASM)"
@@ -481,6 +514,45 @@ if [ "$SMOKE_FAIL" -ne 0 ]; then
 fi
 echo "$XENO_GATE: PASS smoke (model + bindings + autoplay all resolve from res://)"
 
+# The dev-checkout smoke reads viewer.cfg + the model OFF DISK — it CANNOT see a file that failed to
+# ride into the pck (the exact gap that shipped a 0/N demo: viewer.cfg is not a resource, so without
+# *viewer.cfg in include_filter the export silently dropped it; an imported raw .glb likewise never
+# packs its bytes). So assert the invariants directly on the ACTUAL artifact that ships — the exported
+# pck (grep -a: treat the binary pck as text). Each MISS is a hard fail (SKIP-never-pass).
+echo "  pck invariants ($(basename "$PCK")):"
+PCK_FAIL=0
+_pck_assert() {
+	if grep -aqF "$1" "$PCK"; then
+		echo "    invariant OK  — $2"
+	else
+		echo "$XENO_GATE: invariant MISS — $2 (needle: $1)" >&2
+		PCK_FAIL=1
+	fi
+}
+# 1. The config itself is baked (the primary regression: no viewer.cfg → no model/recording/url).
+_pck_assert "[viewer]" "viewer.cfg baked into the pck (config readable as res://viewer.cfg)"
+# 2. Live source OFF: the baked url is blank, so a Pages demo cannot spam ws:// forever.
+_pck_assert 'url=""' "live source OFF in the baked viewer.cfg (url=\"\" — no ws:// reconnect spam)"
+# 3. The model artifact's bytes actually ride in the pck (not just a remap stub). A .glb must carry
+#    its glTF magic (raw runtime-read bytes); a scene resource must appear by name (its packed .scn +
+#    remap). This is what a runtime GLTFDocument read on an imported glb would FAIL — caught here.
+case "$MODEL" in
+*.glb | *.gltf | *.GLB | *.GLTF)
+	_pck_assert "glTF" "model glb bytes baked (raw glTF present — runtime GLTFDocument can read it)"
+	;;
+*)
+	_pck_assert "$(basename "$MODEL")" "model scene resource baked (packed + remapped into the pck)"
+	;;
+esac
+# 4. The raw data files the viewer FileAccess-reads are present (map + recording).
+_pck_assert "$(basename "$MAP")" "binding map baked (raw JSON in the pck)"
+_pck_assert "$(basename "$RECORDING")" "recording baked (raw NDJSON in the pck — autoplay source)"
+if [ "$PCK_FAIL" -ne 0 ]; then
+	echo "$XENO_GATE: FAIL smoke — a load-bearing file did not ride into the exported pck (the web demo would boot blank)." >&2
+	exit 1
+fi
+echo "$XENO_GATE: PASS smoke (dev-boot resolution + pck invariants: config, live-off, model, map, recording all baked)"
+
 # --- stage 5: stage into the demos repo --------------------------------------------------------
 _stage 5/7 "stage (<demos-repo>/$NAME/)"
 DEST="$DEMOS_REPO/$NAME"
@@ -491,11 +563,22 @@ echo "$XENO_GATE: PASS stage ($DEST)"
 echo "  files:"
 (cd "$DEST" && find . -maxdepth 1 -type f | LC_ALL=C sort | sed 's|^\./|    |')
 
+# Per-demo card copy for the gallery: "Title|blurb|honest-label" keyed by folder name, with a neutral
+# fallback for demos this tool does not know. The plant label carries the framework's established
+# "synthetic demonstration model" wording; duplex is honestly named as the real buildingSMART sample.
+_demo_meta() {
+	case "$1" in
+	plant) printf '%s' 'Plant — tank farm & pump skid|A synthetic process-plant twin: tank levels, pump temperature and flow, motor RPM and valve position, each painted live from recorded telemetry.|Synthetic demonstration model' ;;
+	duplex) printf '%s' 'Duplex — BIM building|A real IFC/BIM residential building (the buildingSMART Duplex_A sample): room temperatures, boiler, solar output and the entrance door, painted live from recorded telemetry.|Real BIM model · buildingSMART sample' ;;
+	*) printf '%s|%s|%s' "$1" 'A data-bound digital twin replaying recorded telemetry in your browser.' 'Demonstration model' ;;
+	esac
+}
+
 # Deterministic static generator: list every immediate subdir that holds an index.html, sorted, with
 # its poster.png if one exists. Rebuilt whole each publish so the listing always matches the folders
 # (a function so it can run AFTER --movie, when this demo's poster already exists to show on its card).
 _regen_index() {
-	local INDEX DEMO_DIRS d poster DEMO_COUNT
+	local INDEX DEMO_DIRS d poster DEMO_COUNT meta title blurb label
 	INDEX="$DEMOS_REPO/index.html"
 	DEMO_DIRS="$(cd "$DEMOS_REPO" && find . -mindepth 2 -maxdepth 2 -name index.html -type f 2>/dev/null \
 		| sed 's|^\./||; s|/index.html$||' | LC_ALL=C sort)"
@@ -506,39 +589,56 @@ _regen_index() {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>xenodot-twin — live demos</title>
+<title>xenodot-twin — live digital-twin demos</title>
 <style>
-  :root { color-scheme: light dark; }
-  body { font: 16px/1.5 system-ui, sans-serif; max-width: 60rem; margin: 3rem auto; padding: 0 1.2rem; }
-  h1 { font-size: 1.6rem; margin: 0 0 .3rem; }
-  p.sub { color: #888; margin: 0 0 2rem; }
-  ul { list-style: none; padding: 0; display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
-  li { border: 1px solid #8884; border-radius: .6rem; overflow: hidden; }
+  :root { color-scheme: light dark; --fg:#111; --muted:#667; --card:#fff; --line:#0002; --badge:#0000000d; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e8e8ea; --muted:#9aa; --card:#17181b; --line:#fff2; --badge:#ffffff12; } }
+  * { box-sizing: border-box; }
+  body { font: 16px/1.6 system-ui, -apple-system, sans-serif; color: var(--fg); max-width: 64rem; margin: 0 auto; padding: 3.2rem 1.2rem 4rem; }
+  h1 { font-size: 1.75rem; letter-spacing: -.02em; margin: 0 0 .4rem; }
+  .lede { color: var(--muted); font-size: 1.05rem; margin: 0 0 .5rem; max-width: 42rem; }
+  .note { color: var(--muted); font-size: .9rem; margin: 0 0 2.4rem; max-width: 42rem; }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 1.4rem; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); }
+  li { border: 1px solid var(--line); border-radius: .8rem; overflow: hidden; background: var(--card); transition: transform .12s ease, box-shadow .12s ease; }
+  li:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1.5rem #0003; }
   a { text-decoration: none; color: inherit; display: block; }
-  .poster { aspect-ratio: 16/9; background: #8882 center/cover no-repeat; display: block; }
-  .name { padding: .7rem .9rem; font-weight: 600; }
-  footer { margin-top: 3rem; color: #888; font-size: .85rem; }
-  code { background: #8882; padding: .1em .35em; border-radius: .25em; }
+  .poster { aspect-ratio: 16/10; background: #8881 center/cover no-repeat; display: block; }
+  .cbody { padding: .85rem 1rem 1.1rem; }
+  .name { font-weight: 650; font-size: 1.05rem; letter-spacing: -.01em; }
+  .blurb { color: var(--muted); font-size: .9rem; margin: .3rem 0 .7rem; display: block; }
+  .badge { display: inline-block; font-size: .74rem; color: var(--muted); background: var(--badge); border-radius: 1rem; padding: .15rem .6rem; }
+  footer { margin-top: 3rem; color: var(--muted); font-size: .88rem; line-height: 1.7; }
+  a.link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  code { background: var(--badge); padding: .1em .4em; border-radius: .3em; font-size: .85em; }
 </style>
 </head>
 <body>
-<h1>xenodot-twin — live demos</h1>
-<p class="sub">No-threads Godot / WASM digital-twin viewers, autoplaying recorded telemetry. Served static on GitHub Pages.</p>
+<h1>xenodot-twin — live digital-twin demos</h1>
+<p class="lede">Data-bound 3D digital twins running entirely in your browser — a Godot / WebAssembly viewer replaying recorded telemetry, painting each tag onto the model. No server, no plugins, nothing to install.</p>
+<p class="note">Orbit with the mouse (drag to rotate, scroll to zoom); the recording plays automatically on load. Each demo is a single static page — the model, the tag&#8594;geometry binding map and the recording are all baked into one <code>.pck</code>.</p>
 <ul>
 HTML_HEAD
 	if [ -z "$DEMO_DIRS" ]; then
-		echo '  <li><div class="name">(no demos published yet)</div></li>'
+		echo '  <li><div class="cbody"><div class="name">(no demos published yet)</div></div></li>'
 	else
 		while IFS= read -r d; do
 			[ -z "$d" ] && continue
+			meta="$(_demo_meta "$d")"
+			title="${meta%%|*}"
+			blurb="${meta#*|}"
+			blurb="${blurb%|*}"
+			label="${meta##*|}"
 			poster=""
 			[ -f "$DEMOS_REPO/$d/poster.png" ] && poster=" style=\"background-image:url('$d/poster.png')\""
-			printf '  <li><a href="%s/index.html"><span class="poster"%s></span><span class="name">%s</span></a></li>\n' "$d" "$poster" "$d"
+			printf '  <li><a href="%s/index.html"><span class="poster"%s></span><span class="cbody"><span class="name">%s</span><span class="blurb">%s</span><span class="badge">%s</span></span></a></li>\n' \
+				"$d" "$poster" "$title" "$blurb" "$label"
 		done <<<"$DEMO_DIRS"
 	fi
 	cat <<'HTML_TAIL'
 </ul>
-<footer>Built by <code>tools/twin_publish_web.sh</code> (xenodot-twin). Each demo bakes its model, binding map and recording into the pck — no server, no headers.</footer>
+<footer>
+Built with <a class="link" href="https://github.com/arthur0n/xenodot-twin">xenodot-twin</a> — an agent-built pipeline that turns a 3D/BIM model into a data-bound twin viewer. Each demo bakes its model, binding map and recording into the <code>.pck</code> and ships as a static, no-threads WebAssembly build (no cross-origin-isolation headers), served straight from GitHub Pages.
+</footer>
 </body>
 </html>
 HTML_TAIL
