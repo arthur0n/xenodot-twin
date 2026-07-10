@@ -102,6 +102,14 @@ if [ -n "$FOUND" ]; then
 else
 	_require_uv
 	if [ ! -x "$VENV_PY" ]; then
+		# Self-heal: a directory left by an interrupted provision has no working bin/python —
+		# uv venv refuses an existing dir, and the failure would misread as "python unavailable".
+		# Remove the invalid dir honestly and rebuild. (A VALID venv never reaches this branch:
+		# the reuse/mismatch checks above already handled it.)
+		if [ -e "$VENV_DIR" ]; then
+			_step "removing invalid venv $VENV_DIR (no working bin/python — interrupted provision?) and rebuilding"
+			rm -rf -- "$VENV_DIR" || _fail "could not remove invalid venv dir $VENV_DIR"
+		fi
 		_step "creating venv $VENV_DIR (python $PY_VERSION)"
 		uv venv --python "$PY_VERSION" "$VENV_DIR" || _fail "uv venv failed (python $PY_VERSION unavailable?)"
 	fi

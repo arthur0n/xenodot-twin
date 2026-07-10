@@ -24,7 +24,7 @@
 //
 // Exit 0 = captured, no un-allowlisted console errors. 1 = captured but errors seen. 2 = setup fail.
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -116,6 +116,12 @@ async function serveDir(dir, port) {
       stdio: "ignore",
     },
   );
+  // A spawn 'error' (python3 missing/mispathed) with no listener crashes the process with
+  // exit 1 — which the gate reads as "console errors". Route it to exit 2 (setup failure).
+  py.on("error", (e) => {
+    console.error(`twin-evidence: ERROR — could not start python3 for serve_coi.py: ${e.message}`);
+    process.exit(2);
+  });
   const url = `http://127.0.0.1:${chosen}/`;
   for (let i = 0; i < 60; i++) {
     try {
@@ -224,6 +230,13 @@ function wire(ws, lines) {
 
 /** @param {Options} o @param {string} targetUrl @returns {{ chrome: import("node:child_process").ChildProcess, port: number, profile: string }} */
 function launchChrome(o, targetUrl) {
+  // Preflight: a missing/mispathed Chrome must be a SETUP failure (exit 2), never mistaken
+  // for a failing web build (exit 1). Thrown here → caught by main() → exit 2.
+  if (!existsSync(o.chrome)) {
+    throw new Error(
+      `Chrome executable not found: ${o.chrome} — pass --chrome <path> or set $CHROME`,
+    );
+  }
   const port = 9400 + Math.floor(Math.random() * 400);
   const profile = mkdtempSync(join(tmpdir(), "twin-evidence-"));
   const chrome = spawn(
@@ -240,6 +253,11 @@ function launchChrome(o, targetUrl) {
     ],
     { stdio: "ignore" },
   );
+  // Same 'error' trap as serveDir: an unlistened spawn failure would raw-crash with exit 1.
+  chrome.on("error", (e) => {
+    console.error(`twin-evidence: ERROR — could not launch Chrome (${o.chrome}): ${e.message}`);
+    process.exit(2);
+  });
   return { chrome, port, profile };
 }
 
