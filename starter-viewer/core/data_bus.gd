@@ -82,10 +82,27 @@ var _first_seq := {}  # tag -> first seq seen (this connection)
 var _last_seq := {}  # tag -> last seq seen (this connection)
 
 
+## Resolve WHICH viewer.cfg to read. An exported build prefers a copy placed NEXT TO THE
+## EXECUTABLE — the per-deployment file twin-ship stages beside the build, so a site retargets
+## url=/model= WITHOUT re-exporting — over the copy frozen into the pck at export time. macOS
+## bundles put the binary at <name>.app/Contents/MacOS/, the dir OS.get_executable_path()
+## .get_base_dir() returns, so the staged viewer.cfg sits beside the raw binary inside the bundle.
+## Falls back to the packed res:// copy when none is staged. A dev checkout lacks the "template"
+## feature and always reads res://viewer.cfg — behaviour unchanged. Static so main.gd (the shell)
+## and this autoload agree on the same file without duplicating the rule.
+static func config_path() -> String:
+	if OS.has_feature("template"):
+		var beside := OS.get_executable_path().get_base_dir().path_join("viewer.cfg")
+		if FileAccess.file_exists(beside):
+			return beside
+	return CONFIG_PATH
+
+
 func _ready() -> void:
-	if FileAccess.file_exists(CONFIG_PATH):
+	var cfg_path := config_path()
+	if FileAccess.file_exists(cfg_path):
 		var cfg := ConfigFile.new()
-		if cfg.load(CONFIG_PATH) == OK:
+		if cfg.load(cfg_path) == OK:
 			url = str(cfg.get_value("viewer", "url", DEFAULT_URL))
 	_open_socket()
 

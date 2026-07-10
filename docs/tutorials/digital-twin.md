@@ -564,6 +564,81 @@ exactly this regime) before shipping to web.
 
 ---
 
+## Ship it as a desktop build (one deployable)
+
+The web build embeds; a **desktop** build hands someone a runnable artifact with no Godot checkout —
+a stakeholder demo, an on-prem deploy. `tools/twin_ship.sh` packages the export-safe viewer **with its
+data** as one retargetable bundle: the build, plus the model + sidecar + binding map + recordings
+staged in a `data/` folder **beside the executable** (never baked into the pck). The point of "beside,
+not baked" is that a site retargets `url=`/`model=` by editing one text file — **no re-export**.
+
+### 1. Author the export preset (once, committed)
+
+`export_presets.cfg` at the project root, one preset per platform, matched on the CLI by its `name=`.
+Two lines carry the twin contract:
+
+```ini
+[preset.0]
+name="macOS"
+platform="macOS"
+runnable=true
+export_filter="all_resources"
+# keep the DATA out of the pck — it ships beside the build, not inside it
+exclude_filter="*.glb,*.gltf,*.import,models/*,recordings/*,dist/*,build/*,tools/*,viewer.cfg,binding_map.json,*_props.json"
+export_path="dist/duplex.app"
+
+[preset.0.options]
+# universal (x86_64 + arm64): Godot 4.6.3 ships no arm64-only macOS template, so an arm64 preset fails
+binary_format/architecture="universal"
+# macOS requires this — the export hard-fails without it ("Invalid bundle identifier: Identifier is missing.")
+application/bundle_identifier="com.example.twin.duplex"
+codesign/codesign=0   # unsigned POC build (see the Gatekeeper note)
+```
+
+macOS also needs `textures/vram_compression/import_etc2_astc=true` under `[rendering]` in
+`project.godot` (the templates are ASTC-only). The export-safe viewer already sets it, and
+`twin_ship.sh` **asserts** it in preflight rather than editing your project settings silently. A Linux
+preset is the same shape with `platform="Linux"`, `binary_format/architecture="x86_64"`.
+
+### 2. Ship
+
+```bash
+tools/twin_ship.sh --preset macOS --recording recordings/house-day.ndjson --zip
+# → export → assemble (data/ beside the build) → smoke (boots the binary) → zip
+```
+
+Five loud stages, exit nonzero on the first failure. The smoke **boots the exported binary** and
+asserts its log (`model loaded from data/…`, `bindings resolved N/N`, playback, quit-after) — a real
+gate, not just "it exported". On macOS the data lands **inside the bundle**
+(`duplex.app/Contents/MacOS/data/`), beside the executable, where the viewer roots it. Cross-platform
+presets (a Linux build on a Mac) assemble and zip fine but the smoke **SKIPs loudly** — you cannot boot
+a Linux ELF on macOS, and a SKIP is never a pass; boot it on its own platform.
+
+### 3. Run it (and the honest unsigned-build warning)
+
+The shipped `README.txt` has the run commands. The build is **not** code-signed or notarized (out of
+scope) — on another Mac, Gatekeeper warns on first open ("developer cannot be verified" / "damaged").
+Get past it with right-click → Open → Open, or `xattr -dr com.apple.quarantine duplex.app`. The README
+states this plainly; don't imply the artifact is signed.
+
+### 4. Retarget without re-exporting (the whole point)
+
+Open `viewer.cfg` beside the executable (`duplex.app/Contents/MacOS/viewer.cfg` on macOS), point
+`[viewer] url=` at this site's live source and `[viewer] model=` at a different model under `data/`,
+and re-run the **same** binary — the new config takes effect on the next boot, no rebuild. The
+model/map/recording are read at runtime, so swapping them per site is a text edit, not an export.
+
+> **Web ships differently.** A Web (WASM) build does not go through `twin_ship.sh` — it has a browser
+> runtime and its own serving story. Use the web-embed recipe above (`serve_coi.py` + the Web presets),
+> not this skill.
+
+Measured artifact sizes (universal `.app`, the code-only pck, the deterministic zip), the clean-stranger
+run, the windowed boot, and the data-swap proof:
+[`plugin-twin/library/findings/twin-ship-2026-07-10.md`](../../plugin-twin/library/findings/twin-ship-2026-07-10.md).
+The tool's operator manual (when to ship vs iterate, reading each stage's failure): skill `twin-ship`.
+
+---
+
 ## Wrinkles I actually hit (and the fix for each)
 
 - **Fresh-clone `validate` used to fail on a stale library index (now fixed).** `npm run validate`

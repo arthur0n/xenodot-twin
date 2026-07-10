@@ -58,6 +58,7 @@ docs/tutorials  ui/server/cli/materialize.test.js
 plugin-twin/tools/twin_build.sh  plugin-twin/skills/twin-build
 plugin-twin/tools/analyze  plugin-twin/skills/twin-analyze
 plugin-twin/tools/web  plugin-twin/examples/export_presets.web-nothreads.cfg  plugin-twin/examples/export_presets.web-threads.cfg
+plugin-twin/tools/twin_ship.sh  plugin-twin/skills/twin-ship
 ```
 
 > `plugin-twin/tools/twin_build.sh` (the one-command IFC→verified-twin driver) and
@@ -82,6 +83,15 @@ plugin-twin/tools/web  plugin-twin/examples/export_presets.web-nothreads.cfg  pl
 > named explicitly for the same reason. Both sit **inside** the whole-`plugin-twin` restore above and
 > are fork-only files upstream never carried (a sync's `e250d11` re-deletion can't touch them) — the
 > explicit lines are belt-and-suspenders, not a second mechanism.
+>
+> `plugin-twin/tools/twin_ship.sh` (the export-safe build + swappable-data packager — export →
+> assemble `data/` beside the build → boot smoke → deterministic zip) and
+> `plugin-twin/skills/twin-ship/` (its operator manual) are the load-bearing surface of Nice-to-Have
+> #7 (the twin-ship packaging skill) and are named explicitly for the same reason. Both sit **inside**
+> the whole-`plugin-twin` restore above and are fork-only files upstream never carried (a sync's
+> `e250d11` re-deletion can't touch them) — the explicit lines are belt-and-suspenders, not a second
+> mechanism. (The starter-viewer export-compat changes this skill rides on — `main.gd` buffer-load,
+> exe-adjacent `viewer.cfg`, `--quit-after=` — live under `starter-viewer/`, already whole-restored.)
 
 **Shared-file twin-unwiring — reject to OURS every sync** (upstream's `e250d11` stripped twin
 awareness from these; the fork keeps its twin wiring — restore from HEAD, then fold in any SEPARABLE

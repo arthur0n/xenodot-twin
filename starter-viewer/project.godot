@@ -52,3 +52,7 @@ renderer/rendering_method="forward_plus"
 ; Twin scenes (large plant/building models) rely on occlusion culling; enabled at the
 ; project level so per-scene OccluderInstance3D nodes work the moment they land.
 occlusion_culling/use_occlusion_culling=true
+; Required for macOS arm64/universal (and Android/iOS) exports — the export refuses those
+; targets with ETC2 ASTC import disabled. Harmless in dev (models load at runtime via
+; GLTFDocument, so nothing is texture-imported); set here so `twin-ship` exports cleanly.
+textures/vram_compression/import_etc2_astc=true

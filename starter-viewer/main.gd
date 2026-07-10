@@ -16,14 +16,26 @@ const OverlayScript := preload("res://overlay/overlay.gd")
 const PlaybackScript := preload("res://core/playback.gd")
 const TimelineScript := preload("res://overlay/timeline.gd")
 const TimelineScene := preload("res://overlay/timeline.tscn")
+# DataBus owns viewer.cfg resolution (it declares CONFIG_PATH and reads the source url); the
+# shell reuses its static config_path() so both agree on WHICH viewer.cfg to read in an
+# exported build. Preloaded const, static call — no autoload-name access (godot-code-rules).
+const DataBusScript := preload("res://core/data_bus.gd")
 
-const CONFIG_PATH := "res://viewer.cfg"
 const DEFAULT_BINDING_MAP := "binding_map.json"
+# `--quit-after=<frames>` default: 0 means never auto-quit (no behaviour without the flag). The
+# ship smoke passes a small positive count to boot the exported artifact headless, prove it paints
+# N frames, then quit(0) — the one non-interactive "this build boots" hook (see _process).
+const DEFAULT_QUIT_AFTER := 0
 const GRID_HALF_EXTENT := 10
 const GRID_COLOR := Color(0.3, 0.34, 0.42)
 const AXIS_X_COLOR := Color(0.85, 0.35, 0.35)
 const AXIS_Z_COLOR := Color(0.35, 0.55, 0.9)
 const SCREENSHOT_SETTLE_FRAMES := 12
+
+# `--quit-after=<frames>` state (see _process). 0 disables it; a positive value is the smoke's
+# frame budget. _frames_seen counts rendered frames since boot.
+var _quit_after := DEFAULT_QUIT_AFTER
+var _frames_seen := 0
 
 @onready var _model_host: Node3D = %ModelHost
 @onready var _camera_rig: CameraRigScript = %CameraRig
@@ -34,9 +46,13 @@ func _ready() -> void:
 	var model_path := _user_arg("model")
 	var recording_path := _user_arg("recording")
 	var binding_map_path := DEFAULT_BINDING_MAP
-	if FileAccess.file_exists(CONFIG_PATH):
+	var quit_after_arg := _user_arg("quit-after")
+	if quit_after_arg != "":
+		_quit_after = int(quit_after_arg)
+	var cfg_path := DataBusScript.config_path()
+	if FileAccess.file_exists(cfg_path):
 		var cfg := ConfigFile.new()
-		if cfg.load(CONFIG_PATH) == OK:
+		if cfg.load(cfg_path) == OK:
 			if model_path == "":
 				model_path = str(cfg.get_value("viewer", "model", ""))
 			if recording_path == "":
@@ -56,6 +72,18 @@ func _ready() -> void:
 	var shot_path := _user_arg("screenshot")
 	if shot_path != "":
 		await _capture_screenshot(shot_path)
+
+
+## `--quit-after=<frames>`: the ship smoke's headless boot hook. Count rendered frames and quit(0)
+## once the budget is reached, so an exported artifact can be asserted to "boot and paint N frames"
+## non-interactively. Disabled by default (DEFAULT_QUIT_AFTER 0) — no flag, no behaviour.
+func _process(_delta: float) -> void:
+	if _quit_after <= 0:
+		return
+	_frames_seen += 1
+	if _frames_seen >= _quit_after:
+		print("viewer: quit-after %d frames reached" % _quit_after)
+		get_tree().quit()
 
 
 ## Load the binding map (if configured) and resolve it against the loaded model, then push the
@@ -93,13 +121,20 @@ func _start_playback(path: String) -> void:
 	print("viewer: playback of %s (%d ms)" % [path, player.duration_ms()])
 
 
-## Root a bare project-relative file under res://; absolute and res://-/user://-style
-## paths pass through. Shared by the binding-map and recording config paths.
+## Resolve a data path for the current runtime. res://, user://, and absolute OS paths pass
+## through untouched. A BARE relative path ("data/model.glb") roots under res:// in a dev checkout,
+## but in an EXPORTED build (OS.has_feature("template")) roots against the directory holding the
+## executable — that is where twin-ship stages the swappable data/ tree beside the build, and it is
+## NOT in the pck (runtime-load is the product contract). macOS bundles put the binary at
+## <name>.app/Contents/MacOS/, the dir OS.get_executable_path().get_base_dir() returns, so the
+## data/ tree sits beside the raw binary inside the bundle. Shared by model, binding-map, and
+## recording resolution so every deployable data file lands together.
 func _rooted_path(path: String) -> String:
-	var rooted := (
-		path.begins_with("res://") or path.begins_with("user://") or path.is_absolute_path()
-	)
-	return path if rooted else "res://" + path
+	if path.begins_with("res://") or path.begins_with("user://") or path.is_absolute_path():
+		return path
+	if OS.has_feature("template"):
+		return OS.get_executable_path().get_base_dir().path_join(path)
+	return "res://" + path
 
 
 ## Value of `--<key>=<value>` among the user args (everything after `--`), or "".
@@ -125,13 +160,23 @@ func _load_model(path: String) -> bool:
 	return false
 
 
+## Read the GLB/glTF bytes and parse them into a scene at RUNTIME. FileAccess.get_file_as_bytes
+## resolves res://-in-pck, user://, and OS paths UNIFORMLY (one code path, no globalize_path —
+## which returns nothing usable for a packed res:// in an exported build). append_from_buffer with
+## an empty base_path is safe: our pipeline emits self-contained GLBs (no external buffer/image
+## refs), so there is nothing to resolve relative to a directory.
 func _load_gltf(path: String) -> bool:
-	var fs_path := path
-	if path.begins_with("res://") or path.begins_with("user://"):
-		fs_path = ProjectSettings.globalize_path(path)
+	var bytes := FileAccess.get_file_as_bytes(_rooted_path(path))
+	if bytes.is_empty():
+		# get_open_error() is OK (0) when the file OPENED fine but held no bytes — say so
+		# instead of printing a baffling "error 0" for an existing-but-empty file.
+		var open_err := FileAccess.get_open_error()
+		var why := "file exists but is empty" if open_err == OK else "error %d" % open_err
+		push_error("viewer: failed to read model '%s' (%s)" % [path, why])
+		return false
 	var gltf := GLTFDocument.new()
 	var state := GLTFState.new()
-	var err := gltf.append_from_file(fs_path, state)
+	var err := gltf.append_from_buffer(bytes, "", state)
 	if err != OK:
 		push_error("viewer: failed to load model '%s' (error %d)" % [path, err])
 		return false

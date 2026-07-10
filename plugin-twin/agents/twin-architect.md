@@ -17,6 +17,7 @@ skills:
   - twin-bind-data
   - twin-verify
   - twin-build
+  - twin-ship
   - xenodot:tasks-mcp
 effort: high
 ---
