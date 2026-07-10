@@ -95,5 +95,18 @@ tick naming the track.
       ticked naming TRACK B (synthetic); index status updated. Marketing shot-list note in the finding,
       flagged human-paced (agents do not publish). `npm run validate` + `npm test` (185) green;
       prettier clean; findings index regenerated.
-- [ ] Scoped review + seat check
-- [ ] Merged to main, index ticked
+- [x] Scoped review (independent Opus): MERGE-READY. Reproducibility byte-exact
+      (fresh generator run == vendored plant.ifc sha; big preset too); honesty sweep
+      clean everywhere incl. STEP header; IFC2X3 schema claim verified against
+      authoritative schema facts (occurrence entities absent, Type entities present —
+      skill wording accurate); all 8 map GlobalIds resolve via independent convert;
+      arg validation safe. Two LOW number nits fixed in `19628de` (grep-verified:
+      Duplex 60 IfcRepresentationMap + 167 IfcMappedItem, not "227 maps"; big plant
+      189 IfcShapeRepresentation, not 378). 187 tests green.
+- [x] Orchestrator seat check: booted the optimized plant twin myself in
+      twin-plant-validate — `bindings resolved 8/8`, plant-shift.ndjson playback,
+      quit-after hook (item #7's) fired. Framework compounding on itself.
+- [x] Acceptance criteria 1–6 verified. Merged to main (no-ff), index + roadmap
+      ticked. Item #8 CLOSED — ALL actionable index items (2–8) complete. Items 9–12
+      are readiness docs: triggers not fired, nothing to build (per the index's own
+      do-nothing-until-trigger rule).
