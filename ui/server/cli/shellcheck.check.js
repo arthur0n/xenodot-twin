@@ -12,6 +12,14 @@
 //
 // Bare-node, no test runner (same style as ui/structure.check.js); wired into `npm run validate`,
 // the pre-commit lint-staged pass, and CI (ubuntu-latest ships shellcheck).
+//
+// VERSION DRIFT (not pinned, on purpose): CI lints with the runner's preinstalled shellcheck
+// (ubuntu-latest ≈ 0.9.x), which is often OLDER than a dev's brew build (0.11.0). Findings differ
+// across versions — e.g. SC2317 "unreachable command" on trap-invoked cleanup functions fires on
+// 0.9.x but 0.11.0 suppresses it itself. So "clean locally" ≠ "clean in CI": write suppression
+// directives to hold across versions (a disable is silently ignored when its finding isn't emitted),
+// and don't rely on a newer local shellcheck to hide what CI will flag. Pinning an exact version was
+// weighed and rejected — an install step + upgrade treadmill is too much infra for the odd directive.
 //   node ui/server/cli/shellcheck.check.js     # exits 1 on any finding (or if shellcheck is missing)
 import { execFileSync, spawnSync } from "node:child_process";
 import { openSync, readSync, closeSync } from "node:fs";
@@ -26,13 +34,18 @@ const SHELL_SHEBANG = /^#!.*\b(ba|da|k|z)?sh\b/; // matches #!/bin/sh, #!/bin/ba
 // Fail loud if the linter isn't installed — the whole point of this floor is that it RUNS.
 if (spawnSync("shellcheck", ["--version"], { stdio: "ignore" }).error) {
   console.error("✗ check:sh: shellcheck is not installed — the shell floor cannot run.");
-  console.error("  Install it:  brew install shellcheck   (Debian/Ubuntu: apt-get install shellcheck)");
+  console.error(
+    "  Install it:  brew install shellcheck   (Debian/Ubuntu: apt-get install shellcheck)",
+  );
   process.exit(1);
 }
 
 // Discover shell scripts among tracked files: every *.sh, plus extensionless files whose first
 // line is a shell shebang (catches start_server / stop_server / bootstrap without hard-coding them).
-const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT }).toString().split("\n").filter(Boolean);
+const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT })
+  .toString()
+  .split("\n")
+  .filter(Boolean);
 const files = [];
 for (const f of tracked) {
   if (f.endsWith(".sh")) {
@@ -57,9 +70,16 @@ if (!files.length) {
   process.exit(0);
 }
 
-const res = spawnSync("shellcheck", [...SHELLCHECK_ARGS, ...files], { cwd: ROOT, stdio: "inherit" });
+const res = spawnSync("shellcheck", [...SHELLCHECK_ARGS, ...files], {
+  cwd: ROOT,
+  stdio: "inherit",
+});
 if (res.status !== 0) {
-  console.error(`✗ check:sh: shellcheck reported findings in ${files.length} tracked shell script(s) above.`);
+  console.error(
+    `✗ check:sh: shellcheck reported findings in ${files.length} tracked shell script(s) above.`,
+  );
   process.exit(res.status ?? 1);
 }
-console.log(`ok  check:sh: ${files.length} shell script(s) clean (shellcheck ${SHELLCHECK_ARGS.join(" ")}).`);
+console.log(
+  `ok  check:sh: ${files.length} shell script(s) clean (shellcheck ${SHELLCHECK_ARGS.join(" ")}).`,
+);

@@ -346,8 +346,11 @@ _stage 2/7 "wire (res:// model/map/recording → autoplay)"
 # connect, no retry; the recording drives every visual (playback also closes the socket as defence).
 [ -f viewer.cfg ] && cp viewer.cfg viewer.cfg.bak || printf '[viewer]\nurl="ws://localhost:8765"\n' >viewer.cfg
 WORK="$(mktemp -d)"
-# Invoked via `trap _cleanup EXIT` below (shellcheck can't see the indirect call).
-# shellcheck disable=SC2329
+# Invoked via `trap _cleanup EXIT` below; shellcheck can't see the indirect call, so it flags the
+# function as never-invoked (SC2329) and every body command as unreachable (SC2317). Both are the
+# same false positive — the function-level directive covers the whole body. SC2317 is version-
+# dependent: shellcheck 0.9.x (ubuntu-latest CI) emits it here, 0.11.0 (local) suppresses it itself.
+# shellcheck disable=SC2329,SC2317 # invoked via trap — not unreachable
 _cleanup() {
 	# Always restore the project's viewer.cfg + generated presets, and drop the temp export dir.
 	[ -f viewer.cfg.bak ] && mv -f viewer.cfg.bak viewer.cfg
