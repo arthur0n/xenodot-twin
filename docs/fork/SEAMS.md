@@ -59,6 +59,7 @@ plugin-twin/tools/twin_build.sh  plugin-twin/skills/twin-build
 plugin-twin/tools/analyze  plugin-twin/skills/twin-analyze
 plugin-twin/tools/web  plugin-twin/examples/export_presets.web-nothreads.cfg  plugin-twin/examples/export_presets.web-threads.cfg
 plugin-twin/tools/twin_ship.sh  plugin-twin/skills/twin-ship
+plugin-twin/examples/plant.ifc  plugin-twin/examples/binding_map.plant.example.json  plugin-twin/examples/viewer.cfg.plant.example  plugin-twin/examples/gen_plant_ifc.py  plugin-twin/examples/NOTICE.md  plugin-twin/examples/README.md
 ```
 
 > `plugin-twin/tools/twin_build.sh` (the one-command IFC→verified-twin driver) and
@@ -92,6 +93,22 @@ plugin-twin/tools/twin_ship.sh  plugin-twin/skills/twin-ship
 > `e250d11` re-deletion can't touch them) — the explicit lines are belt-and-suspenders, not a second
 > mechanism. (The starter-viewer export-compat changes this skill rides on — `main.gd` buffer-load,
 > exe-adjacent `viewer.cfg`, `--quit-after=` — live under `starter-viewer/`, already whole-restored.)
+>
+> The **plant demo kit** — the six example files of Nice-to-Have #8 (Track B, synthetic):
+> `plugin-twin/examples/plant.ifc` (the vendored synthetic demonstration model — a generated
+> `IfcTank`/`IfcPump`/`IfcValve`/`IfcFlowSegment` tank farm, seed-42, "synthetic demonstration
+> model" in its STEP header), `gen_plant_ifc.py` (its parametric IFC4 generator — reproduces the
+> asset byte-identically and scales it), `binding_map.plant.example.json` + `viewer.cfg.plant.example`
+> (the plant variant of the kit trio), and the plant sections added to the shared `NOTICE.md` +
+> `README.md` — are named explicitly for the same reason. The four fork-only files sit **inside** the
+> whole-`plugin-twin` restore above and upstream never carried them (a sync's `e250d11` re-deletion
+> can't touch them); `NOTICE.md` + `README.md` are shared example files also inside that restore, but
+> their **plant content** (provenance/"synthetic" labeling, the plant quickstart + the "which demo
+> when" line) must survive every sync, so they are listed here belt-and-suspenders too. Not a second
+> mechanism. The generator is a demo authoring tool, not a pipeline tool — it stays under
+> `examples/` (never materialized into user scaffolds' `tools/`), and the model instances NOTHING in
+> the optimizer at any scale (each element is unique geometry — the honest read is in
+> `plugin-twin/library/findings/twin-plant-asset-2026-07-10.md`).
 
 **Shared-file twin-unwiring — reject to OURS every sync** (upstream's `e250d11` stripped twin
 awareness from these; the fork keeps its twin wiring — restore from HEAD, then fold in any SEPARABLE

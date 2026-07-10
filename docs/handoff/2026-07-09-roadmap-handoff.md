@@ -188,9 +188,30 @@ writes once?_ Honest verdicts, including NONE.
      web-embed recipe (#6), not this skill. The clean-stranger artifact test caught + fixed a real
      README bug (direct-run path used the model stem, not the `config/name` binary). Measured sizes +
      full transcript: [`plugin-twin/library/findings/twin-ship-2026-07-10.md`](../../plugin-twin/library/findings/twin-ship-2026-07-10.md).
-8. **Second demo asset beyond the Duplex.** A plant/factory-flavored public model makes
-   the industrial pitch land harder than a house (the city block covers scale; it
-   doesn't cover "looks like my plant").
+8. ~~**Second demo asset beyond the Duplex.**~~ ✅ **DONE (2026-07-10, built on
+   `feat/plant-demo-asset` in 3 phases — seat-validated, pending merge to `main`). Outcome:
+   TRACK B — a SYNTHETIC plant, not a public model.** The sourcing spike (Phase 1) verified the
+   real candidates live and NONE qualified as a good plant demo: the DURAARK Clinic HVAC is CC0
+   and vendorable (6.1 MB GLB, 100 % join) but **air-side only** (fans/VAV/AHU, zero
+   pump/tank/valve → fails "≥3 equipment classes"), and the Clinic MEP has literal pump/valve/tank
+   but is 125 MB / 1 pump / hospital plumbing (fails size + flavor). So per the plan's honesty rule
+   the asset ships **labeled "synthetic demonstration model" everywhere** — never implying
+   provenance. Track B (Phase 2, `57a5065`) is `gen_plant_ifc.py`, a parametric **IFC4** generator
+   (real GlobalIds + property sets, seeded → byte-identical per `--seed`) emitting a tank farm
+   (`IfcTank`) / pump skid (`IfcPump`) with inline `IfcValve`s and `IfcFlowSegment` pipe runs; the
+   vendored default (4 tanks / 3 pumps, 16 KB) binds 8 tags across pump/tank/valve out of the box in
+   the sim's DEMO_TAGS vocabulary. The whole pipeline runs unmodified (import → join 18/18 100 % →
+   optimize → bind → verify, clean-stranger green from a fresh seat scaffold). Phase 3 added the
+   optimizer findings, a deterministic plant recording (`plant-shift.ndjson`, 4800 frames / 59.9 s /
+   8 tags, byte-identical on re-record — seat content, per the `house-day.ndjson` precedent), the
+   examples "which demo when" line, the SEAMS protect-list entry, and the twin-import dead-URL +
+   IFC4-only notes. **Honest optimizer result (corrects the spike's hypothesis):** the plant is a
+   flavor + data-binding showcase, **not** an instancing showcase — it gets **zero** instancing at
+   BOTH the default and a 189-element `--tanks 40 --pumps 30` preset, because the generator authors
+   unique per-element geometry (no `IfcRepresentationMap`) so every element is a distinct mesh
+   resource; scale makes it worse, not better. Numbers, mechanism, recording stats + the human-paced
+   marketing shot-list note:
+   [`plugin-twin/library/findings/twin-plant-asset-2026-07-10.md`](../../plugin-twin/library/findings/twin-plant-asset-2026-07-10.md).
 
 ### Good to Have (speculative, revisit after real users)
 
