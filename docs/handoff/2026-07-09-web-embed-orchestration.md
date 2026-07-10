@@ -84,5 +84,15 @@ tick naming the outcome.
       the real spike build in Chrome live-bound (120 fps, 6/6, 0 drops); the nothreads example preset
       drove a real headless Godot web export; the materializer lands `tools/web/serve_coi.py` at mode
       755; `npm run validate` + `npm test` green, prettier clean.
-- [ ] Scoped review + seat check
-- [ ] Merged to main, index ticked
+- [x] Scoped review (independent Opus): MERGE-READY. Numbers integrity: 15/15
+      spot-checked cells exact vs raw evidence incl. the 10× native claim traced to the
+      vis-range sweep source; serve_coi independently exercised (COOP/COEP on every
+      response incl. 404, traversal safe, MIME correct, materializer 755); docs honesty
+      clean. Orchestrator decision: AC1's literal 2-browser matrix consciously ACCEPTED
+      as deviated (Safari TCC-blocked, flagged everywhere, standing user item; 3 scenes
+      = over-delivery). Polish fixes landed in `9341d03` (verbatim quote completed,
+      clean port-in-use exit, behavior-checked).
+- [x] Orchestrator seat check: ran the promoted serve_coi myself against the spike
+      build — COOP same-origin + COEP require-corp confirmed via curl.
+- [x] Acceptance criteria verified (AC1 deviation accepted + recorded). Merged to
+      main (no-ff), index + roadmap ticked. Item #6 CLOSED.
