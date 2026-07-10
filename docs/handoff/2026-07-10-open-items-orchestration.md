@@ -59,7 +59,11 @@ per item; an item that grows phases gets its own companion doc.
       coarser+fade fails. PLUS human-directed bench_sweep tool promotion
       (declarative matrix sweeps, determinism asserts, SKIP-never-a-pass).
       Full log: 2026-07-10-fade-margin-orchestration.md.
-- [ ] #7 UI de-branding
+- [x] #7 UI de-branding — merged `532df68`. Wordmark/copy de-branded (strings
+      only, visual parity), stale game-designer quick-action → twin-architect,
+      live-verified on 8339 (0 branding hits in served HTML). NEW follow-up
+      recorded as open-items #11: feature-dispatch prompts still name dropped
+      agents (functional rewiring). Full log: 2026-07-10-ui-debrand-orchestration.md.
 - [ ] #8 analysis MCP surface
 - [ ] #9 upstream PR offers (prepared; human gate before opening)
 - [ ] #10 plant instancing variant (assessed)

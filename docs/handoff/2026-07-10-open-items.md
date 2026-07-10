@@ -83,6 +83,14 @@ the loose ends. Each entry names its source log.
     instancing-showcase plant is ever wanted, extend `gen_plant_ifc.py` to emit
     mapped representations; the finding records the mechanism.
 
+11. **UI feature-dispatch prompts name dropped agents** (found during item #7's
+    de-brand): `ui/client/features/assets/get-assets.js` (wirePrompt) and
+    `draw-level.js` still dispatch `asset-advisor`/`level-designer`/
+    `game-designer` — agents this fork dropped — with game art/level-pipeline
+    instructions. Fixing means REWIRING the features to twin agents
+    (twin-architect/data-binder/scene-optimizer), a functional change beyond
+    de-branding. Until then those two panels dispatch to nonexistent agents.
+
 ## Accepted-as-is (recorded so nobody re-litigates)
 
 - **Soul legacy compare misses interior-CRLF** (item #3 review LOW-1) —
