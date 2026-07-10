@@ -317,6 +317,10 @@ unverified** — see the caveat there, do not claim Safari works):
     GF_AUTH_ANONYMOUS_ENABLED=true GF_AUTH_ANONYMOUS_ORG_ROLE=Admin  <grafana server | docker grafana-oss>
   ```
 
+  ⚠ **Demo-only, insecure bring-up** — anonymous Admin plus sanitization disabled. Fine on a
+  localhost throwaway; in any real/production Grafana keep sanitization on where possible, use
+  authenticated accounts, and scope `disable_sanitize_html` narrowly (it is a global setting).
+
   **Do not hand-author the iframe** — `twin_publish_web.sh` emits **`embed.html`** beside every built
   demo (a ready-to-paste `<iframe>` with the hosted URL inferred from the demos repo's `origin`
   remote, or `--embed-base`); `--emit-embed-only` regenerates it without a rebuild. Paste its

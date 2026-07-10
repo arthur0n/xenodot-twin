@@ -51,8 +51,9 @@ auto-attaching to the child iframe so the embedded build's console is captured t
 2. **Local Grafana OSS 11.6.1 (step 2)** — brought up **user-space** (no sudo, no Docker: the daemon
    was down; the official standalone tarball unpacked into a scratch dir) on `localhost:3001` with the
    exact flags the web-ceiling finding validated:
-   `GF_PANELS_DISABLE_SANITIZE_HTML=true GF_AUTH_ANONYMOUS_ENABLED=true GF_AUTH_ANONYMOUS_ORG_ROLE=Admin`.
-   Health `{"database":"ok","version":"11.6.1"}`.
+   `GF_PANELS_DISABLE_SANITIZE_HTML=true GF_AUTH_ANONYMOUS_ENABLED=true GF_AUTH_ANONYMOUS_ORG_ROLE=Admin`
+   — **demo-only, insecure**: anonymous Admin + HTML sanitization off; never run a reachable Grafana
+   this way in production. Health `{"database":"ok","version":"11.6.1"}`.
 
 3. **Twin painting inside the Grafana panel (step 3).** A text panel in HTML mode carrying the
    tool-emitted `<iframe>` (below). Captured from **inside the Grafana iframe**, verbatim:
