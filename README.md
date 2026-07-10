@@ -106,6 +106,10 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
 - **[`docs/tutorials/digital-twin.md`](docs/tutorials/digital-twin.md)** — the complete from-scratch
   walkthrough: empty folder → a live, scrubbable twin of a real BIM model, with a green end-to-end
   gate. Every command and output was actually run.
+- **[`docs/tutorials/plant-twin.md`](docs/tutorials/plant-twin.md)** — the sibling walkthrough over
+  the synthetic tank-farm / pump-skid kit: the same pipeline, the industrial-flavored **pitch**
+  asset, painting eight plant tags (pump/tank/valve/motor) onto real IFC geometry. A data-binding
+  showcase, honestly _not_ an optimizer one.
 - **[`plugin-twin/examples/`](plugin-twin/examples)** — the bundled kit the tutorial uses: a sample
   IFC (`Duplex_A_20110907.ifc`), an example `binding_map`, and an example `viewer.cfg`, so you don't
   have to source any files yourself.

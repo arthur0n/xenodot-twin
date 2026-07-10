@@ -217,6 +217,31 @@ Do not add a Web preset to `twin_ship.sh` — point at that tool. (For a LOCAL b
 Grafana-iframe embed rather than a published demo, `tools/web/serve_coi.py` + the annotated Web presets
 are the dev-serving half — skill `twin-bind-data` → "Serving to the browser / Grafana embed".)
 
+## Local hero clip (windowed `--write-movie` + ffmpeg)
+
+A **local** capture of the running twin — a gif/mp4 for a README, a tutorial illustration, a hand-off
+— does NOT need the publish path. `tools/twin_publish_web.sh --movie` bakes this recipe, but it also
+exports a WASM build, stages into a demos repo and rewrites `viewer.cfg`; when all you want is a clip,
+run the two steps it wraps by hand against the viewer. Needs a **real display** (Movie Maker renders
+black under `--headless`) and `ffmpeg` on PATH; produces local files only — publishing is a separate,
+human-gated step.
+
+```bash
+# 1. Windowed frame-exact capture straight to an AVI (Godot Movie Maker — no screen-record / TCC).
+#    --quit-after N frames; pass the recording so the clip shows moving data (N = fps * seconds):
+$GODOT --path . --write-movie hero.avi --fixed-fps 60 -- \
+    --model=models/<scene>_opt.tscn --recording=recordings/<fixture>.ndjson --quit-after=360
+
+# 2. Encode: web-friendly mp4, a small 640-px 12-fps gif, and a poster frame (~40% in).
+ffmpeg -y -i hero.avi -c:v libx264 -pix_fmt yuv420p -movflags +faststart -an hero.mp4
+ffmpeg -y -i hero.avi -vf "fps=12,scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" hero.gif
+ffmpeg -y -ss <seconds*0.4> -i hero.avi -frames:v 1 poster.png
+```
+
+The gif is small (a 6 s clip is well under a megabyte), so it can live in the repo as doc art; the
+mp4/poster are the publish-card shapes `twin_publish_web.sh` emits. Same flags as the publisher's
+movie stage, so a hand clip and a published one look identical.
+
 ## Out of scope (named)
 
 - Code signing / notarization / installers — NOT provided; the unsigned-build warning is stated

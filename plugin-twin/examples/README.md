@@ -76,7 +76,8 @@ caveats:
 The plant kit is the same three-file contract over a **synthetic demonstration model** — a
 tank farm (`IfcTank`), a pump skid (`IfcPump`), inline `IfcValve`s and the connecting
 `IfcFlowSegment` pipe runs (see [`NOTICE.md`](NOTICE.md): it is generated, self-owned, and has
-no real-world provenance). Its tags speak the sim's built-in plant vocabulary (pump temp/flow,
+no real-world provenance). Its own from-scratch walkthrough is
+[`docs/tutorials/plant-twin.md`](../../docs/tutorials/plant-twin.md). Its tags speak the sim's built-in plant vocabulary (pump temp/flow,
 tank level, valve position, motor rpm), so the demo binds ≥6 tags across pump/tank/valve out of
 the box. Same quickstart, plant files:
 
