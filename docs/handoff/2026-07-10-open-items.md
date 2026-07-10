@@ -36,7 +36,7 @@ the loose ends. Each entry names its source log.
 ## Follow-up items (framework work, when priorities allow)
 
 5. **Occluder recipe bench** — **DONE** (`feat/occluder-bench`). Swept 5 volume
-   gates × 3 real-shaped scenes: SCOPED WIN — real street/interior win on
+   gates × 3 real-shaped scenes: SCOPED WIN — real street-level win on
    many-unique-mesh scenes (ucity street cpu −0.15 ms / −9%, objects −55..−73%,
    lossless), net-negative on single buildings (duplex +0.16..+0.25 ms + interior
    over-cull SSIM 0.983), no-op on instanced/aerial; 10 m³ default kept (the

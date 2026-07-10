@@ -90,8 +90,9 @@ The four `--vis-*` flags override the visibility-range size-class thresholds/dis
 effective values so every run is self-describing. `--vis-ranges` is now benched — a
 **scoped win** (big on many-unique-mesh scenes, no-op on single buildings / instanced
 scenes; defaults kept, still opt-in): `plugin-twin/library/findings/twin-vis-range-recipe-2026-07-09.md`.
-`--occluders` is likewise benched — a **scoped win** at street/interior on many-unique-mesh
-scenes (unique-city street cpu −0.15 ms / −9%, objects −55..−73%, lossless) but net-negative on
+`--occluders` is likewise benched — a **scoped win** at street level on many-unique-mesh
+scenes (unique-city street cpu −0.15 ms / −9%, objects −55..−73%, lossless; interior expected
+by the same mechanism, unmeasured) but net-negative on
 single buildings and a no-op on instanced/aerial scenes; `--occluder-min-volume=` overrides the
 10 m³ gate (> 0, else FAILs loud) — the measured sweet spot, kept, still opt-in:
 `plugin-twin/library/findings/twin-occluder-recipe-2026-07-10.md`.

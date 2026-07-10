@@ -1,6 +1,6 @@
 ---
 type: finding
-title: "Benched --occluders recipe — scoped street/interior win on many-unique-mesh scenes, net-negative on single buildings, no-op instanced/aerial"
+title: "Benched --occluders recipe — scoped street-level win on many-unique-mesh scenes, net-negative on single buildings, no-op instanced/aerial"
 description: "The optimizer's --occluders pass, swept across 5 volume-gate configs on 3 real-shaped scenes: a real beyond-noise win ONLY on the many-unique-mesh city at street level (cpu 1.67 -> 1.52 ms, -0.15 ms / -9%; objects_rendered -55..-73%, draw_calls -48..-64%; visually lossless SSIM >=0.9999), NET-NEGATIVE at both vantages on a realistic single building (duplex +0.16..+0.25 ms cpu AND an interior over-cull artifact, in-room SSIM 0.983), a proven no-op on fully-instanced scenes (c2: 0 occluders at every gate) and from every aerial vantage (objects_rendered byte-identical). The shipped 10 m3 default gate is the measured sweet spot — smaller gates only add occluder count for no cpu payoff. --occluders stays OPT-IN with measured guidance. Requires use_occlusion_culling=true (twin template ships it ON). PRE-DECLARED RULE FLAW named: its 'win at BOTH vantages' bar is structurally unreachable by occlusion (aerial no-op) — verdict unaffected. One machine, M3 Pro/Metal, shadows off, fps display-capped this session (cpu_ms sole differentiator)."
 timestamp: 2026-07-10T18:00:00+01:00
 tags:
@@ -17,7 +17,7 @@ tags:
   ]
 ---
 
-# Benched --occluders recipe — scoped street/interior win, net-negative single-building, no-op instanced/aerial
+# Benched --occluders recipe — scoped street-level win, net-negative single-building, no-op instanced/aerial
 
 `optimize_scene.gd`'s `--occluders` pass shipped a reasoned-but-unbenched default gate
 (`OCCLUDER_MIN_VOLUME_M3 = 10.0` — a leftover mesh needs > 10 m³ world-AABB volume to earn a box
@@ -42,7 +42,7 @@ at one of the two required vantages can never satisfy "win at BOTH", so the rule
 **opt-in** for even the scene that wins cleanly at the vantage where occlusion _can_ work
 (ucity/street). The flaw is recorded so the next measurement item words its rule
 **per-vantage-class** rather than demanding a win at a vantage the feature cannot affect. The
-decision (opt-in, with a scoped street/interior win published) is the same under either wording.
+decision (opt-in, with a scoped street-level win published) is the same under either wording.
 
 ## Evidence provenance (SEAT-local — nothing there lands in the framework)
 
@@ -205,7 +205,7 @@ confirmation** (an agent judged the screenshot series, not live motion):
 - **ucity** → street: clean ≥ 0.10 win (−0.15 ms, SSIM ≥ 0.9999) ✓. aerial: **no occlusion effect**
   (Δobjects = 0; the cpu spread is noise, not a win). Fails the "BOTH vantages" bar (see the rule-flaw
   note — that bar is structurally unreachable). **Does NOT earn default-on → opt-in with
-  street/interior-scoped guidance.**
+  street-level-scoped guidance.**
 - **c2 (instanced)** → 0 occluders, proven no-op. **Skip the flag.**
 
 ## Verdict — STAYS OPT-IN, and the recipe
@@ -213,9 +213,12 @@ confirmation** (an agent judged the screenshot series, not live motion):
 No scene class earns default-on; `--occluders` **stays opt-in** in `twin-build` and the optimizer.
 The shipped **10 m³ default gate is kept** (the measured sweet spot). Measured guidance:
 
-- **Reach for `--occluders` on many-unique-mesh scenes viewed at street/interior level** — heavy
+- **Reach for `--occluders` on many-unique-mesh scenes viewed at street level (measured)** — heavy
   heterogeneous clutter where near geometry occludes far. ucity/street: `objects_rendered` −55..−73%,
   `draw_calls` −48..−64%, `cpu 1.67 → 1.52 ms (−0.15 ms, −9%)`, visually lossless (SSIM ≥ 0.9999).
+  An interior vantage on such a scene is **expected** to win by the same near-occludes-far mechanism
+  but is **unmeasured** — the only interior-flavored cell in this sweep was the duplex (net-negative
+  - artifact, below), which is a single building, not a many-unique-mesh scene.
 - **Keep the 10 m³ default.** It ties the 5 m³ gate for best cpu; 5 and 2 only add occluder count with
   no extra cpu payoff (aggressive adds 2.4× the occluders for the same win), and 20 under-covers. The
   sweep gives **no basis for changing the default**.

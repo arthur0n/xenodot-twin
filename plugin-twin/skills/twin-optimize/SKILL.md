@@ -97,7 +97,7 @@ Passes, in order:
   world-AABB volume exceeds `--occluder-min-volume=` (default 10 m³) gets a child
   `OccluderInstance3D` with a `BoxOccluder3D` sized to 90% of its local AABB — the shrink avoids
   self-occlusion artifacts, explicit box occluders need no bake. The default gate is now the benched
-  **scoped winner** (big on many-unique-mesh scenes at street/interior; net-negative on single
+  **scoped winner** (big on many-unique-mesh scenes at street level; net-negative on single
   buildings, no-op on instanced/aerial) — recipe + numbers below and in
   `library-twin/findings/twin-occluder-recipe-2026-07-10.md`.
 - **`--vis-ranges` (opt-in, MEASURED — recipe below).** Size classes by world-AABB diagonal:
@@ -239,13 +239,15 @@ fully-instanced scenes.
 runtime cull that **costs before it saves** (Godot's occlusion culling is a CPU Embree depth raster
 every frame). Swept 5 volume-gate configs × 3 real-shaped scenes on M3 Pro Metal (full record:
 `library-twin/findings/twin-occluder-recipe-2026-07-10.md`, seat sweep `6146794`). Verdict:
-**SCOPED WIN** — real at street/interior on many-unique-mesh scenes, net-negative on single
+**SCOPED WIN** — real at street level on many-unique-mesh scenes, net-negative on single
 buildings, no-op on instanced/aerial scenes.
 
-- **Reach for it on many-unique-mesh scenes at street/interior level** — heavy heterogeneous clutter
-  where near geometry occludes far. On the 28,600-unique city at street: `cpu 1.67 → 1.52 ms
+- **Reach for it on many-unique-mesh scenes at street level (measured)** — heavy heterogeneous
+  clutter where near geometry occludes far. On the 28,600-unique city at street: `cpu 1.67 → 1.52 ms
 (−0.15 ms, −9%)`, `objects_rendered −55..−73%`, `draw_calls −48..−64%`, visually lossless
   (SSIM ≥ 0.9999, frame-reviewed). The near-buildings-occlude-far corridor is the live occluder cell.
+  An interior vantage on such a scene is expected to win by the same mechanism but is **unmeasured**
+  (the sweep's only interior cell was the single-building duplex — net-negative, below).
 - **Use the 10 m³ default (kept).** It is the measured sweet spot — it ties the 5 m³ gate for best
   cpu; smaller gates (5, 2) only add occluder count for no cpu payoff (aggressive 2 m³ adds 2.4× the
   occluders for the same win), and 20 under-covers. The sweep gave **no basis for changing it**.
@@ -266,7 +268,8 @@ buildings, no-op on instanced/aerial scenes.
 - Same discipline as chunking/vis-ranges: **`cpu_ms` leads** (cap-immune), sub-cap fps second, then
   `objects_rendered` / primitive reduction — a big primitive drop with flat fps means occlusion is
   pure cost and the bottleneck is elsewhere. Measure **both vantage classes**, but read a per-vantage
-  win by scene (aerial is a structural no-op for occlusion; only street/interior can win).
+  win by scene (aerial is a structural no-op for occlusion; only ground-level vantages can win —
+  street measured, interior unmeasured).
 
 ## Benchmark methodology (how not to lie)
 

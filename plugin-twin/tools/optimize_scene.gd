@@ -27,7 +27,7 @@ extends SceneTree
 ## --occluders: minimum world-AABB volume (cubic metres) for a leftover mesh to get an occluder.
 ## Below this, a box occluder costs more to rasterize into the depth buffer than the draws it saves.
 ## MEASURED (scoped win, 10 m3 kept): this default is the sweet spot. On many-unique-mesh scenes at
-## street/interior it wins (unique-city cpu -0.15 ms / -9%, objects -55..-73%, lossless); it is
+## street level it wins (unique-city cpu -0.15 ms / -9%, objects -55..-73%, lossless); it is
 ## net-negative on single buildings and a no-op on instanced/aerial, so it stays opt-in. Smaller
 ## gates only add occluder count for no cpu payoff. --occluder-min-volume= overrides this for a
 ## sweep; must be a number > 0 (fails loud, no silent clamping) and the report echoes the value.
@@ -74,7 +74,7 @@ var want_occluders := false
 var occluder_min_volume := OCCLUDER_MIN_VOLUME_M3
 var want_vis_ranges := false
 # --vis-ranges effective size-class distances (metres): the VIS_* consts unless overridden per-run.
-# Keyed by CLI flag so _resolve_vis, _vis_range_pass and the report all read one source of truth.
+# Keyed by CLI flag so _resolve_overrides, _vis_range_pass and the report read one source of truth.
 var _vis := {
 	"--vis-small-diag=": VIS_SMALL_DIAGONAL_M,
 	"--vis-medium-diag=": VIS_MEDIUM_DIAGONAL_M,
@@ -82,7 +82,10 @@ var _vis := {
 	"--vis-medium-end=": VIS_MEDIUM_END_M,
 }
 var _vis_raw := {}  # flag -> raw override string, validated in _resolve_overrides
-var _occluder_min_volume_raw := ""  # empty = use the default; validated in _resolve_overrides
+# --occluder-min-volume= raw override + a provided bit captured at parse time, so an EMPTY value
+# fails loud in _resolve_overrides like the --vis-* flags do (absent flag = keep the default).
+var _occluder_min_volume_raw := ""
+var _occluder_min_volume_provided := false
 var _skipped_surface_override := 0
 var _hinted_ids := {}  # MeshInstance3D.get_instance_id() -> true; survivors skipped by grouping
 
@@ -274,6 +277,7 @@ func _parse_args() -> bool:
 			want_occluders = true
 		elif a.begins_with("--occluder-min-volume="):
 			_occluder_min_volume_raw = a.substr("--occluder-min-volume=".length())
+			_occluder_min_volume_provided = true
 		elif a == "--vis-ranges":
 			want_vis_ranges = true
 		elif a.begins_with("--vis-small-diag="):
@@ -313,7 +317,7 @@ func _resolve_overrides() -> bool:
 	if _vis["--vis-medium-end="] <= _vis["--vis-small-end="]:
 		push_error("OPTIMIZE: FAIL — --vis-medium-end= must exceed --vis-small-end=")
 		return false
-	if _occluder_min_volume_raw != "":
+	if _occluder_min_volume_provided:
 		var raw := _occluder_min_volume_raw
 		if not raw.is_valid_float() or raw.to_float() <= 0.0:
 			push_error(
