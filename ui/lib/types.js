@@ -191,4 +191,12 @@
  *   import_seconds?: number, timestamp?: string, join_matched?: number, join_total?: number,
  *   join_pct?: number, join_gate?: string, sidecar_keys?: number, file?: string }} ImportMetric */
 
+/** One binding map's live resolution status — the `<map>.status.json` the twin-verify bind smoke
+ * writes (`smoke_binding.gd --json`). `bind_smoke` is the OK|FAIL verdict; `resolved`/`total` drive
+ * the assets-panel N/N badge (green when resolved==total, red on a silent-unbound tag); `unresolved`
+ * lists the GlobalIds that resolved to zero targets. Every field optional so a half-written file still
+ * renders what it has. @typedef {{ map?: string, bind_smoke?: string, resolved?: number, total?: number,
+ *   unresolved?: string[], node_targets?: number, mmi_targets?: number, bind_checked_at?: string,
+ *   file?: string }} BindingStatus */
+
 export {};

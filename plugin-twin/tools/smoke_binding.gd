@@ -9,9 +9,15 @@ extends SceneTree
 ## Usage (bounded, deterministic, ~8 s max):
 ##   $GODOT --headless --path . --script tools/smoke_binding.gd -- \
 ##       [--map=binding_map.json] [--url=ws://localhost:8899] \
-##       [--scene=main|<optimized.tscn>] [--frames=N | --seconds=S]
+##       [--scene=main|<optimized.tscn>] [--frames=N | --seconds=S] [--json=<status.json>]
 ##   $GODOT --headless --path . --script tools/smoke_binding.gd -- \
 ##       --mode=hints --scene=<optimized.tscn> --hints=<hints.json>
+##
+## --json=<path> writes the resolution verdict as a STRUCT (bind_smoke OK|FAIL, resolved/total, the
+## unresolved GlobalId list, node/mmi target counts), not just a log line — so the count is
+## machine-readable and can drive a UI resolution badge (green N/N, red on a silent-unbound tag). It
+## is written on EVERY bind-mode terminal path (full resolution AND a resolution/drive failure), so
+## the badge flips red the instant a mistyped GlobalId resolves to a silent 0-of-N.
 ##
 ## Asserts (each printed, then a final verdict line, exit 0/1):
 ##   a. DataBus connected (connection_changed up in time), frames_received > 0, drops == 0.
@@ -61,6 +67,11 @@ var scene_arg := ""
 var mode := "bind"
 var hints_path := ""
 var gap_ms := DEFAULT_GAP_MS
+var json_path := ""
+
+# The resolved binder, held so every terminal path (success or _fail) can emit the --json status
+# with the true resolved/total/unresolved snapshot. Null until the shell/smoke binder is resolved.
+var _binder: BindingMapScript = null
 
 
 func _init() -> void:
@@ -88,6 +99,8 @@ func _parse_args() -> void:
 			mode = a.substr("--mode=".length())
 		elif a.begins_with("--hints="):
 			hints_path = a.substr("--hints=".length())
+		elif a.begins_with("--json="):
+			json_path = a.substr("--json=".length())
 		elif a.begins_with("--seconds="):
 			gap_ms = int(a.substr("--seconds=".length()).to_float() * MSEC_PER_SEC)
 		elif a.begins_with("--frames="):
@@ -110,6 +123,7 @@ func _run_bind() -> void:
 	if bus == null or binder == null:
 		_fail_setup(bus)
 		return
+	_binder = binder  # held so success AND _fail can emit the --json status with the true snapshot
 	if url != "":
 		bus.reconnect(url)  # public seam: redirect to the smoke's sim on a fresh peer immediately
 	await _await_connected(bus)
@@ -138,6 +152,7 @@ func _run_bind() -> void:
 				% [node_count, mmi_count, bus.frames_received, bus.drops]
 			)
 		)
+		_write_status(true)
 		quit(0)
 
 
@@ -171,6 +186,8 @@ func _assert_stream(bus: DataBusScript) -> bool:
 
 func _assert_resolution(binder: BindingMapScript) -> bool:
 	print("BIND-SMOKE resolution: %d/%d resolved" % [binder.resolved_count, binder.total_count])
+	# Machine-readable count line — same number the --json status carries, greppable without the file.
+	print("BIND-SMOKE=%d/%d" % [binder.resolved_count, binder.total_count])
 	if binder.total_count < 1 or binder.resolved_count != binder.total_count:
 		_fail(
 			(
@@ -354,4 +371,40 @@ func _globalized(p: String) -> String:
 
 func _fail(reason: String) -> void:
 	print("BIND-SMOKE: FAIL — ", reason)
+	_write_status(false)
 	quit(1)
+
+
+# Merge the bind-mode resolution verdict into --json=<path> (a no-op when unset or before a binder
+# exists — a setup failure has nothing to report). Mirrors check_twin_join.gd's --json writer: if
+# the path already holds a JSON object the bind_* fields are added beside it; else a fresh object
+# is written. Written on EVERY terminal path so a UI badge flips red the instant resolution drops.
+func _write_status(passed: bool) -> void:
+	if json_path == "" or _binder == null:
+		return
+	var counts := _binder.target_counts()
+	var out_path := _globalized(json_path)
+	var merged: Dictionary = {}
+	var existing: Variant = JSON.parse_string(FileAccess.get_file_as_string(out_path))
+	if existing is Dictionary:
+		merged = existing
+	merged["bind_smoke"] = "OK" if passed else "FAIL"
+	merged["resolved"] = _binder.resolved_count
+	merged["total"] = _binder.total_count
+	merged["unresolved"] = _binder.unresolved_globalids()
+	merged["node_targets"] = counts["node"]
+	merged["mmi_targets"] = counts["mmi"]
+	merged["map"] = map_path
+	merged["bind_checked_at"] = Time.get_datetime_string_from_system(true) + "Z"
+	var fh := FileAccess.open(out_path, FileAccess.WRITE)
+	if fh == null:
+		push_error(
+			(
+				"BIND-SMOKE: could not write --json=%s (%s)"
+				% [out_path, error_string(FileAccess.get_open_error())]
+			)
+		)
+		return
+	fh.store_string(JSON.stringify(merged, " "))
+	fh.close()
+	print("BIND-SMOKE-JSON: %s" % out_path)

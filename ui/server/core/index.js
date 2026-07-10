@@ -36,6 +36,7 @@ import { recentSessions, deleteSession } from "../features/transcripts/transcrip
 import { writeTranscript } from "../features/transcripts/transcript-write.js";
 import { writeAsset, writeAssetFromPath } from "../features/assets/asset-write.js";
 import { readImportMetrics } from "../features/assets/import-metrics.js";
+import { readBindingStatus } from "../features/assets/binding-status.js";
 import { readTasks, reapHandoffs } from "../features/tasks/tasks-store.js";
 import { serveStatic } from "./http/static.js";
 import { reclaimPortIfBusy } from "./http/port.js";
@@ -409,6 +410,7 @@ const GET_ROUTES = {
   "/api/skills": skillsConfig,
   "/api/agent-skills": listAgentSkills,
   "/api/import-metrics": readImportMetrics,
+  "/api/binding-status": readBindingStatus,
 };
 
 /** POST endpoints: url → handler. Keeps the request dispatcher under the complexity

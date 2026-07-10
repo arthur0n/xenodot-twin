@@ -54,6 +54,21 @@ NOT yours: chunking/LOD/occlusion (`scene-optimizer`), the IFC→GLB conversion 
 - Signal names: `snake_case`, past-tense verbs where they announce events.
 - Never write outside the project repo; keep scripts minimal, no over-engineering.
 
+## Authoring a binding map — the checklist (a map is not shipped until BIND-SMOKE=N/N)
+
+The map is the deliverable an operator drives you to build. A mistyped GlobalId is a **valid 22-char
+string that resolves to 0 targets** — the viewer boots fine and lies. So:
+
+- **Bind only REAL sidecar ids.** Grep the model's `<model>_props.json` for the 22-char GlobalId key
+  (not the `name`) of each element — NEVER copy `binding_map.example.json`'s own ids (they are Duplex
+  ids, dead against any other model). Recipe + grep in skill `twin-bind-data` → "Authoring a map".
+- **Run BIND-SMOKE before shipping, with `--json`.** `smoke_binding.gd --json=binding_map.status.json`
+  writes the resolution status the assets panel badges green/red. `resolved < total` is **RED** — a
+  silent unbound tag — never ship it; the runtime `push_warning`s the dead id and the gate exits
+  non-zero. `BIND-SMOKE=N/N` is the only honest ship signal (eyeballing the render misses a 0-of-N).
+- **Prove the gate catches it** on a new map: plant one plausible-but-wrong id → confirm
+  `BIND-SMOKE: FAIL` names it → fix to a real id → `BIND-SMOKE: OK`. That red→green is the evidence.
+
 ## Verification (mandatory)
 
 After any change to .tscn or .gd files, run `tools/verify_twin.sh` before reporting. For any binding/overlay change, ALSO run the twin-verify data-binding smoke (skill `twin-verify`): start the seeded simulator with a fixed seed, run the viewer for a bounded window, and assert the overlay/state actually changed (frames received > 0, expected drops = 0, the bound node's state moved) — a viewer that connects but paints nothing is a green gate over a dead feature. For any playback/recording change, the same gate's playback-determinism step runs `tools/check_playback.gd` twice and asserts identical `PLAYBACK-HASH` lines (skill `twin-playback`) — include that verdict too. The GlobalId join coverage check gates any change that touches the join. Render health is `xenodot:godot-verify`'s contract — follow it, don't reimplement it. Include gate + smoke outputs in your report.

@@ -124,6 +124,68 @@ one binding — documented and intended; each target keeps its own render cache 
 The `label` response reuses `overlay/tag_label_3d.gd` — spawn once, then it self-updates from the
 DataBus (text + green→red ramp). `albedo_ramp` updates every frame.
 
+## Authoring a map against real GlobalIds (the operator recipe)
+
+The binding map is **authored**, not generated — an operator (or the `data-binder` agent) writes
+`tag → GlobalId` rows against a REAL model. The one failure mode that hides is a **silent unbound
+tag**: a mistyped or copy-pasted GlobalId that is a valid 22-char string but is absent from the
+model resolves to **0 targets** — the viewer boots, the HUD still shows the other tags moving, and
+nothing flags the dead row unless you count. So author against the sidecar, and let the gate count.
+
+1. **Never copy the example's own ids.** `binding_map.example.json` carries Duplex ids; they do not
+   resolve against your model. Grep the model's sidecar (`<model>_props.json`, `GlobalId → {ifc_class,
+name, psets}`) for the elements you mean, and take the **22-char key**, not the `name`:
+
+   ```bash
+   rtk grep -o '"[0-9A-Za-z_$]\{22\}": {[^}]*buitenblad' models/<model>_props.json   # e.g. exterior walls
+   ```
+
+2. **Wire it.** `viewer.cfg [twin] binding_map=binding_map.json`. The seeded sim derives its tags +
+   ranges FROM the map (`--map binding_map.json`), so the fixture never drifts from the rows.
+
+3. **Smoke it — the count IS the ship gate.** `BIND-SMOKE=N/N` (every row resolved) is the only
+   honest ship signal; eyeballing the render misses a silent 0-of-N.
+
+   ```bash
+   node tools/sim/server.js --seed 42 --port 8899 --hz 10 --map binding_map.json &
+   $GODOT --headless --path . --script tools/smoke_binding.gd -- \
+       --map=binding_map.json --url=ws://localhost:8899 --json=binding_map.status.json
+   ```
+
+   `--json=<path>` writes `{bind_smoke, resolved, total, unresolved[], node_targets, mmi_targets}` —
+   machine-readable; the framework assets panel renders it as a green/red `N/N resolved` badge
+   (`/api/binding-status`), so resolution health is visible in the product, not only in the HUD.
+
+### The silent-unbound-tag red→green pattern (worked, measured on Schependomlaan)
+
+Prove the gate catches a dead row before trusting a map. Add one row with a plausible-but-WRONG
+22-char id alongside the working ones, then fix it:
+
+- **RED** — a mistyped id `3xQ7Zn0lT9$eKpWvFy2Rc4` (valid IFC base64 alphabet, absent from the model):
+
+  ```
+  WARNING: binding_map: GlobalId '3xQ7Zn0lT9$eKpWvFy2Rc4' (tag facade_roof.temp) resolved 0 targets
+  BIND-SMOKE resolution: 5/6 resolved
+  BIND-SMOKE=5/6
+  BIND-SMOKE: FAIL — bindings resolved 5/6 (need total>=1, all resolved — a miss is a stale map)
+  ```
+
+  The runtime is **loud** (`push_warning` names the dead GlobalId, per "unknown GlobalId → loud")
+  and the gate exits non-zero — a silent 0-of-N is caught, not shipped; the `--json` status flips to
+  `bind_smoke: FAIL` with the dead id in `unresolved[]`, reddening the badge.
+
+- **GREEN** — correct the id to a real sidecar key (`0DkB$K5OX8IwKgjary8NgC`, a real exterior wall):
+
+  ```
+  BIND-SMOKE resolution: 6/6 resolved
+  BIND-SMOKE=6/6
+  BIND-SMOKE node-drive: targets=6 driven=6 non_white=6 moved=6
+  BIND-SMOKE: OK — 6 node target(s), 0 mmi target(s), 90 frames, 0 drops
+  ```
+
+Measured on the Schependomlaan real building (IFC2X3, 3505/3505 join), Godot 4.6.3.stable, Apple M3
+Pro / Metal, shadows off — one machine (see `library/findings/twin-bind-overlay-2026-07-10.md`).
+
 ## Seeded simulator = the fixture
 
 Never develop binding against a source you can't replay. The seeded simulator — a plugin tool
@@ -266,8 +328,11 @@ built or proven; do not claim them:
 - **Historization / trends** — no time-series buffer, no trend overlay.
 - **Alarm/threshold semantics** — the colour ramp is a demo response; a real alarm model
   (states, ack, hysteresis) is undesigned.
-- **Binding-map authoring flow** — the map is agent-emitted/hand-authored data; no UI, no
-  validation against the sidecar beyond the join check.
+- **Binding-map authoring flow** — the map is still agent-emitted/hand-authored data (no in-UI
+  editor). What DOES exist: `smoke_binding.gd --json` writes a resolution status the assets panel
+  renders as a green/red `N/N resolved` badge (the operator recipe above), so a silent-unbound tag
+  is caught by the gate + surfaced in the product. Still missing: an in-UI map editor, and
+  validation against the sidecar BEFORE the smoke (the gate catches a dead id at boot, not at type).
 - **Multi-source / tag namespacing** — one stream, flat tag names.
 
 ## RTK note

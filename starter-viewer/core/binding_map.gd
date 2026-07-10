@@ -183,6 +183,18 @@ func driven_node_albedos() -> Array[Color]:
 	return out
 
 
+## Public read surface for verification gates (twin-verify binding smoke): the GlobalIds of every
+## binding that resolved to ZERO targets — the silent-unbound-tag set a stale or mistyped map
+## produces. Stable order (map order), so the bind smoke can emit it as the machine-readable
+## `unresolved` list that reddens a UI resolution badge. Empty when every binding resolved.
+func unresolved_globalids() -> Array[String]:
+	var out: Array[String] = []
+	for binding: Binding in _bindings:
+		if binding.targets.is_empty():
+			out.append(binding.globalid)
+	return out
+
+
 func _parse_binding(raw: Variant) -> Binding:
 	if typeof(raw) != TYPE_DICTIONARY:
 		push_warning("binding_map: skipped a non-object binding entry")

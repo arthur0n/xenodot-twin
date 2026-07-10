@@ -422,6 +422,70 @@ async function renderImports() {
   });
 }
 
+/** @typedef {import("../../../lib/types.js").BindingStatus} BindingStatus */
+
+/** A card showing one binding map's live resolution health read from its `<map>.status.json` (written
+ * by the twin-verify bind smoke, `smoke_binding.gd --json`). The N/N badge is the ship signal: green
+ * when every tag resolved, red on a silent-unbound tag — the unresolved GlobalIds are listed so the
+ * operator sees exactly which row is a typo. @param {BindingStatus} s @returns {HTMLElement} */
+function bindingCard(s) {
+  const card = el("div", "asset-card");
+  card.append(el("div", "modal-head", s.map ?? "binding_map.json"));
+  const total = s.total ?? 0;
+  const resolved = s.resolved ?? 0;
+  const ok = s.bind_smoke === "OK" && total > 0 && resolved === total;
+  const badge = el("span", "desc", `${resolved}/${total} resolved`);
+  badge.style.color = ok ? "#3fb950" : "#f85149";
+  badge.style.fontWeight = "600";
+  const row = el("div", "asset-metrics-row");
+  row.append(badge);
+  const targets = fact(
+    "targets",
+    s.node_targets !== undefined
+      ? `${s.node_targets} node${s.mmi_targets ? ` · ${s.mmi_targets} mmi` : ""}`
+      : undefined,
+  );
+  if (targets) row.append(targets);
+  card.append(row);
+  const gate = el("span", "desc", ok ? "✓ BIND-SMOKE OK" : "✗ BIND-SMOKE FAIL");
+  gate.style.color = ok ? "#3fb950" : "#f85149";
+  card.append(gate);
+  if (s.unresolved?.length) {
+    const miss = el("div", "modal-sub", `unbound GlobalId: ${s.unresolved.join(", ")}`);
+    miss.style.color = "#f85149";
+    card.append(miss);
+  }
+  return card;
+}
+
+/** Fetch + render the binding-status cards, with an honest empty state when no map has been smoked
+ * yet. @returns {Promise<void>} */
+async function renderBindings() {
+  const host = $("assets-bindings");
+  host.replaceChildren();
+  /** @type {BindingStatus[]} */
+  let statuses;
+  try {
+    statuses = /** @type {BindingStatus[]} */ (await fetchJSON("/api/binding-status"));
+  } catch {
+    statuses = [];
+  }
+  if (!Array.isArray(statuses) || statuses.length === 0) {
+    host.append(
+      el(
+        "div",
+        "modal-sub",
+        "No binding maps smoked yet — run the bind gate (smoke_binding.gd --json, via " +
+          "verify_twin.sh) and the map's N/N resolved status appears here.",
+      ),
+    );
+    return;
+  }
+  statuses.forEach((s) => {
+    host.append(bindingCard(s));
+  });
+}
+
 /** @param {{ name: string, url: string, fit: string }} g @returns {HTMLElement} */
 function genRow(g) {
   const item = el("div", "tree-item");
@@ -437,6 +501,7 @@ function genRow(g) {
 
 async function refresh() {
   await renderImports();
+  await renderBindings();
   const asksEl = $("assets-asks");
   asksEl.replaceChildren();
   const asks = await loadAsks();
