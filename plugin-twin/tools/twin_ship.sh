@@ -249,6 +249,34 @@ func _flush(out: Array, pending: Dictionary, sect: String) -> void:
 CFG_EOF
 }
 
+# JSON-escape a string for the retarget manifest (backslashes then double quotes; the fail reasons
+# are single-line by construction, so no newline handling is needed).
+_json_str() {
+	printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# Retarget-mode fail: when --json was requested, overwrite retarget.json with an honest FAIL manifest
+# BEFORE exiting — a failing rerun against an artifact that carries a prior PASS manifest must never
+# leave that stale green in place (the manifest is written on EVERY terminal path, or it lies — the
+# same status-artifact discipline as the gate reports). The PASS shape is unchanged; a FAIL manifest
+# is {status, stage, reason, artifact}. Usage: _rfail <stage> <message...>.
+_rfail() {
+	local stage="$1"
+	shift
+	if [ "$WANT_JSON" -eq 1 ] && [ -n "$RET_MANIFEST" ]; then
+		{
+			printf '{\n'
+			printf '  "status": "FAIL",\n'
+			printf '  "stage": "%s",\n' "$(_json_str "$stage")"
+			printf '  "reason": "%s",\n' "$(_json_str "$*")"
+			printf '  "artifact": "%s"\n' "$(_json_str "${RET_EXEC_DIR:-$RETARGET_DIR}")"
+			printf '}\n'
+		} >"$RET_MANIFEST"
+		echo "$XENO_GATE: FAIL manifest written ($RET_MANIFEST)" >&2
+	fi
+	_fail "$@"
+}
+
 # --retarget <dir>: swap ONLY the data-beside-build files (model / binding_map / recording) in an
 # ALREADY-shipped artifact — no re-export. The executable is never touched (its mtime is asserted
 # UNCHANGED — the same-binary invariant this tool used to only demonstrate by hand), and url= is left
@@ -257,26 +285,41 @@ CFG_EOF
 # engine only to line-rewrite the shipped viewer.cfg, comments preserved — the same helper assemble uses).
 _retarget() {
 	_stage retarget "swap data beside an already-shipped build (no re-export, binary untouched)"
-	[ -f project.godot ] || _fail "--retarget: run from a Godot project root (the engine rewrites the shipped viewer.cfg)"
-	[ -d "$RETARGET_DIR" ] || _fail "--retarget: no such dir '$RETARGET_DIR'"
-	[ -n "$MODEL" ] || _fail "--retarget requires --model (the new data-beside-build model to swap in)"
-	[ -f "$MODEL" ] || _fail "--retarget: no such model '$MODEL'"
-	if [ -n "$MAP" ] && [ ! -f "$MAP" ]; then _fail "--retarget: no such binding map '$MAP'"; fi
+	# Resolve the --json manifest target EARLY, before any gate can fail: every terminal path must
+	# overwrite a prior manifest (see _rfail), so the target cannot wait for the happy path. Best
+	# effort — beside the shipped viewer.cfg when one is locatable (where the PASS manifest lands),
+	# else at the artifact dir's root; with no artifact dir at all there is nothing stale to overwrite.
+	RET_MANIFEST=""
+	RET_EXEC_DIR=""
+	if [ "$WANT_JSON" -eq 1 ] && [ -d "$RETARGET_DIR" ]; then
+		early_cfg="$(find "$RETARGET_DIR" -name viewer.cfg -type f 2>/dev/null | head -1)"
+		if [ -n "$early_cfg" ]; then
+			RET_EXEC_DIR="$(dirname "$early_cfg")"
+			RET_MANIFEST="$RET_EXEC_DIR/retarget.json"
+		else
+			RET_MANIFEST="$RETARGET_DIR/retarget.json"
+		fi
+	fi
+	[ -f project.godot ] || _rfail preflight "--retarget: run from a Godot project root (the engine rewrites the shipped viewer.cfg)"
+	[ -d "$RETARGET_DIR" ] || _rfail preflight "--retarget: no such dir '$RETARGET_DIR'"
+	[ -n "$MODEL" ] || _rfail preflight "--retarget requires --model (the new data-beside-build model to swap in)"
+	[ -f "$MODEL" ] || _rfail preflight "--retarget: no such model '$MODEL'"
+	if [ -n "$MAP" ] && [ ! -f "$MAP" ]; then _rfail preflight "--retarget: no such binding map '$MAP'"; fi
 	for rec in "${RECORDINGS[@]:-}"; do
 		[ -z "$rec" ] && continue
-		[ -f "$rec" ] || _fail "--retarget: no such recording '$rec'"
+		[ -f "$rec" ] || _rfail preflight "--retarget: no such recording '$rec'"
 	done
-	xeno_resolve_engine || exit 1
+	xeno_resolve_engine || _rfail preflight "--retarget: engine resolution failed (see the resolver's message above)"
 
 	# Locate the shipped viewer.cfg (beside the executable) and its data/ tree.
 	SHIP_CFG="$(find "$RETARGET_DIR" -name viewer.cfg -type f 2>/dev/null | head -1)"
-	[ -n "$SHIP_CFG" ] || _fail "--retarget: no viewer.cfg found under '$RETARGET_DIR' (not a shipped artifact?)"
+	[ -n "$SHIP_CFG" ] || _rfail preflight "--retarget: no viewer.cfg found under '$RETARGET_DIR' (not a shipped artifact?)"
 	EXEC_DIR="$(dirname "$SHIP_CFG")"
 	DATA_DIR="$EXEC_DIR/data"
-	[ -d "$DATA_DIR" ] || _fail "--retarget: no data/ dir beside $SHIP_CFG"
+	[ -d "$DATA_DIR" ] || _rfail preflight "--retarget: no data/ dir beside $SHIP_CFG"
 	# The executable beside viewer.cfg — the same-binary invariant subject.
 	BIN_PATH="$(find "$EXEC_DIR" -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)"
-	[ -n "$BIN_PATH" ] || _fail "--retarget: no executable found beside $SHIP_CFG"
+	[ -n "$BIN_PATH" ] || _rfail preflight "--retarget: no executable found beside $SHIP_CFG"
 	MTIME_BEFORE="$(stat -f '%m' "$BIN_PATH")"
 	URL_BEFORE="$(_cfg_value viewer url "$SHIP_CFG")"
 
@@ -311,18 +354,18 @@ _retarget() {
 	CFG_GD="$WORK/twin_ship_cfg.gd"
 	_emit_cfg_gd "$CFG_GD"
 	if ! "$GODOT" --headless --path . --script "$CFG_GD" -- "--cfg=$SHIP_CFG" "${CFG_SETS[@]}"; then
-		_fail "--retarget: failed to rewrite $SHIP_CFG"
+		_rfail rewrite "--retarget: failed to rewrite $SHIP_CFG"
 	fi
 
 	# The same-binary invariant: the executable must be byte-for-byte the same file — assert its mtime
 	# did not move. A retarget that rebuilt the binary would be a re-export wearing a retarget's name.
 	MTIME_AFTER="$(stat -f '%m' "$BIN_PATH")"
 	if [ "$MTIME_BEFORE" != "$MTIME_AFTER" ]; then
-		_fail "--retarget: binary mtime CHANGED ($MTIME_BEFORE -> $MTIME_AFTER) — the same-binary invariant broke"
+		_rfail assert "--retarget: binary mtime CHANGED ($MTIME_BEFORE -> $MTIME_AFTER) — the same-binary invariant broke"
 	fi
 	URL_AFTER="$(_cfg_value viewer url "$SHIP_CFG")"
 	if [ "$URL_BEFORE" != "$URL_AFTER" ]; then
-		_fail "--retarget: url= changed ($URL_BEFORE -> $URL_AFTER) — retarget must not touch the deployment-time source"
+		_rfail assert "--retarget: url= changed ($URL_BEFORE -> $URL_AFTER) — retarget must not touch the deployment-time source"
 	fi
 	echo "$XENO_GATE: PASS retarget — model=$MODEL_SHIP swapped; binary mtime UNCHANGED ($MTIME_BEFORE); url= untouched ($URL_AFTER)"
 
@@ -354,7 +397,9 @@ _retarget() {
 		if echo "$RLOG" | grep -qE "^viewer: model loaded from data/"; then
 			echo "$RLOG" | grep -E "^viewer:" | sed 's/^/    /'
 			if ! echo "$RLOG" | grep -qE "^viewer: bindings resolved [1-9][0-9]*/[0-9]+"; then
-				_fail "--retarget smoke: model loaded but bindings 0/N (the new model does not match the map)"
+				# _rfail, not _fail: the PASS manifest was just written above — a smoke failure
+				# must overwrite it or the artifact carries a green manifest for a red run.
+				_rfail smoke "--retarget smoke: model loaded but bindings 0/N (the new model does not match the map)"
 			fi
 			echo "$XENO_GATE: PASS retarget smoke — the swapped model booted painted from data/ (same binary)"
 		else
