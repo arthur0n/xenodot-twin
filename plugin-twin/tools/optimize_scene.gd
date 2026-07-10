@@ -18,11 +18,16 @@ extends SceneTree
 ##       --out=<optimized.tscn> --report=<report.json> [--chunks=auto|<int>] \
 ##       [--target-per-chunk=32] [--min-instances=8] [--hints=<h.json>] [--occluders] \
 ##       [--occluder-min-volume=10.0] [--vis-ranges] [--vis-small-diag=0.5] \
-##       [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120]
+##       [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120] \
+##       [--vis-fade-margin=<m>] [--vis-fade-mode=self|deps]
 ##
 ## The four --vis-* flags override the VIS_* size-class defaults (so a benched sweep needs no source
 ## edit); each must parse as a number > 0, and the medium thresholds must exceed the small ones or
 ## the run fails loud. The report echoes the effective values, so every scene is self-describing.
+## --vis-fade-margin=<m> (metres > 0) adds a fade transition to the cull instead of a hard pop at
+## the end distance; --vis-fade-mode=self|deps picks the fade enum (a mode needs a margin, a margin
+## alone defaults to self). VERIFIED Godot 4.6.3: the fade renders under Forward+ ONLY — the
+## Compatibility renderer (web export) treats it as DISABLED, so the pop returns. See TwinVisRange.
 
 ## --occluders: minimum world-AABB volume (cubic metres) for a leftover mesh to get an occluder.
 ## Below this, a box occluder costs more to rasterize into the depth buffer than the draws it saves.
@@ -33,17 +38,6 @@ extends SceneTree
 ## sweep; must be a number > 0 (fails loud, no silent clamping) and the report echoes the value.
 ## Sweep, tables, caveats: library-twin/findings/twin-occluder-recipe-2026-07-10.md.
 const OCCLUDER_MIN_VOLUME_M3 := 10.0
-
-## --vis-ranges size classes by world-AABB diagonal (metres) and the distance each class fades at.
-## Small clutter can vanish close; medium fixtures a bit further; large structure always draws.
-## MEASURED (scoped win, kept as-is): these defaults (0.5/2 -> 40/120) win big on many-unique-mesh
-## scenes (unique-city aerial cpu -32%, perceptually clean at street) and no-op on single buildings
-## / fully-instanced scenes, so the pass stays opt-in. Sweep, tables and machine caveats:
-## library-twin/findings/twin-vis-range-recipe-2026-07-09.md.
-const VIS_SMALL_DIAGONAL_M := 0.5  # diagonal < 0.5 m -> "small"
-const VIS_MEDIUM_DIAGONAL_M := 2.0  # diagonal < 2 m -> "medium"; larger keeps no range
-const VIS_SMALL_END_M := 40.0  # small meshes fade past 40 m
-const VIS_MEDIUM_END_M := 120.0  # medium meshes fade past 120 m
 
 ## Smallest legal --min-instances: a group of 1 is not a group, so instancing never applies below 2.
 const MIN_INSTANCES_FLOOR := 2
@@ -73,15 +67,16 @@ var want_occluders := false
 # _occluder_pass and the report both read occluder_min_volume; the raw override is validated below.
 var occluder_min_volume := OCCLUDER_MIN_VOLUME_M3
 var want_vis_ranges := false
-# --vis-ranges effective size-class distances (metres): the VIS_* consts unless overridden per-run.
-# Keyed by CLI flag so _resolve_overrides, _vis_range_pass and the report read one source of truth.
-var _vis := {
-	"--vis-small-diag=": VIS_SMALL_DIAGONAL_M,
-	"--vis-medium-diag=": VIS_MEDIUM_DIAGONAL_M,
-	"--vis-small-end=": VIS_SMALL_END_M,
-	"--vis-medium-end=": VIS_MEDIUM_END_M,
-}
-var _vis_raw := {}  # flag -> raw override string, validated in _resolve_overrides
+# --vis-ranges effective size-class distances (metres), resolved by TwinVisRange.resolve from the
+# VIS_* defaults + any per-run overrides. TwinVisRange.apply and the report read this one dict.
+var _vis_params := {}
+var _vis_raw := {}  # flag -> raw --vis-* override string, validated by TwinVisRange.resolve
+# --vis-fade-margin=/--vis-fade-mode= raw overrides + provided bits (an EMPTY value must fail loud,
+# so "" cannot double as absent). Validated + coupled by TwinVisRange.resolve into _vis_params.
+var _vis_fade_margin_raw := ""
+var _vis_fade_margin_provided := false
+var _vis_fade_mode_raw := ""
+var _vis_fade_mode_provided := false
 # --occluder-min-volume= raw override + a provided bit captured at parse time, so an EMPTY value
 # fails loud in _resolve_overrides like the --vis-* flags do (absent flag = keep the default).
 var _occluder_min_volume_raw := ""
@@ -129,7 +124,7 @@ func _run() -> int:
 
 	# Optional passes operate on the meshes that stayed un-instanced.
 	var occluders_added := _occluder_pass(scene_root) if want_occluders else 0
-	var vis_ranges_set := _vis_range_pass(scene_root) if want_vis_ranges else 0
+	var vis_ranges_set := TwinVisRange.apply(scene_root, _vis_params) if want_vis_ranges else 0
 	var est_after := _est_draw_items(scene_root)
 	if not _save_scene(scene_root):
 		return 1
@@ -142,10 +137,13 @@ func _run() -> int:
 	report["occluders_added"] = occluders_added
 	report["occluder_min_volume"] = occluder_min_volume
 	report["vis_ranges_set"] = vis_ranges_set
-	report["vis_small_diag"] = _vis["--vis-small-diag="]
-	report["vis_medium_diag"] = _vis["--vis-medium-diag="]
-	report["vis_small_end"] = _vis["--vis-small-end="]
-	report["vis_medium_end"] = _vis["--vis-medium-end="]
+	report["vis_small_diag"] = _vis_params["--vis-small-diag="]
+	report["vis_medium_diag"] = _vis_params["--vis-medium-diag="]
+	report["vis_small_end"] = _vis_params["--vis-small-end="]
+	report["vis_medium_end"] = _vis_params["--vis-medium-end="]
+	report["vis_fade_margin"] = _vis_params["fade_margin"]
+	var fade_mode: int = _vis_params["fade_mode"]  # typed local: mode_label takes int, not Variant
+	report["vis_fade_mode"] = TwinVisRange.mode_label(fade_mode)
 	if not _write_report(report):
 		return 1
 	var summary := report.duplicate()
@@ -288,6 +286,12 @@ func _parse_args() -> bool:
 			_vis_raw["--vis-small-end="] = a.substr("--vis-small-end=".length())
 		elif a.begins_with("--vis-medium-end="):
 			_vis_raw["--vis-medium-end="] = a.substr("--vis-medium-end=".length())
+		elif a.begins_with("--vis-fade-margin="):
+			_vis_fade_margin_raw = a.substr("--vis-fade-margin=".length())
+			_vis_fade_margin_provided = true
+		elif a.begins_with("--vis-fade-mode="):
+			_vis_fade_mode_raw = a.substr("--vis-fade-mode=".length())
+			_vis_fade_mode_provided = true
 		else:
 			push_error("OPTIMIZE: FAIL — unknown argument '%s'" % a)
 			return false
@@ -299,23 +303,20 @@ func _parse_args() -> bool:
 	return true
 
 
-## Validate and apply the per-run numeric overrides (the four --vis-* size classes and
-## --occluder-min-volume=) onto their effective vars, keeping one validation home. Fails loud, like
-## the other arg errors, on a non-numeric or non-positive value, or --vis-* size classes that don't
-## nest (each medium threshold must strictly exceed its small one, else a class is unreachable or
-## inverted). Silent clamping (as --min-instances does) would corrupt a sweep row unnoticed.
+## Validate the per-run numeric overrides, keeping one validation home. The --vis-* size classes go
+## through TwinVisRange.resolve (fail-loud on non-numeric/non-positive or non-nesting thresholds);
+## --occluder-min-volume= is validated inline the same way. Silent clamping (as --min-instances
+## does) would corrupt a sweep row unnoticed, so both fail loud in the OPTIMIZE: FAIL style.
 func _resolve_overrides() -> bool:
-	for flag: String in _vis_raw:
-		var raw: String = _vis_raw[flag]
-		if not raw.is_valid_float() or raw.to_float() <= 0.0:
-			push_error("OPTIMIZE: FAIL — %s value must be a number > 0, got '%s'" % [flag, raw])
-			return false
-		_vis[flag] = raw.to_float()
-	if _vis["--vis-medium-diag="] <= _vis["--vis-small-diag="]:
-		push_error("OPTIMIZE: FAIL — --vis-medium-diag= must exceed --vis-small-diag=")
-		return false
-	if _vis["--vis-medium-end="] <= _vis["--vis-small-end="]:
-		push_error("OPTIMIZE: FAIL — --vis-medium-end= must exceed --vis-small-end=")
+	_vis_params = TwinVisRange.resolve(
+		_vis_raw,
+		_vis_fade_margin_raw,
+		_vis_fade_margin_provided,
+		_vis_fade_mode_raw,
+		_vis_fade_mode_provided
+	)
+	if not _vis_params["ok"]:
+		push_error(_vis_params["error"])
 		return false
 	if _occluder_min_volume_provided:
 		var raw := _occluder_min_volume_raw
@@ -445,26 +446,6 @@ func _occluder_pass(scene_root: Node3D) -> int:
 		TwinHints.add_occluder(mi)
 		added += 1
 	return added
-
-
-## --vis-ranges: set a visibility_range_end on leftover meshes by size class (small/medium/large).
-func _vis_range_pass(scene_root: Node3D) -> int:
-	var meshes: Array[MeshInstance3D] = []
-	_collect_meshes(scene_root, meshes)
-	var small_diag: float = _vis["--vis-small-diag="]
-	var medium_diag: float = _vis["--vis-medium-diag="]
-	var small_end: float = _vis["--vis-small-end="]
-	var medium_end: float = _vis["--vis-medium-end="]
-	var set_count := 0
-	for mi: MeshInstance3D in meshes:
-		var diagonal := (mi.global_transform * mi.mesh.get_aabb()).size.length()
-		if diagonal < small_diag:
-			mi.visibility_range_end = small_end
-			set_count += 1
-		elif diagonal < medium_diag:
-			mi.visibility_range_end = medium_end
-			set_count += 1
-	return set_count
 
 
 ## PackedScene.pack silently DROPS any node whose owner is not set — own everything first.

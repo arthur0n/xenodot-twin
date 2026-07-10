@@ -1,0 +1,51 @@
+{
+  "__doc__": "Worked bench_sweep matrix — recreates the open-item-#6 fade-margin sweep (finding: twin-vis-fade-2026-07-10.md) as a declarative matrix. Runs IN a project whose MATERIALIZED tools/optimize_scene.gd carries the --vis-fade-margin knobs (post feat/vis-fade-margin merge). Sweeps the aggressive (20/60) and coarser (40/120) vis-range size classes x fade OFF / margin 5 (self) / margin 12 (self) over the many-unique-mesh city at street (decisive) + aerial (context). Because this session's presentation is 120 Hz display-capped, a repeat block re-benches every config in INTERLEAVED cycles at street so the merge's cpu is drift-cancelled (bench_sweep auto-suggests exactly this when frame_ms pins at the cap). objects_rendered/draw_calls are deterministic and asserted identical across repeats. scene_in expects the unique-mesh city built at --min-instances=100000; adjust scene_in/out_dir to your project. Keys prefixed __ are ignored by the reader.",
+  "scene_in": "res://models/city_before.scn",
+  "out_dir": "res://models/fadesweep",
+  "report_dir": "reports/fadesweep",
+  "json_dir": "json/fadesweep",
+  "optimize_common": "--min-instances=100000",
+  "baseline": "off",
+  "noise_floor_ms": 0.03,
+  "refresh_hz": 120,
+  "warmup": 2,
+  "measure": 8,
+  "vantages": {
+    "street": "139.5,1.7,135:139.5,1.7,0",
+    "aerial": "-65,260,-65:135,15,135"
+  },
+  "configs": {
+    "off": { "flags": "" },
+    "aggressive": {
+      "flags": "--vis-ranges --vis-small-diag=1.0 --vis-medium-diag=4.0 --vis-small-end=20 --vis-medium-end=60"
+    },
+    "aggressive_fade5": {
+      "flags": "--vis-ranges --vis-small-diag=1.0 --vis-medium-diag=4.0 --vis-small-end=20 --vis-medium-end=60 --vis-fade-margin=5 --vis-fade-mode=self"
+    },
+    "aggressive_fade12": {
+      "flags": "--vis-ranges --vis-small-diag=1.0 --vis-medium-diag=4.0 --vis-small-end=20 --vis-medium-end=60 --vis-fade-margin=12 --vis-fade-mode=self"
+    },
+    "coarser": { "flags": "--vis-ranges --vis-small-diag=1.0 --vis-medium-diag=4.0" },
+    "coarser_fade5": {
+      "flags": "--vis-ranges --vis-small-diag=1.0 --vis-medium-diag=4.0 --vis-fade-margin=5 --vis-fade-mode=self"
+    },
+    "coarser_fade12": {
+      "flags": "--vis-ranges --vis-small-diag=1.0 --vis-medium-diag=4.0 --vis-fade-margin=12 --vis-fade-mode=self"
+    }
+  },
+  "repeat": {
+    "vantage": "street",
+    "cycles": 4,
+    "warmup": 1.5,
+    "measure": 6,
+    "configs": [
+      "off",
+      "aggressive",
+      "aggressive_fade5",
+      "aggressive_fade12",
+      "coarser",
+      "coarser_fade5",
+      "coarser_fade12"
+    ]
+  }
+}
