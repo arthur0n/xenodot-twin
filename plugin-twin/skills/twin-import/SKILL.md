@@ -57,6 +57,7 @@ The venv is a host toolchain, not project runtime — keep it out of the Godot p
 ```bash
 python tools/ifc_convert.py model.ifc                       # → model.glb + model_props.json
 python tools/ifc_convert.py model.ifc --glb out/plant.glb --sidecar out/plant_props.json
+python tools/ifc_convert.py model.ifc --metrics models/model.metrics.json   # + machine-readable metrics
 ```
 
 What it does (and why each line matters — see the script for the full source):
@@ -70,7 +71,32 @@ psets_only=True)` + `get_psets(el, qtos_only=True)` → `{ifc_class, name, psets
 - **`json.dump(..., default=str)`** — pset values include non-JSON types (IFC entity refs,
   dates); without `default=str` the dump raises on real-world models.
 
+### The metrics contract: `--metrics <path>`
+
+`--metrics models/<model>.metrics.json` writes the import result as **machine-readable JSON** so the
+numbers live somewhere the product can read, not only in a finding's prose. It carries `model`,
+`schema`, `shapes` (GLB node count), `elements` (sidecar key count), `import_seconds` (single-run
+wall-clock — the one-machine caveat applies), plus the `ifc`/`glb`/`sidecar` paths and a `timestamp`.
+The **assets panel's "Imported models" card reads this file** (`GET /api/import-metrics` scans the
+project's `models/*.metrics.json`). The join verdict is added by the next step:
+
+- `check_twin_join.gd --json=<same path>` **merges** `join_matched` / `join_total` / `join_pct` /
+  `join_gate` / `sidecar_keys` into the same file — one file carries the whole import result. Point
+  both stages at `models/<model>.metrics.json` and the card shows schema, JOIN %, import time and
+  counts together. (GDScript's JSON re-serializes the ints as floats on merge — consumers round.)
+
 ## Sample models — the dead-URL gotcha
+
+### Validated models — re-fetch from here, do NOT re-walk dead URLs
+
+Each row is a model this pipeline has actually converted; the detailed fetch/verify notes follow.
+Feed the URL + sha256 to `tools/twin_fetch_model.sh` (it handles the Git-LFS media endpoint):
+
+| Model                  | Schema | Size    | sha256 (prefix) | Source (see detail below)                         |
+| ---------------------- | ------ | ------- | --------------- | ------------------------------------------------- |
+| **Duplex** (bundled)   | IFC2X3 | 2.3 MB  | —               | `plugin-twin/examples/` + XBimDemo raw mirror     |
+| **Schependomlaan**     | IFC2X3 | 62 MB   | `57fafa59f03b…` | buildingsmart-community sample repo (LFS media)   |
+| **NBU Medical Clinic** | IFC4   | 27 MB\* | `32b5f8008a39…` | TIB DURAARK mirror (zip; \*per-discipline models) |
 
 The canonical buildingSMART sample URLs are **DEAD** (they 404 or serve an HTML page that
 "converts" into garbage). Working mirror for the standard Duplex model:
@@ -109,6 +135,14 @@ LFS, so a plain `raw.githubusercontent.com` / GitHub `blob` URL serves a ~130-by
 pointer**, not the model. The tool auto-detects the pointer and re-fetches from the
 `media.githubusercontent.com/media/` endpoint (which serves the real bytes); pass a media URL
 directly and it just works.
+
+**The large-IFC boundary — big source models never enter `res://`:** a 62 MB IFC (and its GLB +
+20 MB+ sidecar) is a build **input**, not a shipped asset. Keep the raw `.ifc` and the derived
+`.glb`/`_props.json`/`.metrics.json` in a `models/` dir that is **gitignored** (or Git-LFS-tracked
+in the seat, never committed into the framework); Godot loads the GLB at runtime by absolute path
+(Step 2), so nothing here needs to live under `res://`. Only the **optimized** scene the ship step
+bakes goes into the packaged project. This mirrors the venv rule: host-side build artifacts stay out
+of the game tree.
 
 **Verified working sample — Schependomlaan** (a real 62 MB IFC2X3 Dutch row-house project, the
 BIM-seat model; CC BY 4.0, credit line required — see the seat's `PROVENANCE.md`):
@@ -207,6 +241,12 @@ MISS_SAMPLE=[first few unmatched names]
 A healthy conversion joins ~100% of mesh nodes. A low ratio means `use-element-guids` was off,
 the GLB and sidecar came from different conversions, or the model has products without
 GlobalIds — diagnose from `MISS_SAMPLE`, never ship a low-join model into binding work.
+
+The shipped `tools/check_twin_join.gd` also takes **`--json=<path>`**, which writes the verdict as a
+**struct** (`join_matched`/`join_total`/`join_pct`/`join_gate`/`sidecar_keys`), merging into the
+`--metrics` file from Step 1 when you point both at `models/<model>.metrics.json`. That single file
+is the contract the assets panel's import card reads — the join gate becomes a number the product
+shows, not only a log line. It writes on BOTH the OK and FAIL paths (a failing join is a fact).
 
 ## Error → Fix
 

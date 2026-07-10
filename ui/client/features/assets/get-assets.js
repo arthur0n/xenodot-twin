@@ -350,6 +350,78 @@ function adhocCard() {
   return card;
 }
 
+/** @typedef {import("../../../lib/types.js").ImportMetric} ImportMetric */
+
+/** One "fact" cell for the import card: a label + value, or nothing when the value is absent so a
+ * half-written metrics file shows only what it has. @param {string} label @param {string | undefined} value
+ * @returns {HTMLElement | null} */
+function fact(label, value) {
+  if (value === undefined || value === "") return null;
+  const cell = el("span", "desc");
+  cell.append(el("strong", undefined, label + " "), document.createTextNode(value));
+  return cell;
+}
+
+/** A card showing one IFC→twin import's result (JOIN %, import ms, element count) read from its
+ * `<model>.metrics.json` — the pipeline result, visible in the product. @param {ImportMetric} m
+ * @returns {HTMLElement} */
+function importCard(m) {
+  const card = el("div", "asset-card");
+  card.append(el("div", "modal-head", m.model ?? "model"));
+  const join =
+    m.join_total !== undefined
+      ? `${m.join_matched ?? 0}/${m.join_total}` +
+        (m.join_pct !== undefined ? ` (${m.join_pct.toFixed(1)}%)` : "")
+      : undefined;
+  const facts = [
+    fact("schema", m.schema),
+    fact("JOIN", join),
+    fact("import", m.import_seconds !== undefined ? `${m.import_seconds.toFixed(1)} s` : undefined),
+    fact("elements", m.elements !== undefined ? String(m.elements) : undefined),
+    fact("shapes", m.shapes !== undefined ? String(m.shapes) : undefined),
+  ].filter((c) => c !== null);
+  const row = el("div", "asset-metrics-row");
+  facts.forEach((c) => {
+    if (c) row.append(c);
+  });
+  card.append(row);
+  if (m.join_gate) {
+    const ok = m.join_gate === "OK";
+    const gate = el("span", "desc", ok ? "✓ join gate OK" : "✗ join gate FAIL");
+    gate.style.color = ok ? "#3fb950" : "#f85149";
+    card.append(gate);
+  }
+  return card;
+}
+
+/** Fetch + render the import-metrics cards, with an honest empty state when nothing has been
+ * imported yet. @returns {Promise<void>} */
+async function renderImports() {
+  const host = $("assets-imports");
+  host.replaceChildren();
+  /** @type {ImportMetric[]} */
+  let metrics;
+  try {
+    metrics = /** @type {ImportMetric[]} */ (await fetchJSON("/api/import-metrics"));
+  } catch {
+    metrics = [];
+  }
+  if (!Array.isArray(metrics) || metrics.length === 0) {
+    host.append(
+      el(
+        "div",
+        "modal-sub",
+        "No imported models yet — run the twin-import pipeline (ifc_convert.py --metrics + " +
+          "check_twin_join.gd --json) and the model's JOIN %, import time and element count appear here.",
+      ),
+    );
+    return;
+  }
+  metrics.forEach((m) => {
+    host.append(importCard(m));
+  });
+}
+
 /** @param {{ name: string, url: string, fit: string }} g @returns {HTMLElement} */
 function genRow(g) {
   const item = el("div", "tree-item");
@@ -364,6 +436,7 @@ function genRow(g) {
 }
 
 async function refresh() {
+  await renderImports();
   const asksEl = $("assets-asks");
   asksEl.replaceChildren();
   const asks = await loadAsks();

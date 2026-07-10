@@ -15,8 +15,16 @@ extends SceneTree
 ##
 ## Usage (headless-safe, deterministic):
 ##   $GODOT --headless --path <project> --script tools/check_twin_join.gd -- \
-##       --scene=<models/model.glb|scene.tscn> --sidecar=<models/model_props.json> [--min=0.95]
+##       --scene=<models/model.glb|scene.tscn> --sidecar=<models/model_props.json> \
+##       [--min=0.95] [--json=<path/to/metrics.json>]
 ## .tscn paths must be project-relative (res://); .glb and sidecar may also be absolute.
+##
+## --json=<path> writes the verdict as a STRUCT, not just a log line, so the assets UI card can read
+## it. If the path already holds a JSON object (e.g. ifc_convert.py --metrics wrote import time /
+## shapes / schema there), the join fields are MERGED in — one file carries the whole import result.
+## The join struct: join_matched, join_total, join_pct, join_gate (OK|FAIL), join_min_pct,
+## sidecar_keys, mesh_nodes, multimesh_ids, join_checked_at (ISO-8601 UTC). It is written on BOTH the
+## OK and FAIL paths — a failing join is a recorded fact, not a hole.
 
 ## IFC GlobalId length in chars (buildingSMART base64) — the join key is this 22-char prefix, the
 ## same fact TwinHints.GUID_LEN and binding_map.gd GLOBALID_LEN encode.
@@ -34,6 +42,7 @@ const MISS_SAMPLE := 5
 var scene_path := ""
 var sidecar_path := ""
 var min_ratio := DEFAULT_JOIN_MIN
+var json_path := ""
 
 
 func _init() -> void:
@@ -51,6 +60,8 @@ func _parse_args() -> bool:
 			sidecar_path = a.substr("--sidecar=".length())
 		elif a.begins_with("--min="):
 			min_ratio = float(a.substr("--min=".length()))
+		elif a.begins_with("--json="):
+			json_path = a.substr("--json=".length())
 	if scene_path == "" or sidecar_path == "":
 		push_error(
 			(
@@ -113,14 +124,45 @@ func _run() -> void:
 				% (min_ratio * 100.0)
 			)
 		)
+		_write_json(matched, total, pct, "FAIL", side.size(), mesh_nodes.size(), meta_ids.size())
 		quit(1)
 		return
-	if float(matched) / float(total) >= min_ratio:
-		print("JOIN-GATE: OK (min %.1f%%)" % (min_ratio * 100.0))
-		quit(0)
-	else:
-		print("JOIN-GATE: FAIL (min %.1f%%)" % (min_ratio * 100.0))
-		quit(1)
+	var ok := float(matched) / float(total) >= min_ratio
+	var gate := "OK" if ok else "FAIL"
+	print("JOIN-GATE: %s (min %.1f%%)" % [gate, min_ratio * 100.0])
+	_write_json(matched, total, pct, gate, side.size(), mesh_nodes.size(), meta_ids.size())
+	quit(0 if ok else 1)
+
+
+## Merge the join verdict as a STRUCT into --json=<path> (a no-op when unset). If the file already
+## holds a JSON object (ifc_convert.py --metrics), the join_* fields are added beside it so one file
+## carries the whole import result; otherwise a fresh object is written.
+func _write_json(
+	matched: int, total: int, pct: float, gate: String, keys: int, meshes: int, multis: int
+) -> void:
+	if json_path == "":
+		return
+	var abs := _globalized(json_path)
+	var merged: Dictionary = {}
+	var existing: Variant = JSON.parse_string(FileAccess.get_file_as_string(abs))
+	if existing is Dictionary:
+		merged = existing
+	merged["join_matched"] = matched
+	merged["join_total"] = total
+	merged["join_pct"] = snappedf(pct, 0.1)
+	merged["join_gate"] = gate
+	merged["join_min_pct"] = snappedf(min_ratio * 100.0, 0.1)
+	merged["sidecar_keys"] = keys
+	merged["mesh_nodes"] = meshes
+	merged["multimesh_ids"] = multis
+	merged["join_checked_at"] = Time.get_datetime_string_from_system(true) + "Z"
+	var fh := FileAccess.open(abs, FileAccess.WRITE)
+	if fh == null:
+		push_error("JOIN: could not write --json=%s (%s)" % [json_path, error_string(FileAccess.get_open_error())])
+		return
+	fh.store_string(JSON.stringify(merged, " "))
+	fh.close()
+	print("JOIN-JSON: %s" % json_path)
 
 
 ## res:// stays project-mapped; absolute OS paths pass through; bare paths are res://-relative.

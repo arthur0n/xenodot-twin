@@ -35,6 +35,7 @@ import { projectState } from "./http/project-state.js";
 import { recentSessions, deleteSession } from "../features/transcripts/transcripts.js";
 import { writeTranscript } from "../features/transcripts/transcript-write.js";
 import { writeAsset, writeAssetFromPath } from "../features/assets/asset-write.js";
+import { readImportMetrics } from "../features/assets/import-metrics.js";
 import { readTasks, reapHandoffs } from "../features/tasks/tasks-store.js";
 import { serveStatic } from "./http/static.js";
 import { reclaimPortIfBusy } from "./http/port.js";
@@ -407,6 +408,7 @@ const GET_ROUTES = {
   "/api/usage": computeUsage,
   "/api/skills": skillsConfig,
   "/api/agent-skills": listAgentSkills,
+  "/api/import-metrics": readImportMetrics,
 };
 
 /** POST endpoints: url → handler. Keeps the request dispatcher under the complexity

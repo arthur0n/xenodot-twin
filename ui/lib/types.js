@@ -183,4 +183,12 @@
 /** A single line from a Claude Code .jsonl transcript (the subset we read).
  * @typedef {{ type?: string, isSidechain?: boolean, message?: { content?: string | Array<{ type?: string, text?: string }> } }} TranscriptEntry */
 
+/** One IFC→twin import's machine-readable metrics — the `<model>.metrics.json` the twin-import
+ * pipeline writes (`ifc_convert.py --metrics` for schema/shapes/elements/import_seconds, then
+ * `check_twin_join.gd --json` merges the join_* verdict in). Read by the assets panel's import card.
+ * Every field is optional because a metrics file half-written by one stage still renders what it has.
+ * @typedef {{ model?: string, schema?: string, shapes?: number, elements?: number,
+ *   import_seconds?: number, timestamp?: string, join_matched?: number, join_total?: number,
+ *   join_pct?: number, join_gate?: string, sidecar_keys?: number, file?: string }} ImportMetric */
+
 export {};

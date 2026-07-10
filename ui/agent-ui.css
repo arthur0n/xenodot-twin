@@ -3222,6 +3222,13 @@ input.cmd::placeholder {
   flex: 1;
   margin: 6px 0 0;
 }
+/* Imported-model card: the twin-import pipeline result (JOIN %, import ms, counts) as fact cells. */
+.asset-metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 4px 0 6px;
+}
 
 /* Async question (mcp__ui__ask) — inline answer affordance on a task-board row. */
 .task-answer {

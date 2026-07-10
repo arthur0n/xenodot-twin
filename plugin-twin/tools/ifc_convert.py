@@ -19,6 +19,7 @@ import argparse
 import json
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 try:
@@ -40,6 +41,14 @@ def main() -> None:
     ap.add_argument("--glb", help="output GLB path (default: <ifc stem>.glb)")
     ap.add_argument(
         "--sidecar", help="output sidecar JSON path (default: <ifc stem>_props.json)"
+    )
+    ap.add_argument(
+        "--metrics",
+        help=(
+            "write import metrics as machine-readable JSON here "
+            "(schema, shapes, elements, import_seconds) — the contract the assets UI card reads; "
+            "check_twin_join.gd --json merges the JOIN fields into the same file"
+        ),
     )
     args = ap.parse_args()
 
@@ -64,7 +73,8 @@ def main() -> None:
 
     t0 = time.time()
     f = ifcopenshell.open(str(ifc_path))
-    print(f"opened {ifc_path} schema={f.schema}")
+    schema = f.schema
+    print(f"opened {ifc_path} schema={schema}")
 
     # --- geometry -> GLB ---------------------------------------------------
     settings = ifcopenshell.geom.settings()
@@ -107,7 +117,29 @@ def main() -> None:
         # default=str: pset values include non-JSON types (IFC entity refs, dates).
         json.dump(sidecar, fp, indent=1, default=str)
     print(f"sidecar: {sidecar_path} — {len(sidecar)} elements in {time.time() - t1:.1f}s")
-    print(f"total wall-clock: {time.time() - t0:.1f}s")
+    import_seconds = round(time.time() - t0, 2)
+    print(f"total wall-clock: {import_seconds}s")
+
+    # --- metrics (machine-readable; the assets UI card contract) --------------
+    # One-machine caveat applies: single-run wall time, not a benchmarked record.
+    if args.metrics:
+        metrics_path = Path(args.metrics)
+        metrics_path.parent.mkdir(parents=True, exist_ok=True)
+        metrics = {
+            "model": ifc_path.stem,
+            "ifc": str(ifc_path),
+            "glb": str(glb_path),
+            "sidecar": str(sidecar_path),
+            "schema": schema,
+            "shapes": count,
+            "elements": len(sidecar),
+            "import_seconds": import_seconds,
+            "generated_by": "ifc_convert.py",
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        }
+        with open(metrics_path, "w") as fp:
+            json.dump(metrics, fp, indent=1)
+        print(f"metrics: {metrics_path}")
 
 
 if __name__ == "__main__":
