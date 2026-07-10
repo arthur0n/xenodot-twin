@@ -2,7 +2,9 @@
 
 The **report-out** half of the analysis seam. A report is Markdown with a machine-readable
 frontmatter block, **written by the framework — never by the worker directly** — to
-`reports/analysis/<date>-<task>.md` in the project.
+`reports/analysis/<date>-<task>.md` in the project. The filename carries only date + task, so
+re-running the same task on the same day **silently overwrites** the previous report (latest wins) —
+rename or move a report you want to keep before re-dispatching.
 
 > **Status:** this document is the CONTRACT. The report-writer code (frontmatter assembly + the
 > `reports/analysis/` write) ships in Phase 2 alongside the worker adapters and `npm run analyze`.

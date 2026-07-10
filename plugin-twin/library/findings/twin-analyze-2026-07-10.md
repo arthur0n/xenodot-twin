@@ -1,6 +1,6 @@
 ---
 type: finding
-title: "twin-analyze — a real non-Anthropic report from the seat, bundle 85.6 KB, byte-stable"
+title: "twin-analyze — a real non-Anthropic report from the seat, bundle 87.6 KB, byte-stable"
 description: "End-to-end seat validation of the multi-model analysis seam: a deterministic house-sim window (synth seed 42, 18 000 frames) packs to an 87 605-byte bundle (byte-identical on re-pack), dispatched through the Hermes worker to a NON-Anthropic model (Nous Portal gateway, z-ai/glm-5.2) which returned a faithful summarize-window report — cites only stats-block numbers, names the bound IFC element per tag, flags seed:42 as synthetic (no simulation claim), proposes no action. All five guardrails demonstrated; the report is the committed worked example."
 timestamp: 2026-07-10T01:30:00+01:00
 tags:
@@ -81,7 +81,7 @@ The non-Anthropic worker held every standing rule with no framework post-editing
 Bundle-shape note: because the house `binding_map` limits equal the sim's header ranges (the sim
 derives its ranges from the map), synth values clamp inside the band and `range_crossings` is 0 — a
 tighter map limit than the header is what would surface excursions (see `bundle-schema.md`). Default
-stride decimation (200/tag) preserved the story; no tuning needed. Bundle at 85.6 KB left comfortable
+stride decimation (200/tag) preserved the story; no tuning needed. Bundle at 87.6 KB left comfortable
 headroom under the ~100 KB budget with all six tags and the full sidecar binding context.
 
 ## AC5 — the five guardrails, each demonstrated
