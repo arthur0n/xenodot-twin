@@ -76,6 +76,25 @@ npm run analyze -- --task <summarize-window|narrate-anomalies|inspection-report>
   `GAME_DIR` → `.xenodot.json` `projectDir` → the default sibling (NOT an argv scan — `--task`'s value
   would be misread as a path).
 
+### From a Hive session (the `mcp__ui__analyze` tool)
+
+`npm run analyze` is **canonical**; the same seam is also reachable from a running session as the
+`mcp__ui__analyze` tool (same shared dispatch core, so the two never drift). Its args mirror the CLI:
+`task` (the whitelist enum), and EITHER `bundle` (a path) OR `recording` (+ optional
+`map`/`sidecar`/`fromMs`/`toMs`/`tags`/`pointsPerTag`/`allowOversize`). It **returns an advisory
+summary + the report path** — never the raw worker body, and it applies nothing. An unconfigured
+worker is the same graceful no-op message. Prefer the CLI for scripted/batch runs; the tool is for
+narrating a window from inside the session.
+
+Consent + confinement (accurate statement): an **interactive** session gates each dispatch per call
+(a real model call + a file write — allow/deny in the web UI), but **autonomous / all-policy
+sessions auto-allow it**. That is WHY the tool **confines every model-supplied file path to the
+project root** (realpath-checked, symlink-safe — out-of-tree paths are refused with a graceful
+message): the confinement is the load-bearing control, the per-call gate is defense-in-depth.
+Residual, stated honestly: in an unattended session the worst case is dispatching **in-project**
+files the session could already read to the configured worker endpoint — nothing outside the
+project can reach it. The operator-run CLI keeps absolute paths (a human typed them).
+
 ## Configure a worker (quickstart)
 
 The default worker is **`openai-compatible`** — one `/v1/chat/completions` POST that covers OpenRouter,

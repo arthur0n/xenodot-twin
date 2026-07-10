@@ -12,6 +12,7 @@ import { makeHermesTool, makeHermesFeedbackTool } from "./hermes-tool.js";
 import { makeAutonomousTool } from "./autonomous-tool.js";
 import { makeCompactTool } from "./compact-tool.js";
 import { makeSetSkillTool } from "./set-skill-tool.js";
+import { makeAnalyzeTool } from "./analyze-tool.js";
 
 /**
  * Build the in-process "ui" MCP server for one session. Deps are the session-scoped closures the
@@ -41,6 +42,12 @@ export function buildUiServer({ waitFor, formAgentQueue, send, hermesPush, compa
       makeAutonomousTool(send, disarm),
       makeCompactTool(send, compactPush),
       makeSetSkillTool(),
+      // The fork-only multi-model analysis seam's session dispatch surface (mcp__ui__analyze). No
+      // session-scoped closure — it reads config + writes reports/analysis/ through the shared core,
+      // like the CLI. Registered unconditionally; interactive sessions gate it per call (absent from
+      // uiControlAllow), autonomous/all-policy sessions auto-allow it — so the tool itself confines
+      // every model-supplied file read to the project root (its load-bearing control).
+      makeAnalyzeTool(),
     ],
   });
 }

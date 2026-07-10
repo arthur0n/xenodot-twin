@@ -11,27 +11,18 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import {
-  FRAMEWORK_DIR,
-  CONFIG_FILE,
-  TWIN_PLUGIN_DIR,
-  getAnalysisConfig,
-} from "../../core/config.js";
+import { FRAMEWORK_DIR, CONFIG_FILE, TWIN_PLUGIN_DIR } from "../../core/config.js";
 import { parseJSON } from "../../../lib/json.js";
 import { parseArgs } from "../../../../plugin-twin/tools/sim/stream.js";
+import { TASK_TYPES, isValidTask } from "./analysis-report.js";
+// The dispatch orchestration (bundle resolution + worker select/run + report write) lives in one
+// shared module so this CLI and the mcp__ui__analyze tool can never drift (the hermes-runs.js
+// precedent). This file stays the arg-parsing + process (exit/stdout) adapter around it.
 import {
-  buildBundle,
-  unmatchedTags,
-  SIZE_BUDGET_BYTES,
-} from "../../../../plugin-twin/tools/analyze/bundle.js";
-import { selectWorker } from "./analysis.js";
-import {
-  TASK_TYPES,
-  isValidTask,
-  composeInstructions,
-  sha256Hex,
-  writeAnalysisReport,
-} from "./analysis-report.js";
+  AnalyzeInputError,
+  resolveBundleJson as resolveBundleJsonCore,
+  dispatchAnalysis,
+} from "./analysis-dispatch.js";
 
 const EXIT_FAILURE = 1;
 
@@ -65,13 +56,6 @@ function fail(msg) {
   process.exit(EXIT_FAILURE);
 }
 
-/** Read a file as `{ name, text }` (basename + contents), or null for a falsy path. @param {string |
- * undefined} p @returns {{ name: string, text: string } | null} */
-function readInput(p) {
-  if (!p) return null;
-  return { name: path.basename(p), text: readFileSync(p, "utf8") };
-}
-
 /** Parse a numeric flag or null; exits on a non-numeric value. @param {Record<string, string>} args
  * @param {string} name @returns {number | null} */
 function numFlag(args, name) {
@@ -82,75 +66,34 @@ function numFlag(args, name) {
   return n;
 }
 
-/** Resolve the bundle JSON to analyze: read `--bundle` verbatim, or inline-build it from
- * `--recording` (+ optional map/sidecar/window/tags) through the same packager the standalone CLI
- * uses, enforcing the size budget unless `--allow-oversize`. @param {Record<string, string>} args
- * @param {boolean} allowOversize @returns {string} the canonical bundle JSON */
+/** Resolve the bundle JSON to analyze via the shared core, adapting argv-shaped flags to it: numeric
+ * flags parsed (exit on non-numeric), `--tags` split, warnings printed, an AnalyzeInputError mapped
+ * to the CLI's fail (message + usage + exit 1). @param {Record<string, string>} args @param {boolean}
+ * allowOversize @returns {string} the canonical bundle JSON */
 function resolveBundleJson(args, allowOversize) {
-  if (args.bundle && args.recording) fail("pass either --bundle or --recording, not both");
-  if (args.bundle) return readFileSync(args.bundle, "utf8");
-  if (!args.recording) fail("one of --bundle or --recording is required");
-  const tagsArg = args.tags
+  const tags = args.tags
     ? args.tags
         .split(",")
         .map((s) => s.trim())
         .filter((s) => s.length > 0)
     : null;
-  const pts = numFlag(args, "points-per-tag");
-  if (pts !== null && (!Number.isInteger(pts) || pts <= 0))
-    fail("--points-per-tag must be a positive integer");
-  const recording = readInput(args.recording);
-  if (!recording) fail("--recording could not be read");
-  const { json, bytes, bundle } = buildBundle({
-    recording,
-    map: readInput(args.map),
-    sidecar: readInput(args.sidecar),
-    fromMs: numFlag(args, "from-ms"),
-    toMs: numFlag(args, "to-ms"),
-    tags: tagsArg,
-    pointsPerTag: pts ?? undefined,
-  });
-  const missing = unmatchedTags(bundle, tagsArg);
-  if (missing.length > 0)
-    console.warn(
-      `analyze: WARNING — --tags matched no frames for: ${missing.join(", ")}. ` +
-        "Check the tag names against the recording header's tag table (typos filter silently).",
-    );
-  if (bytes > SIZE_BUDGET_BYTES && !allowOversize)
-    fail(
-      `inline bundle is ${bytes} bytes — ${bytes - SIZE_BUDGET_BYTES} over the ${SIZE_BUDGET_BYTES}-byte budget. ` +
-        "Narrow --from-ms/--to-ms, select --tags, lower --points-per-tag, or pass --allow-oversize",
-    );
-  return json;
-}
-
-/** A human provider label for the frontmatter: the endpoint host for openai-compatible, or the
- * worker id for hermes. Best-effort — a bare id is fine if the URL doesn't parse. @param {string}
- * workerId @param {string | null} apiUrl @returns {string} */
-function providerLabel(workerId, apiUrl) {
-  if (workerId === "hermes") return "hermes";
-  if (!apiUrl) return workerId;
   try {
-    return new URL(apiUrl).host || workerId;
-  } catch {
-    return workerId;
-  }
-}
-
-/** The window block from a bundle document (defaults preserved on a malformed/empty bundle).
- * @param {string} bundleJson @returns {{ from_ms: number | null, to_ms: number | null }} */
-function windowOf(bundleJson) {
-  try {
-    const doc = /** @type {{ window?: { from_ms?: unknown, to_ms?: unknown } }} */ (
-      parseJSON(bundleJson)
-    );
-    const w = doc.window;
-    return {
-      from_ms: typeof w?.from_ms === "number" ? w.from_ms : null,
-      to_ms: typeof w?.to_ms === "number" ? w.to_ms : null,
-    };
-  } catch {
-    return { from_ms: null, to_ms: null };
+    const { json, warnings } = resolveBundleJsonCore({
+      bundle: args.bundle,
+      recording: args.recording,
+      map: args.map,
+      sidecar: args.sidecar,
+      fromMs: numFlag(args, "from-ms"),
+      toMs: numFlag(args, "to-ms"),
+      tags,
+      pointsPerTag: numFlag(args, "points-per-tag"),
+      allowOversize,
+    });
+    for (const w of warnings) console.warn(`analyze: WARNING — ${w}`);
+    return json;
+  } catch (err) {
+    if (err instanceof AnalyzeInputError) fail(err.message);
+    throw err;
   }
 }
 
@@ -170,56 +113,49 @@ export async function runAnalyzeCli(argv, deps = {}) {
   if (!isValidTask(task)) fail(`unknown --task "${task}" — one of: ${TASK_TYPES.join(", ")}`);
 
   const bundleJson = resolveBundleJson(args, allowOversize);
-  const bundleSha256 = sha256Hex(bundleJson);
 
-  /** @type {string} */
-  let template;
-  try {
-    template = readFileSync(path.join(tasksDir, `${task}.md`), "utf8");
-  } catch {
-    fail(`task template not found for "${task}" (${path.join(tasksDir, `${task}.md`)})`);
-  }
-  const instructions = composeInstructions({ template, bundleJson });
-
-  const selected = selectWorker({ adapterOpts: deps.adapterOpts });
-  if (!selected.ok) fail(selected.error);
-  const worker = selected.worker;
-
-  const ready = worker.configured();
-  if (ready !== true) {
-    // Graceful absence (guardrail 3): a clear message pointing at setup — not a crash — then exit 1.
-    console.error(
-      `analyze: worker '${worker.id}' is not configured — ${ready}\n` +
-        "No report was written. Configure the worker (see above), then re-run.",
-    );
-    process.exit(EXIT_FAILURE);
-  }
-
-  console.log(
-    `analyze: dispatching task '${task}' to worker '${worker.id}' (bundle sha256 ${bundleSha256.slice(0, 12)}…)`,
-  );
-  let result;
-  try {
-    result = await worker.analyze({ instructions });
-  } catch (err) {
-    fail(`worker '${worker.id}' failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
-
-  const provider = providerLabel(worker.id, getAnalysisConfig().apiUrl);
-  const written = writeAnalysisReport({
+  const outcome = await dispatchAnalysis({
     projectDir,
+    tasksDir,
     task,
-    workerId: worker.id,
-    provider,
-    model: result.model,
-    bundleSha256,
-    window: windowOf(bundleJson),
-    body: result.output,
-    createdAt: now(),
+    bundleJson,
+    now,
+    adapterOpts: deps.adapterOpts,
+    onDispatch: ({ workerId, bundleSha256 }) => {
+      console.log(
+        `analyze: dispatching task '${task}' to worker '${workerId}' (bundle sha256 ${bundleSha256.slice(0, 12)}…)`,
+      );
+    },
   });
-  console.log(
-    `analyze: wrote ${written.path} — worker=${worker.id} model=${result.model} bundle_sha256=${bundleSha256}`,
-  );
+
+  if (outcome.ok) {
+    console.log(
+      `analyze: wrote ${outcome.report.path} — worker=${outcome.workerId} model=${outcome.model} bundle_sha256=${outcome.bundleSha256}`,
+    );
+    return;
+  }
+  switch (outcome.kind) {
+    case "bad-task":
+      fail(`unknown --task "${outcome.task}" — one of: ${TASK_TYPES.join(", ")}`);
+      break;
+    case "no-template":
+      fail(`task template not found for "${outcome.task}" (${outcome.path})`);
+      break;
+    case "select-error":
+      fail(outcome.error);
+      break;
+    case "unconfigured":
+      // Graceful absence (guardrail 3): a clear message pointing at setup — not a crash — then exit 1.
+      console.error(
+        `analyze: worker '${outcome.workerId}' is not configured — ${outcome.reason}\n` +
+          "No report was written. Configure the worker (see above), then re-run.",
+      );
+      process.exit(EXIT_FAILURE);
+      break;
+    case "worker-failed":
+      fail(`worker '${outcome.workerId}' failed: ${outcome.error}`);
+      break;
+  }
 }
 
 // CLI: `node ui/server/features/twin/analyze-cli.js …` (via `npm run analyze`)
