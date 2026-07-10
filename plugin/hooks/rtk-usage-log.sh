@@ -27,7 +27,7 @@ rtk=false
 exempt=false
 case "$first" in
   cd|export|source|.|:|true|false|echo) exempt=true ;;
-  *godot|*/godot|"$GODOT"|'$GODOT') exempt=true ;;
+  *godot|"$GODOT") exempt=true ;;
   tools/*|./tools/*|*validate.sh) exempt=true ;;
 esac
 

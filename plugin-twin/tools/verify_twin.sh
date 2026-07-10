@@ -220,9 +220,11 @@ else
 	# ALWAYS remove the synthesized fixture, even on an unexpected exit before the explicit rm below
 	# (mirrors the binding-smoke sim reaping — no tmp artifact survives the gate).
 	trap 'rm -f "$PB_FIXTURE" 2>/dev/null' EXIT
-	PB_SYNTH="$(node tools/sim/record.js --out "$PB_FIXTURE" --seconds "$PLAYBACK_SECONDS" \
-		--seed "$TWIN_SIM_SEED" --hz "$TWIN_SIM_HZ" 2>&1)"
-	if [ $? -ne 0 ] || [ ! -f "$PB_FIXTURE" ]; then
+	# Check record.js's exit status directly via the assignment (SC2181): a command-substitution
+	# assignment carries the command's exit status, so `if !` reacts to a real failure — PB_SYNTH
+	# is still captured either way (this script runs under `set -u`, not `set -e`).
+	if ! PB_SYNTH="$(node tools/sim/record.js --out "$PB_FIXTURE" --seconds "$PLAYBACK_SECONDS" \
+		--seed "$TWIN_SIM_SEED" --hz "$TWIN_SIM_HZ" 2>&1)" || [ ! -f "$PB_FIXTURE" ]; then
 		echo "$PB_SYNTH"
 		echo "$XENO_GATE: FAIL playback-determinism — fixture synthesis failed (record.js)"
 		exit 1
