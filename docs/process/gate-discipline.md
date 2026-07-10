@@ -38,6 +38,60 @@ Corollaries (already enforced across `tools/verify_twin.sh`):
 The trap catalog exists so this is repeatable: you never reinvent the corruption per gate, and a new
 gate joins the framework only once its RED→GREEN pair is on record.
 
+## The shell recipe — let the EXIT trap own the terminal path (`tools/lib/verdict.sh`)
+
+The "every terminal path writes its verdict artifact" corollary is easy to state and easy to VIOLATE
+one path at a time. It did — four times. A gate's happy path writes a green `status.json` /
+`retarget.json` / `--json` manifest; then someone finds a NEW way to exit (a setup failure before the
+writer, a corrupt sidecar, a re-run against a fixture that still carries a prior PASS) and the stale
+green survives, badging green on a dead run:
+
+- `check_twin_join.gd` — a corrupt `--json` file was clobbered, dropping evidence (fix `0d7f9db`).
+- `smoke_binding.gd` — a setup failure (`_binder == null`) exited FAIL without touching the status
+  file, so a previously-green `binding_map.status.json` kept `/api/binding-status` badging GREEN on a
+  dead map (fix `27423c6`).
+- `twin_ship.sh --retarget` — `retarget.json` was written only inside the happy-path block, so a
+  failing rerun left the stale PASS; and the retarget SMOKE could fail AFTER the PASS manifest was
+  already written (fix `1c2a9a2`).
+
+Each fix hand-added "write the FAIL verdict on THIS newly-noticed path too". That is patching the
+symptom: the next unnoticed path reintroduces the class. The durable fix is to stop enumerating paths
+and let ONE trap own the terminal:
+
+> **Arm a fail-closed EXIT trap once, at the top of the gate. If the gate exits having neither marked
+> its PASS final nor written an explicit FAIL, the trap writes an honest FAIL over whatever was there.
+> A gate can no longer FORGET a terminal path, because it no longer enumerates them.**
+
+`tools/lib/verdict.sh` is that trap, factored out as the shell twin of `tools/lib/gate_report.gd`
+(which already did this for the `.gd` gates — the shell side simply had no equivalent). Source it the
+way `checks.sh` is sourced, then:
+
+```bash
+XENO_GATE="twin-ship"
+source "$SCRIPT_DIR/lib/verdict.sh"
+verdict_arm "$MANIFEST_PATH" "$ARTIFACT"   # "" path ⇒ no --json ⇒ the writer is a no-op; trap still armed
+verdict_stage preflight                     # label stamped into a fail-closed manifest
+... work; each real failure routes through a _fail helper that calls verdict_fail then exits ...
+verdict_pass                                # ONLY after the last thing that could fail — keeps the PASS
+```
+
+Trap-test it like any gate — same source, opposite verdicts, driven only by which terminal path is
+taken (proven on this machine, Apple M3 Pro / Godot 4.6.3.stable):
+
+1. **explicit FAIL** — a failing rerun (`--retarget … --model <bogus> --json`) against an artifact
+   carrying a prior PASS `retarget.json` → the manifest becomes `{status:"FAIL", stage:"preflight", …}`,
+   the stale PASS gone; exit 1.
+2. **GREEN** — the SAME command with a real `--model` → the PASS manifest shape returns (no `status`
+   field); exit 0.
+3. **unrouted death** — the structural case the four fixes missed: seed a stale PASS, then exit on a
+   path the gate NEVER routed through its fail helper (a `set -u` unbound var, a killed step) → the
+   trap fail-closes to `{status:"FAIL", stage:"<last stage>", reason:"… exited on an unrouted path …"}`.
+   Before `verdict.sh` this left the stale PASS; now it cannot.
+
+The first consumer is `twin_ship.sh --retarget` (behavior and manifest shape byte-identical to the
+former inline writer — the library only ADDS the trap that catches the paths the inline writer could
+not). New shell gates adopt the same three calls and inherit the guarantee for free.
+
 ## Why this doc exists
 
 Gates that were never trap-tested have shipped here and lied: a stale-green `status.json` survived a

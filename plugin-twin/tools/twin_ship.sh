@@ -29,6 +29,8 @@ PATH="$HOME/.local/bin:$PATH"
 XENO_GATE="twin-ship"
 # shellcheck source=lib/checks.sh
 source "$SCRIPT_DIR/lib/checks.sh"
+# shellcheck source=lib/verdict.sh
+source "$SCRIPT_DIR/lib/verdict.sh"
 
 _stage() { printf '\n== %s [%s] %s ==\n' "$XENO_GATE" "$1" "$2"; }
 _fail() {
@@ -249,31 +251,17 @@ func _flush(out: Array, pending: Dictionary, sect: String) -> void:
 CFG_EOF
 }
 
-# JSON-escape a string for the retarget manifest (backslashes then double quotes; the fail reasons
-# are single-line by construction, so no newline handling is needed).
-_json_str() {
-	printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
-}
-
-# Retarget-mode fail: when --json was requested, overwrite retarget.json with an honest FAIL manifest
-# BEFORE exiting — a failing rerun against an artifact that carries a prior PASS manifest must never
-# leave that stale green in place (the manifest is written on EVERY terminal path, or it lies — the
-# same status-artifact discipline as the gate reports). The PASS shape is unchanged; a FAIL manifest
-# is {status, stage, reason, artifact}. Usage: _rfail <stage> <message...>.
+# Retarget-mode fail: overwrite retarget.json with an honest FAIL manifest BEFORE exiting — a failing
+# rerun against an artifact that carries a prior PASS manifest must never leave that stale green in
+# place. This now delegates to the shared verdict library (tools/lib/verdict.sh): verdict_fail writes
+# the {status, stage, reason, artifact} manifest (byte-identical to the former inline writer, a no-op
+# when no --json was armed) and records that a terminal verdict is on file; _fail then fails loud as
+# before. The library's EXIT trap additionally catches any path that DOESN'T route through here.
+# Usage: _rfail <stage> <message...>.
 _rfail() {
 	local stage="$1"
 	shift
-	if [ "$WANT_JSON" -eq 1 ] && [ -n "$RET_MANIFEST" ]; then
-		{
-			printf '{\n'
-			printf '  "status": "FAIL",\n'
-			printf '  "stage": "%s",\n' "$(_json_str "$stage")"
-			printf '  "reason": "%s",\n' "$(_json_str "$*")"
-			printf '  "artifact": "%s"\n' "$(_json_str "${RET_EXEC_DIR:-$RETARGET_DIR}")"
-			printf '}\n'
-		} >"$RET_MANIFEST"
-		echo "$XENO_GATE: FAIL manifest written ($RET_MANIFEST)" >&2
-	fi
+	verdict_fail "$stage" "$*"
 	_fail "$@"
 }
 
@@ -300,6 +288,12 @@ _retarget() {
 			RET_MANIFEST="$RETARGET_DIR/retarget.json"
 		fi
 	fi
+	# Arm the shared verdict library NOW, before the first gate can fail: from here every terminal
+	# path — an explicit _rfail, OR an unrouted death the code forgot to guard — writes an honest
+	# FAIL manifest over any stale green (the structural fix for the class this gate reintroduced
+	# once already). An empty RET_MANIFEST (no --json) makes the writer a no-op but still installs
+	# the trap that owns WORK cleanup below.
+	verdict_arm "$RET_MANIFEST" "${RET_EXEC_DIR:-$RETARGET_DIR}"
 	[ -f project.godot ] || _rfail preflight "--retarget: run from a Godot project root (the engine rewrites the shipped viewer.cfg)"
 	[ -d "$RETARGET_DIR" ] || _rfail preflight "--retarget: no such dir '$RETARGET_DIR'"
 	[ -n "$MODEL" ] || _rfail preflight "--retarget requires --model (the new data-beside-build model to swap in)"
@@ -350,7 +344,10 @@ _retarget() {
 	[ -n "$REC_SHIP" ] && CFG_SETS+=("--set=twin|recording|$REC_SHIP")
 
 	WORK="$(mktemp -d)"
-	trap 'rm -rf "$WORK"' EXIT
+	# The verdict library's EXIT trap (armed above) owns cleanup now — hand it WORK to remove, so a
+	# single trap covers both scratch teardown AND the fail-closed manifest (two EXIT traps cannot
+	# coexist; the second would silently drop the first).
+	XENO_VERDICT_TMP="$WORK"
 	CFG_GD="$WORK/twin_ship_cfg.gd"
 	_emit_cfg_gd "$CFG_GD"
 	if ! "$GODOT" --headless --path . --script "$CFG_GD" -- "--cfg=$SHIP_CFG" "${CFG_SETS[@]}"; then
@@ -409,6 +406,11 @@ _retarget() {
 		fi
 	fi
 
+	# Everything that could fail has passed (assemble, invariant asserts, and the smoke or its LOUD
+	# skip) — mark the verdict satisfied so the EXIT trap leaves the PASS manifest written above in
+	# place instead of failing it closed. Placed last on purpose: an unrouted death anywhere earlier
+	# still overwrites a stale/premature green with an honest FAIL.
+	verdict_pass
 	echo
 	echo "$XENO_GATE: OK (retarget)"
 	echo "  artifact: $EXEC_DIR"

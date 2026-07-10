@@ -228,6 +228,16 @@ $GODOT --headless --path . --script tools/check_twin_join.gd -- \
 - If `--json` points at NON-JSON bytes (a genuinely corrupt file), the original is LEFT UNTOUCHED
   and the verdict goes to a sibling `<path>.<gate>.json` — a gate never clobbers evidence.
 
+The SHELL gates get the same guarantee from `tools/lib/verdict.sh` (the shell twin of
+`gate_report.gd`). A shell gate arms it once — `verdict_arm "$MANIFEST" "$ARTIFACT"` — then routes
+every real failure through `verdict_fail <stage> <reason>` and marks its PASS final with
+`verdict_pass`. The point is the EXIT trap `verdict_arm` installs: if the script exits having done
+NEITHER (a setup failure before the writer, a `set -u` death, a step the gate forgot to guard), the
+trap writes a fail-closed `{status:"FAIL", stage, reason, artifact}` over whatever stale green was
+there. This is why the stale-green class stopped recurring — the trap owns the terminal path, so a
+gate can no longer forget one (the full story + trap-test recipe: `docs/process/gate-discipline.md`).
+`twin_ship.sh --retarget` is the first consumer; new shell gates adopt the three calls and inherit it.
+
 ## Trap catalog — proving each gate bites (gate-discipline.md)
 
 A check is not a gate until it is **trap-tested** — proven to go RED then GREEN under ONE unchanged
