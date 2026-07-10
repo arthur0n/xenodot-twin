@@ -77,7 +77,7 @@ skill `twin-import`. No engine needed.
 $GODOT --headless --path . --script tools/optimize_scene.gd -- \
     --in=<model.glb|scene.tscn> --out=<optimized.scn> --report=<report.json> \
     [--chunks=auto|N] [--target-per-chunk=32] [--min-instances=8] \
-    [--hints=<hints.json>] [--occluders] [--vis-ranges] \
+    [--hints=<hints.json>] [--occluders] [--occluder-min-volume=10.0] [--vis-ranges] \
     [--vis-small-diag=0.5] [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120]
 ```
 
@@ -90,6 +90,11 @@ The four `--vis-*` flags override the visibility-range size-class thresholds/dis
 effective values so every run is self-describing. `--vis-ranges` is now benched — a
 **scoped win** (big on many-unique-mesh scenes, no-op on single buildings / instanced
 scenes; defaults kept, still opt-in): `plugin-twin/library/findings/twin-vis-range-recipe-2026-07-09.md`.
+`--occluders` is likewise benched — a **scoped win** at street/interior on many-unique-mesh
+scenes (unique-city street cpu −0.15 ms / −9%, objects −55..−73%, lossless) but net-negative on
+single buildings and a no-op on instanced/aerial scenes; `--occluder-min-volume=` overrides the
+10 m³ gate (> 0, else FAILs loud) — the measured sweet spot, kept, still opt-in:
+`plugin-twin/library/findings/twin-occluder-recipe-2026-07-10.md`.
 Helpers live in `tools/lib/twin_chunks.gd` (grid + emission) and `tools/lib/twin_hints.gd`
 (hint contract). Recipe, measured numbers and knob guidance: skill `twin-optimize`.
 

@@ -26,8 +26,12 @@ extends SceneTree
 
 ## --occluders: minimum world-AABB volume (cubic metres) for a leftover mesh to get an occluder.
 ## Below this, a box occluder costs more to rasterize into the depth buffer than the draws it saves.
-## --occluder-min-volume= overrides OCCLUDER_MIN_VOLUME_M3 for a sweep; must be a number > 0 (fails
-## loud otherwise, no silent clamping) and the report echoes the effective value.
+## MEASURED (scoped win, 10 m3 kept): this default is the sweet spot. On many-unique-mesh scenes at
+## street/interior it wins (unique-city cpu -0.15 ms / -9%, objects -55..-73%, lossless); it is
+## net-negative on single buildings and a no-op on instanced/aerial, so it stays opt-in. Smaller
+## gates only add occluder count for no cpu payoff. --occluder-min-volume= overrides this for a
+## sweep; must be a number > 0 (fails loud, no silent clamping) and the report echoes the value.
+## Sweep, tables, caveats: library-twin/findings/twin-occluder-recipe-2026-07-10.md.
 const OCCLUDER_MIN_VOLUME_M3 := 10.0
 
 ## --vis-ranges size classes by world-AABB diagonal (metres) and the distance each class fades at.
