@@ -166,9 +166,28 @@ writes once?_ Honest verdicts, including NONE.
    optimize/instance first) and **Safari unverified on this machine** (three TCC barriers — a stated
    caveat, not "works in Safari"). Full matrix + verbatim Grafana outcomes + caveats:
    [`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`](../../plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md).
-7. **`twin-ship` packaging skill.** A viewer deploys as build + model + sidecar +
-   binding map + optional recording; base `godot-export-builds` doesn't bundle the data
-   files. Small skill, closes the journey's last step.
+7. ~~**`twin-ship` packaging skill.**~~ ✅ **DONE (2026-07-10, built on `feat/twin-ship` in
+   3 phases — seat-validated, pending merge to `main`).** A viewer deploys as build + model +
+   sidecar + binding map + optional recording; base `godot-export-builds` bundles the pck/binary
+   only. The real work was making the viewer **export-safe** (phase 1, `84106ba`): buffer-load the
+   GLB (`FileAccess` → `append_from_buffer`, killing `globalize_path` in the model load),
+   executable-adjacent `viewer.cfg` + data-path rooting behind `OS.has_feature("template")`, and a
+   `--quit-after=N` smoke hook (dev behavior byte-identical, `.tscn` OS-path load verified — no pck
+   fallback needed). Then `tools/twin_ship.sh` (phase 2, `8d8d7c3`): five loud stages
+   (preflight/export/assemble/smoke/zip), the **data-beside-build** contract (data staged in `data/`
+   beside the executable — inside `.app/Contents/MacOS/` on macOS — never in the pck; the pck is code
+   - starter scenes only), the shipped `viewer.cfg` rewritten to `data/`-relative paths (the `--wire`
+     ConfigFile idiom), a boot smoke that asserts the exported binary's log, and a deterministic zip.
+     Phase 3 shipped the skill + docs and seat-validated the **artifact**: the house twin packaged to a
+     universal macOS `.app`, unzipped to a clean path and run following ONLY the shipped `README.txt` —
+     headless smoke green (model from `data/`, bindings 6/6, playback, quit-after) and a windowed boot
+     painting the Duplex on Metal Forward+, live-bound; the data-swap contract proven on the artifact
+     (edit `viewer.cfg model=` → different behavior, same binary, **no re-export**); Linux export →
+     smoke SKIP loud (cross-platform, never a fake pass). Unsigned build — the Gatekeeper warning is
+     stated honestly in the README (signing/notarization out of scope); web builds ship via the
+     web-embed recipe (#6), not this skill. The clean-stranger artifact test caught + fixed a real
+     README bug (direct-run path used the model stem, not the `config/name` binary). Measured sizes +
+     full transcript: [`plugin-twin/library/findings/twin-ship-2026-07-10.md`](../../plugin-twin/library/findings/twin-ship-2026-07-10.md).
 8. **Second demo asset beyond the Duplex.** A plant/factory-flavored public model makes
    the industrial pitch land harder than a house (the city block covers scale; it
    doesn't cover "looks like my plant").

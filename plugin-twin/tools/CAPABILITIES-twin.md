@@ -27,6 +27,36 @@ user data — it points `viewer.cfg [viewer] model=` at the optimized scene (kee
 Operator manual: skill `twin-build`. Measured one-command wall time (clean-stranger seat
 run): `plugin-twin/library/findings/twin-build-2026-07-09.md`.
 
+## `twin_ship.sh` — package the export-safe build + data as one deployable
+
+```
+tools/twin_ship.sh --preset <name> [--model <path>] [--map <path>] [--sidecar <path>] \
+    [--recording <path>]... [--out dist/] [--zip] [--smoke|--no-smoke]
+```
+
+The last step of the twin journey: takes the export-safe viewer (`starter-viewer` phase 1)
+and packages it WITH its data as a single, retargetable artifact. Five loud stages —
+**preflight** (engine + preset lookup in `export_presets.cfg` + export templates for the
+exact version + the macOS `import_etc2_astc` assertion + model/sidecar/map discovery
+mirroring `verify_twin.sh`) → **export** (headless `--export-release`, delegating export
+debugging to the base `xenodot:godot-export-builds`; asserts on ERROR lines + a non-empty
+executable because exit codes lie) → **assemble** (the **data-beside-build** contract: the
+model + sidecar + map + recordings go in a `data/` folder BESIDE the executable — inside
+`.app/Contents/MacOS/` on macOS — never baked into the pck, which stays code + starter
+scenes only; the shipped `viewer.cfg` `model=`/`binding_map=`/`recording=` are rewritten to
+`data/`-relative paths via the `twin_build.sh --wire` ConfigFile idiom, comments preserved,
+`url=` left for the site) → **smoke** (boots the exported binary `--quit-after=N`, asserts
+`model loaded from data/`, `bindings resolved N/N`, playback, quit-after; default on iff the
+preset platform matches the host — a cross-platform build SKIPs LOUDLY, never a fake pass) →
+**zip** (deterministic: `find | LC_ALL=C sort` order + `zip -X`). Same discipline as
+`twin_build.sh`/`verify_twin.sh`: loud labels, exit nonzero on the FIRST failure, a SKIP is
+never a pass. The deploy value it unlocks: a site retargets `url=`/`model=` by editing the
+shipped `viewer.cfg` — WITHOUT re-exporting (the data is read at runtime). Unsigned builds
+(signing/notarization out of scope); the shipped `README.txt` states the Gatekeeper warning
+honestly. Web builds do NOT ship here — they use the web-embed recipe (`tools/web/serve_coi.py`
+and the Web presets). Operator manual: skill `twin-ship`. Measured seat artifact sizes + the
+clean-stranger run: `plugin-twin/library/findings/twin-ship-2026-07-10.md`.
+
 ## `ifc_convert.py` — IFC → GLB + property sidecar
 
 ```
