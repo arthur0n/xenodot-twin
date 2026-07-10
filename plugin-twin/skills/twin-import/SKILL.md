@@ -81,6 +81,39 @@ A vetted copy of the Duplex sample (plus an example binding map + viewer config)
 try-it kit at `plugin-twin/examples/` — see its `README.md` for the copy-in-and-convert
 quickstart and `NOTICE.md` for provenance.
 
+### More dead / trap URLs — DO NOT RE-WALK (plant-asset sourcing spike, 2026-07-10)
+
+Sourcing an industrial/plant-flavored public model (roadmap #8) re-confirmed the dead-URL trap
+and found three more to skip:
+
+| URL                                                                           | Status                  | Note                                                                                                                                                  |
+| ----------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `http://projects.buildingsmartalliance.org/files/?artifact_id=4288…4292,3451` | **DEAD** (curl 000)     | The canonical buildingSMART "Common BIM Files" artifact URLs — host down / DNS fail. The documented trap, re-confirmed.                               |
+| `http://duraark.eu/data-repository/`                                          | **DEAD** (ECONNREFUSED) | DURAARK project site gone; the datasets survive at the TIB mirror (below).                                                                            |
+| `http://openifcmodel.cs.auckland.ac.nz/`                                      | LIVE 200 but **JS SPA** | Landing page has no model list in HTML — enumeration needs the app's API. Not dead, a **walk-cost trap**; don't `curl`/WebFetch-walk it in a timebox. |
+
+**Verified working mirror** for the DURAARK datasets (the Medical Clinic family — CC0 per re3data
+`r3d100012506`), pinned so a future session can re-fetch without re-walking:
+
+```
+https://tib.eu/data/duraark/BuildingData/01_IFC/NBU_MedicalClinic_ifc.zip
+  82,736,494 bytes  sha256 32b5f8008a39bd7510adc8cae35179ad40a48d13a339e6aa0208ef43d6220a5c
+```
+
+(The Clinic HVAC discipline model — 27.4 MB IFC → 6.1 MB GLB, 100 % join — is the only
+practically-sized real plant-ish candidate, but it is air-side only: fans/VAV/AHU, **no
+pump/tank/valve**. The plant demo shipped as a synthetic model instead; see the roadmap #8 tick.)
+
+### `IfcTank` / `IfcPump` / `IfcValve` are IFC4-only
+
+These first-class equipment classes **do not exist in IFC2X3** — there they are generic
+`IfcFlowStorageDevice` / `IfcFlowMovingDevice` / `IfcFlowController` with an `ObjectType`
+discriminator. So: a binding map or census over an **IFC2X3** model (the Duplex, the DURAARK
+Clinic family) must inspect `Name`/`ObjectType`, not the entity class, to find a pump or tank;
+a model that expresses them as literal `IfcPump`/`IfcTank` (like the synthetic plant demo) is
+**IFC4+**. Check the schema in the STEP header (`FILE_SCHEMA(('IFC4'))` vs `('IFC2X3')`) before
+assuming which vocabulary the equipment speaks.
+
 ## Step 2 — load at RUNTIME (no editor import)
 
 The viewer loads the GLB with `GLTFDocument` at runtime — **no editor import step, no
