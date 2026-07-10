@@ -254,6 +254,15 @@
       "verdict": "skip",
       "status": "skip",
       "finding": "NOT contamination (verified 2026-07-08): FallZone/SpawnMarker3D/WaveManager/CastData refs across greybox/runtime-arena/gridmap/shooter/code-rules skills are framework convention vocabulary — the skills themselves define these patterns and siblings cross-reference them. Tombstone: literal sweeps will keep re-finding them."
+    },
+    {
+      "id": "D7-upstream-staleness",
+      "dim": "D7",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "Fork silently drifts behind upstream: /sync-upstream (.claude/commands/sync-upstream.md) has NEVER been exercised and nothing measures or surfaces staleness — the `upstream` remote (arthur0n/xenodot-forge) exists but no check runs `git fetch upstream && git rev-list --count HEAD..upstream/main`; add a warn-only staleness line (doctor.js or a check:* script): 'N upstream commits unsynced — run /sync-upstream' (human picks the surface + whether network-in-gate is acceptable).",
+      "pattern": "doctor.js already prints actionable environment checks at forge new — upstream drift belongs beside them as one measured, warn-only line."
     }
   ]
 }
