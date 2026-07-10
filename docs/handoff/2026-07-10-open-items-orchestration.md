@@ -64,6 +64,12 @@ per item; an item that grows phases gets its own companion doc.
       live-verified on 8339 (0 branding hits in served HTML). NEW follow-up
       recorded as open-items #11: feature-dispatch prompts still name dropped
       agents (functional rewiring). Full log: 2026-07-10-ui-debrand-orchestration.md.
-- [ ] #8 analysis MCP surface
+- [x] #8 analysis MCP surface — merged `1072917`. mcp**ui**analyze via extracted
+      dispatch core (CLI unchanged); SECURITY hardening ruled in after the reviewer
+      self-corrected: autonomous/all-policy sessions auto-allow tools → model-
+      supplied paths now confined to the project root (symlink-safe realpath),
+      false "gated per call" docs corrected everywhere, residual stated honestly.
+      Human consulted on scope (keep-the-fix). 202 tests green. Full log:
+      2026-07-10-analysis-mcp-orchestration.md.
 - [ ] #9 upstream PR offers (prepared; human gate before opening)
 - [ ] #10 plant instancing variant (assessed)
