@@ -462,7 +462,10 @@ README="$DIST_DIR/README.txt"
 	macos)
 		echo "  Double-click $NAME.app, or from a terminal:"
 		echo "    open $NAME.app          # windowed"
-		echo "    ./$NAME.app/Contents/MacOS/$NAME   # from the bundle directly"
+		# The in-bundle executable is named by project.godot application/config/name (NOT the
+		# .app basename) and may contain spaces — single-quote the whole path so a stranger can
+		# paste it verbatim. BIN_NAME was discovered in the export stage.
+		echo "    './$NAME.app/Contents/MacOS/$BIN_NAME'   # run the binary directly"
 		echo
 		echo "  UNSIGNED BUILD — Gatekeeper will warn on first open ('cannot be opened"
 		echo "  because the developer cannot be verified' / 'damaged'). This build is not"
