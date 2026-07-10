@@ -1,5 +1,7 @@
 # Xenodot Twin
 
+<p align="center"><img src="assets/full_logo.png" alt="Xenodot Twin" width="340"></p>
+
 <p align="center">
   <a href="https://arthur0n.github.io/xenodot-twin-demos/plant/">
     <img src="assets/hero.gif" alt="A live digital-twin viewer replaying plant telemetry in 3D, elements coloring by value" width="640">
