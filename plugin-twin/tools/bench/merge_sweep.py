@@ -15,10 +15,10 @@ merge is already written in):
                    across every repeat of a config (fail loud, exit 1, on any variance — a rendered
                    scene cannot change its object count run to run; if it did, the sweep is corrupt),
                    compute self-describing rows with deltas vs the named baseline config + noise-floor
-                   flagging (|Δcpu| ≤ floor labelled), auto-SUGGEST interleaved repeats when frame_ms
-                   is pinned at the display cap (median ≈ 1000/refresh — cpu_ms is then noisy and a
-                   single sequential pass can alias thermal drift onto the config axis), write
-                   summary.json and print the tables.
+                   flagging (|Δcpu| ≤ floor labelled), auto-SUGGEST interleaved repeats when a row's
+                   frame_ms is pinned at the display cap (≈ 1000/refresh_hz within _CAP_TOL — cpu_ms
+                   is then noisy and a single sequential pass can alias thermal drift onto the config
+                   axis), write summary.json and print the tables.
 
 Row/config matching is by the scene path bench_scene.gd stamps into every row: optimize writes
 <out_dir>/<config>.scn, so basename-stem(row["scene"]) IS the config name, and row["vantage"] is the
@@ -31,6 +31,7 @@ thermal block); objects/draws/primitives are deterministic and are the backbone.
 import argparse
 import json
 import os
+import re
 import statistics as st
 import sys
 
@@ -53,6 +54,9 @@ _REPEAT_REQUIRED = ("cycles", "vantage", "configs")
 _REPEAT_OPTIONAL = {"warmup": 1.5, "measure": 6.0}
 # frame_ms within this fraction of 1000/refresh reads as "pinned at the display cap".
 _CAP_TOL = 0.02
+# The vantage grammar bench_scene.gd expects: "X,Y,Z:LX,LY,LZ" (position : look-at target, numbers).
+# Validated in the reader so a bare number / bad separator fails at preflight, not mid-bench.
+_VANTAGE_RE = re.compile(r"^-?[\d.]+(,-?[\d.]+){2}:-?[\d.]+(,-?[\d.]+){2}$")
 
 
 def _die(msg):
@@ -95,6 +99,14 @@ def load_matrix(path):
         spec.setdefault("flags", "")
     if not isinstance(m["vantages"], dict) or not m["vantages"]:
         _die("'vantages' must be a non-empty object of name -> 'X,Y,Z:LX,LY,LZ'")
+    for name, coords in m["vantages"].items():
+        if not isinstance(coords, str) or not _VANTAGE_RE.match(coords):
+            _die("vantage '%s' must be 'X,Y,Z:LX,LY,LZ' (position:look-at, numbers), got %r"
+                 % (name, coords))
+    if not isinstance(m["refresh_hz"], (int, float)) or isinstance(m["refresh_hz"], bool) \
+            or m["refresh_hz"] <= 0:
+        _die("refresh_hz must be a number > 0 (the display refresh the cap-detect divides by), got %r"
+             % (m["refresh_hz"],))
     if m["baseline"] not in m["configs"]:
         _die("baseline '%s' is not one of the configs (%s)"
              % (m["baseline"], ", ".join(m["configs"])))

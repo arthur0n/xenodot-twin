@@ -91,9 +91,19 @@ _optimize() {
 	done < <(_field configs)
 }
 
+# Run one bench cell, echo its BENCH lines, and return nonzero unless a MEASURED row was emitted.
+# The ONLY success signature is a "BENCH: {json}" row — bench_scene.gd SKIPs (exit 0, no row) on a
+# headless/display-less host and a SKIP is never a pass: without this assert the merge would read
+# the missing rows as None and the driver would print a false green. Mirrors the optimize check.
 _bench_one() { # scene vantage_coords out_json warmup measure
-	"$GODOT" --path . -s tools/bench_scene.gd -- "$1" \
-		--vantage "$2" --warmup "$4" --measure "$5" --out "$3" 2>&1 | grep -E "BENCH:" | tail -2
+	local out
+	out="$("$GODOT" --path . -s tools/bench_scene.gd -- "$1" \
+		--vantage "$2" --warmup "$4" --measure "$5" --out "$3" 2>&1 | grep -E "BENCH:" | tail -2)"
+	printf '%s\n' "$out"
+	case "$out" in
+	*"BENCH: {"*) return 0 ;;
+	*) return 1 ;;
+	esac
 }
 
 _bench() {
@@ -108,7 +118,8 @@ _bench() {
 		while IFS="$(printf '\t')" read -r vname vcoords; do
 			[ -n "$vname" ] || continue
 			echo "-- bench $cname @ $vname --"
-			_bench_one "$OUT_DIR/$cname.scn" "$vcoords" "$JSON_DIR/$vname.json" "$WARMUP" "$MEASURE"
+			_bench_one "$OUT_DIR/$cname.scn" "$vcoords" "$JSON_DIR/$vname.json" "$WARMUP" "$MEASURE" \
+				|| _fail "bench '$cname' @ '$vname' produced no measured row (a headless SKIP or a bench failure is never a pass)"
 		done < <(_field vantages)
 	done < <(_field configs)
 }
@@ -125,12 +136,17 @@ _repeat() {
 	while IFS="$(printf '\t')" read -r cname _; do
 		[ -n "$cname" ] && rm -f "$rd/$cname.json"
 	done < <(_field repeat_configs)
-	local cyc
+	local cyc out
 	for cyc in $(seq 1 "$cycles"); do
 		while IFS="$(printf '\t')" read -r cname _; do
 			[ -n "$cname" ] || continue
-			_bench_one "$OUT_DIR/$cname.scn" "$rvcoords" "$rd/$cname.json" "$rwarm" "$rmeas" \
-				| sed "s/^/cyc$cyc $cname /"
+			# Capture-then-prefix (NOT a pipe): piping _bench_one into sed would swallow its
+			# no-measured-row status — the same subshell trap the preflight validate avoids.
+			if ! out="$(_bench_one "$OUT_DIR/$cname.scn" "$rvcoords" "$rd/$cname.json" "$rwarm" "$rmeas")"; then
+				printf '%s\n' "$out" >&2
+				_fail "repeat cyc$cyc '$cname' produced no measured row (a headless SKIP or a bench failure is never a pass)"
+			fi
+			printf '%s\n' "$out" | sed "s/^/cyc$cyc $cname /"
 		done < <(_field repeat_configs)
 	done
 }
