@@ -98,6 +98,45 @@ the loose ends. Each entry names its source log.
     (twin-architect/data-binder/scene-optimizer), a functional change beyond
     de-branding. Until then those two panels dispatch to nonexistent agents.
 
+12. **Seat→core promotions #1 + #2 — DONE** (`feat/seat-promotions`, post-audit of
+    "what got built in the test repo that belongs in the framework"). Promoted the
+    bench_sweep **perceptual mode** — the fade spike's `pop_series.gd` (windowed
+    pop-capture) + `pop_analyze.py` (ffmpeg adjacent + matched-position diff) —
+    into `plugin-twin/tools/bench/` as the documented perceptual v2 (standalone
+    companions in the bench_sweep family, not a `.sh` stage), and the **city scale
+    scene generator** `house-twin/scripts/gen_city.gd` → `plugin-twin/examples/gen_city.gd`
+    (demo asset, examples/, never materialized, per the `gen_plant_ifc.py`
+    precedent). Parity proven: promoted `pop_analyze` reproduces the spike's matched
+    numbers exactly (aggressive vs fade12 peak ydelta 0.164 @ z=99, mean 0.033, min
+    SSIM 0.9962); promoted `gen_city --grid=10` → 28,600 meshes / 224 groups /
+    groups_instanced 0 / vis_ranges_set 7700 at defaults, matching the vissweep
+    census. `shot_city.gd` was assessed and LEFT in the seat (screenshot convenience,
+    not a findings-reproduction dependency — see the seat note). SEAMS protect-list,
+    CAPABILITIES, twin-optimize SKILL updated. Follow-ups 13–14 below trigger-ized.
+
+13. **web-ceiling browser-bench drivers — TRIGGER-IZED (no build).** The web-ceiling
+    spike's headed-Chrome bench drivers — `web_bench.gd` (the in-viewer bench overlay)
+    - `driver/chrome_bench.mjs` + `driver/chrome_console.mjs` (CDP scrapers) — proved
+      the web GPU/renderer ceiling once (finding:
+      `plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`) but stayed
+      seat-local: a single-use measurement, not a recurring gate. **Trigger:** promote
+      them into `plugin-twin/tools/web/` (beside `serve_coi.py`) when web benching
+      RECURS — a Godot engine upgrade to re-measure the WebGL/WebGPU ceiling, the Safari
+      WebDriver cells becoming runnable (three blockers today), or renderer work that
+      needs a browser frame-budget number. Until a second web-bench need shows up, the
+      reference `.gd` + `.mjs` in the spike are the record.
+
+14. **Retention math into `merge_sweep.py` — TRIGGER-IZED (no build).** The fade sweep
+    computed adoption RETENTION — `(OFF − fade) / (OFF − no-fade-base)`, per-family
+    same-block OFF — by hand in its seat `merge.py`, not in the promoted
+    `tools/bench/merge_sweep.py` (which stops at cpu/object deltas vs a named baseline
+    - noise-floor flagging). Generalizing retention needs a schema for "which config
+      is the win-baseline vs the OFF-baseline" and thermal-block grouping — real design,
+      justified only by a second consumer. **Trigger:** fold retention into
+      `merge_sweep.py` when a SECOND retention-gated recipe appears (another
+      win-with-a-cost knob whose adoption bar is "keep ≥X% of the base win"). One data
+      point is a spike computation; two is a tool feature.
+
 ## Accepted-as-is (recorded so nobody re-litigates)
 
 - **Soul legacy compare misses interior-CRLF** (item #3 review LOW-1) —

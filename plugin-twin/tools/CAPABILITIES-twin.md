@@ -122,8 +122,19 @@ it (unknown key / missing baseline / malformed config → FAIL loud). The merge
 (objects/draws/primitives) are byte-identical across every repeat** and fails loud on variance, and
 **auto-suggests interleaved repeats** when `frame_ms` pins at the display cap (thermal-drift guard).
 Runs IN a project against its materialized `tools/` — no overlay logic; same loud-stage discipline as
-`twin_build.sh`. Perceptual pop capture is a documented v2 (seat spikes carry the reference gd). Worked
-example: `plugin-twin/examples/bench_sweep.vis-fade.example.json`. Recipe: skill `twin-optimize`.
+`twin_build.sh`. Worked example: `plugin-twin/examples/bench_sweep.vis-fade.example.json`; its
+`scene_in` is the many-unique-mesh scale/bench city built by `plugin-twin/examples/gen_city.gd`
+(10×10 duplex grid → 28,600 meshes — the scene the vis/occluder/fade findings measure). Recipe: skill
+`twin-optimize`.
+
+**Perceptual mode (the sweep's visual half):** `tools/bench/pop_series.gd` (windowed, NO `--headless`)
+flies a scripted approach down one scene axis capturing one PNG per step, and `tools/bench/pop_analyze.py`
+(ffmpeg-backed, preflighted) diffs the frames `--adjacent` (temporal profile within a config) or
+`--matched <dirA> <dirB>` (same-pose diff between two configs, motion cancelled — the fade signal). The
+numeric sweep proves the cpu/object COST; the perceptual pair proves the visual CHARACTER (a hard pop
+became a fade). Standalone companions in the `tools/bench/` family (not a `bench_sweep.sh` stage — they
+need a display + fly a single axis, and their SSIM/ydelta are perceptual, not the merge's asserted
+deterministic columns); output is frame-reviewed, pending a human fly-through.
 
 ## `verify_twin.sh` — the twin builder's gate
 
