@@ -13,11 +13,13 @@ extends SceneTree
 ##   $GODOT --headless --path . --script tools/smoke_binding.gd -- \
 ##       --mode=hints --scene=<optimized.tscn> --hints=<hints.json>
 ##
-## --json=<path> writes the resolution verdict as a STRUCT (bind_smoke OK|FAIL, resolved/total, the
-## unresolved GlobalId list, node/mmi target counts), not just a log line — so the count is
+## --json=<path> writes the verdict as a STRUCT (bind_smoke OK|FAIL, resolved/total, the unresolved
+## GlobalId list, node/mmi target counts, stage smoke|setup), not just a log line — so the count is
 ## machine-readable and can drive a UI resolution badge (green N/N, red on a silent-unbound tag). It
-## is written on EVERY bind-mode terminal path (full resolution AND a resolution/drive failure), so
-## the badge flips red the instant a mistyped GlobalId resolves to a silent 0-of-N.
+## is written on EVERY bind-mode terminal path: full resolution, a resolution/drive failure, AND
+## setup failures before a binder exists (a zeroed FAIL struct, stage "setup" + reason) — so the
+## badge flips red the instant a mistyped GlobalId resolves to a silent 0-of-N, and a previously
+## green status file never survives a later setup break still badging green.
 ##
 ## Asserts (each printed, then a final verdict line, exit 0/1):
 ##   a. DataBus connected (connection_changed up in time), frames_received > 0, drops == 0.
@@ -371,29 +373,47 @@ func _globalized(p: String) -> String:
 
 func _fail(reason: String) -> void:
 	print("BIND-SMOKE: FAIL — ", reason)
-	_write_status(false)
+	_write_status(false, reason)
 	quit(1)
 
 
-# Merge the bind-mode resolution verdict into --json=<path> (a no-op when unset or before a binder
-# exists — a setup failure has nothing to report). Mirrors check_twin_join.gd's --json writer: if
-# the path already holds a JSON object the bind_* fields are added beside it; else a fresh object
-# is written. Written on EVERY terminal path so a UI badge flips red the instant resolution drops.
-func _write_status(passed: bool) -> void:
-	if json_path == "" or _binder == null:
+# Merge the bind-mode verdict into --json=<path> (a no-op only when --json is unset). Mirrors
+# check_twin_join.gd's --json writer: if the path already holds a JSON object the bind_* fields are
+# added beside it; else a fresh object is written. Written on EVERY bind-mode terminal path —
+# INCLUDING setup failures before a binder exists (no DataBus/BindingMap shell, unloadable scene,
+# empty map), which write an honest zeroed FAIL struct (stage "setup" + the reason). Every bind_*
+# field is overwritten each run, so a previously-green status file can never survive a later
+# setup break and keep a UI badge lying green.
+func _write_status(passed: bool, reason := "") -> void:
+	if json_path == "":
 		return
-	var counts := _binder.target_counts()
 	var out_path := _globalized(json_path)
 	var merged: Dictionary = {}
 	var existing: Variant = JSON.parse_string(FileAccess.get_file_as_string(out_path))
 	if existing is Dictionary:
 		merged = existing
 	merged["bind_smoke"] = "OK" if passed else "FAIL"
-	merged["resolved"] = _binder.resolved_count
-	merged["total"] = _binder.total_count
-	merged["unresolved"] = _binder.unresolved_globalids()
-	merged["node_targets"] = counts["node"]
-	merged["mmi_targets"] = counts["mmi"]
+	if _binder != null:
+		var counts := _binder.target_counts()
+		merged["resolved"] = _binder.resolved_count
+		merged["total"] = _binder.total_count
+		merged["unresolved"] = _binder.unresolved_globalids()
+		merged["node_targets"] = counts["node"]
+		merged["mmi_targets"] = counts["mmi"]
+		merged["stage"] = "smoke"
+	else:
+		# Setup-level failure: nothing resolved, and SAYING so is the point — zero every count so a
+		# stale 6/6 from an earlier green run is clobbered by the merge, never inherited.
+		merged["resolved"] = 0
+		merged["total"] = 0
+		merged["unresolved"] = []
+		merged["node_targets"] = 0
+		merged["mmi_targets"] = 0
+		merged["stage"] = "setup"
+	if passed:
+		merged.erase("reason")  # a stale failure reason must not survive a later green run
+	else:
+		merged["reason"] = reason
 	merged["map"] = map_path
 	merged["bind_checked_at"] = Time.get_datetime_string_from_system(true) + "Z"
 	var fh := FileAccess.open(out_path, FileAccess.WRITE)
