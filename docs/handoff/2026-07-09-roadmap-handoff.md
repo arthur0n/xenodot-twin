@@ -147,10 +147,25 @@ writes once?_ Honest verdicts, including NONE.
    run and **stopped afterward** to restore the found (down) state. Worked example + measured run:
    [`plugin-twin/library/findings/twin-analyze-2026-07-10.md`](../../plugin-twin/library/findings/twin-analyze-2026-07-10.md)
    (report also at `plugin-twin/skills/twin-analyze/references/example-report.md`).
-6. **Web/Grafana embed story.** OpenTwins proved the pattern on Unity WebGL; our web
-   export boots (38 MB) but browser fps was never measured. Measure the WASM ceiling
-   honestly, then ship an embed recipe (COI headers exist). If the ceiling is bad,
-   publish the finding — negative results are still content.
+6. ~~**Web/Grafana embed story.**~~ ✅ **DONE (2026-07-10, built on `feat/web-embed` —
+   seat-measured, pending merge to `main`). Outcome: FULL GRAFANA RECIPE (no-threads variant);
+   Safari unverified.** Measured the browser WASM fps ceiling honestly before shipping, per
+   [`2026-07-09-web-embed-plan.md`](2026-07-09-web-embed-plan.md): Phase 1 ran a 2-build × 3-scene ×
+   2-vantage Chrome matrix (12/12 cells, live-bound, 0 drops; seat `b105cc9`). The **pre-declared
+   ≥30 fps floor** (no-threads duplex street, live binding) **passed by ~4×** (120 fps display-capped,
+   cpu 0.58 ms), and `thread_support` bought **zero** rendering fps (Godot 4's web renderer is
+   single-threaded) — so the embeddable no-threads build costs nothing and **boots fully live-bound at
+   120 fps inside a real Grafana text/HTML-panel iframe**, while the threads build is dead on arrival
+   there (no `SharedArrayBuffer` — Grafana serves no COEP). Phase 3 shipped the recipe: the
+   dependency-free COI server `plugin-twin/tools/web/serve_coi.py` (Python 3 stdlib — COOP+COEP,
+   wasm/pck MIME, no-cache), the two annotated Web export presets
+   (`plugin-twin/examples/export_presets.web-{nothreads,threads}.cfg`), tutorial + `twin-bind-data`
+   relay-note sections (serve, `wss`-behind-https, the Grafana iframe snippet, the scale caveat), and
+   CAPABILITIES/SEAMS entries. Two caveats are documented from the numbers: a **scale ceiling**
+   (many-unique-mesh scenes — 28.6k individual meshes — fall to ~17 fps aerial at ~10× native CPU;
+   optimize/instance first) and **Safari unverified on this machine** (three TCC barriers — a stated
+   caveat, not "works in Safari"). Full matrix + verbatim Grafana outcomes + caveats:
+   [`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`](../../plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md).
 7. **`twin-ship` packaging skill.** A viewer deploys as build + model + sidecar +
    binding map + optional recording; base `godot-export-builds` doesn't bundle the data
    files. Small skill, closes the journey's last step.
