@@ -28,6 +28,8 @@ async function open() {
   $("codex-status").className = "settings-status";
   $("docs-status").textContent = "";
   $("docs-status").className = "settings-status";
+  $("twin-source-status").textContent = "";
+  $("twin-source-status").className = "settings-status";
   try {
     const state = /** @type {import("../../../lib/types.js").ProjectState} */ (
       await fetchJSON("/api/state")
@@ -47,6 +49,15 @@ async function open() {
         "Switched on, but the plugin isn't vendored — run npm run codex:setup.";
     }
     $input("docs-enabled").checked = state.docs.enabled;
+    const twinStatus = $("twin-source-status");
+    const sourceUrl = state.twin?.sourceUrl ?? null;
+    if (sourceUrl) {
+      twinStatus.className = "settings-status ok";
+      twinStatus.textContent = `● LIVE — ${sourceUrl} (integrator-side; not hostable)`;
+    } else {
+      twinStatus.className = "settings-status";
+      twinStatus.textContent = '○ none — a published demo bakes url="" (baked recording)';
+    }
   } catch {
     $("settings-error").textContent = "Couldn't load settings — is the server up to date?";
   }

@@ -12,6 +12,7 @@ import {
   docsPublicConfig,
 } from "../config.js";
 import { parseFrontmatter } from "../../../lib/frontmatter.js";
+import { getTwinConfig } from "../../features/twin/twin-data.js";
 
 /**
  * @param {string} dir
@@ -135,5 +136,9 @@ export function projectState() {
     codex: codexPublicConfig(),
     // Optional Godot-docs MCP config for the settings panel — secret-free (just enabled).
     docs: docsPublicConfig(),
+    // Configured twin data source (the relay's `sourceUrl` seam) for the settings panel — a LIVE
+    // ws:// source is integrator-side and not hostable; a published demo bakes url="" (a baked
+    // recording). Read-only: the bridge/viewer run outside the web UI, only the config is shown.
+    twin: getTwinConfig(),
   };
 }

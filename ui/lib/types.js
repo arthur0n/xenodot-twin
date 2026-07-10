@@ -29,6 +29,8 @@
  * @property {HermesPublicConfig} hermes - external Hermes researcher config (key-free)
  * @property {CodexPublicConfig} codex - optional Codex reviewer config (secret-free)
  * @property {DocsPublicConfig} docs - optional Godot-docs MCP config (secret-free)
+ * @property {{ sourceUrl: string | null }} twin - configured twin data source (relay sourceUrl);
+ *   a LIVE ws:// source is integrator-side and not hostable, null when a demo bakes url=""
  */
 
 /** @typedef {{ id: string, title: string, when: string }} RecentSession */

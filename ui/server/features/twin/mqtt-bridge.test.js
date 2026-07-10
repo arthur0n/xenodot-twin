@@ -22,6 +22,17 @@ import {
 } from "../../../../plugin-twin/tools/bridge/mqtt_protocol.js";
 import { parseMap } from "../../../../plugin-twin/tools/bridge/map.js";
 import { startBridge } from "../../../../plugin-twin/tools/bridge/mqtt_ws.js";
+import {
+  RECORDING_KIND,
+  RECORDING_VERSION,
+  SEED_RECORDED,
+} from "../../../../plugin-twin/tools/sim/recording.js";
+
+/** Parse JSON, laundering `JSON.parse`'s `any` through `unknown` so the caller narrows explicitly
+ * (same pattern as the tools' own parsers). @param {string} text @returns {unknown} */
+function parseJson(text) {
+  return /** @type {unknown} */ (JSON.parse(text));
+}
 
 /** One DataBus frame as the viewer sees it. @typedef {{ tag: string, value: number, seq: number, sent_ms: number }} Frame */
 
@@ -152,6 +163,88 @@ test("fake broker → bridge → ws client: exact frames, gapless seq, drops cou
   const stats = bridge.stats();
   assert.equal(stats.forwarded, 3);
   assert.deepEqual(stats.dropped, { noRule: 1, badPayload: 1 });
+  assert.deepEqual(stats.filters, ["house/living_room/temp", "house/+/temp", "plant/pump_1/flow"]);
+
+  client.close();
+  bridge.close();
+  broker.close();
+});
+
+test("--record: forwarded frames serialize as a valid twin-recording (live→hostable)", async () => {
+  const broker = fakeBroker();
+  const brokerPort = await broker.listen();
+  const map = parseMap(
+    JSON.stringify({
+      rules: [{ topic: "house/+/temp" }, { topic: "plant/pump_1/flow", field: "value" }],
+    }),
+  );
+
+  const bridge = startBridge({ brokerHost: "127.0.0.1", brokerPort, map, port: 0, record: true });
+  const wsPort = await bridge.whenListening;
+  const client = new WebSocket(`ws://127.0.0.1:${wsPort}`);
+  /** @type {Frame[]} */
+  const frames = [];
+  const gotThree = new Promise((resolve) => {
+    client.on("message", (data) => {
+      frames.push(readFrame(data));
+      if (frames.length === 3) resolve(undefined);
+    });
+  });
+  await new Promise((resolve) => {
+    client.on("open", () => {
+      resolve(undefined);
+    });
+  });
+  await broker.whenSubscribed;
+
+  broker.publish("house/kitchen/temp", "22.5"); // → house.kitchen.temp = 22.5 (seq 0)
+  broker.publish("house/bedroom_1/temp", "warm"); // dropped — not recorded
+  broker.publish("plant/pump_1/flow", JSON.stringify({ value: 9 })); // → plant.pump_1.flow = 9 (seq 1)
+  broker.publish("house/kitchen/temp", "23.5"); // → house.kitchen.temp = 23.5 (seq 2)
+  await gotThree;
+
+  const body = bridge.recording();
+  assert.ok(body !== null, "recording body should be present when record:true and frames flowed");
+  const lines = /** @type {string} */ (body).trim().split("\n");
+  const header =
+    /** @type {{ version: number, kind: string, seed: number, tags: { tag: string, min: number, max: number }[] }} */ (
+      parseJson(/** @type {string} */ (lines[0]))
+    );
+  assert.equal(header.kind, RECORDING_KIND);
+  assert.equal(header.version, RECORDING_VERSION);
+  assert.equal(header.seed, SEED_RECORDED); // live capture, not synthesized
+  // Header tag table carries the observed value range (kitchen seen twice: 22.5..23.5).
+  const kitchen = header.tags.find((t) => t.tag === "house.kitchen.temp");
+  assert.deepEqual(kitchen, { tag: "house.kitchen.temp", min: 22.5, max: 23.5 });
+
+  const recFrames = lines
+    .slice(1)
+    .map(
+      (l) =>
+        /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame} */ (
+          parseJson(l)
+        ),
+    );
+  assert.equal(recFrames.length, 3); // only the 3 mapped publishes; the bad payload is not recorded
+  assert.deepEqual(
+    recFrames.map((f) => ({ tag: f.tag, value: f.value, seq: f.seq })),
+    [
+      { tag: "house.kitchen.temp", value: 22.5, seq: 0 },
+      { tag: "plant.pump_1.flow", value: 9, seq: 1 },
+      { tag: "house.kitchen.temp", value: 23.5, seq: 2 },
+    ],
+  );
+  for (let i = 1; i < recFrames.length; i++) {
+    const prev =
+      /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame} */ (
+        recFrames[i - 1]
+      );
+    const cur =
+      /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame} */ (
+        recFrames[i]
+      );
+    assert.ok(cur.t_ms >= prev.t_ms, "t_ms must be ascending (recording contract)");
+  }
 
   client.close();
   bridge.close();

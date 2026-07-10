@@ -239,8 +239,29 @@ viewer are unchanged — the bridge just IS a `ws://` source.
 
 ```
 node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json \
-    [--port 8766] [--user u --pass p] [--stats out.json]
+    [--port 8766] [--user u --pass p] [--stats out.json] [--record capture.ndjson]
 ```
+
+**Integrator recipe (one dependency, no stack rewrite).** The bridge is a client behind the
+unmodified `sourceUrl` relay — DataBus, `binding_map`, and the viewer are unchanged. To point a
+fresh seat at a live broker, set the seat's OWN `viewer.cfg [viewer] url="ws://localhost:8766"` and
+boot; the HUD reads `DataBus: LIVE (ws://localhost:8766)` and the model paints from live publishes.
+That is the whole integration: run a broker, run the bridge against it, point `url=` at the bridge.
+
+**`--record capture.ndjson`** taps the live stream into a twin-recording (the same NDJSON
+`tools/sim/record.js` emits), so a live bridge session becomes a **hostable, replayable** fixture —
+play it back with `viewer.cfg [twin] recording=` / `--recording=`. **`--stats out.json`** writes a
+machine-readable health struct (`filters` subscribed, `forwarded` frames, `dropped` by reason) on
+shutdown, so the bridge's health need not be scraped from stdout.
+
+**Hosting boundary — live ≠ hostable.** A LIVE `ws://` source is integrator-side: a published web
+demo has no broker to reach, so `tools/twin_publish_web.sh` bakes `url=""` into every hosted build
+(live-source OFF). This means a live MQTT session is **NOT hostable as a live web demo** — its
+deliverable is a **recording**: capture the session with `--record`, then ship that baked recording
+(the `--record` → viewer-playback path is proven end to end). Do not imply a hosted live MQTT demo
+exists. (Drop nuance: against a real broker, `dropped.noRule` is structurally unreachable — the
+broker only delivers topics matching a subscription, and every subscription is a rule — so real
+drops are `badPayload`: a subscribed topic carrying a non-numeric payload.)
 
 Map file (`mqtt_map.json`, example: `plugin-twin/examples/mqtt_map.example.json`) — a `rules` list,
 **first match wins** (order matters):
@@ -257,8 +278,10 @@ math measures the bridge→viewer hop, not broker→bridge loss (QoS 0 promises 
 Modules: `mqtt_protocol.js` (codec), `map.js` (pure translation), `mqtt_ws.js` (client + WS server,
 reusing `../sim/protocol.js`). To try it without a real broker, `tools/bridge/demo_publish.js`
 (bare `node`, same codec) publishes the six example-map topics with animated values — the MQTT
-counterpart to the seeded sim. Live-validated against Mosquitto — see
-`plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`.
+counterpart to the seeded sim. Live-validated against Mosquitto (codec-level) —
+`plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`; run end-to-end from a fresh seat's own
+`viewer.cfg url=`, with `--record`→playback proving the live→hostable path —
+`plugin-twin/library/findings/twin-mqtt-live-seat-2026-07-10.md`.
 
 ## Serving to the browser / Grafana embed (the web recipe)
 

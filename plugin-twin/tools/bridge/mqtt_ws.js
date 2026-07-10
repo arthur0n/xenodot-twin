@@ -6,7 +6,13 @@
 // unchanged. Point `TWIN_SOURCE_URL=ws://localhost:8766` (or a viewer's `viewer.cfg url=`) at it.
 //
 //   node tools/bridge/mqtt_ws.js --broker mqtt://localhost:1883 --map mqtt_map.json \
-//       [--port 8766] [--user u --pass p] [--stats out.json]
+//       [--port 8766] [--user u --pass p] [--stats out.json] [--record capture.ndjson]
+//
+// --record taps the live MQTT stream the bridge forwards into a twin-recording NDJSON (the SAME
+// contract ../sim/record.js emits and the shipped viewer plays), so a live bridge session becomes
+// a hostable, replayable fixture — the missing piece that lets an integrator-side live source be
+// baked into a demo. --stats writes a machine-readable health struct (filters subscribed, frames
+// forwarded, drops by reason) so the bridge's health need not be scraped from stdout.
 //
 // The WS server side reuses ../sim/protocol.js verbatim (handshake + encodeTextFrame + ping/close),
 // mirroring ../sim/server.js — the framing is a cross-file agreement, so there is exactly one copy.
@@ -47,6 +53,7 @@ import {
   decodePackets,
 } from "./mqtt_protocol.js";
 import { parseMap, filtersOf, translate } from "./map.js";
+import { SEED_RECORDED, headerLine, frameLine } from "../sim/recording.js";
 
 // --- Port + timing constants (one cluster, like the sim's stream.js port doc) ---
 /** The bridge's default WebSocket port. One above the sim's DEFAULT_PORT (8765,
@@ -78,6 +85,16 @@ const HTTP_UPGRADE_REQUIRED = 426;
 
 /** Grace before force-exit if a socket lingers past server.close() on shutdown (ms). */
 const SHUTDOWN_BACKSTOP_MS = 200;
+
+/** Nanoseconds per millisecond. The recorder stamps each frame's `t_ms` from
+ * process.hrtime.bigint() (nanoseconds, MONOTONIC) relative to the first recorded frame, exactly
+ * like ../sim/record.js — a wall-clock step (NTP slew, DST) could otherwise make t_ms go backwards
+ * and break the recording contract's "frames ordered by t_ms ascending". */
+const NS_PER_MS = 1_000_000n;
+
+/** Fallback header `hz` for a --record capture of fewer than 2 frames: no observed cadence exists,
+ * so claim 1 Hz (the recording's hz is metadata — the viewer plays by t_ms, ../sim/recording.js). */
+const RECORD_FALLBACK_HZ = 1;
 
 /** The single SUBSCRIBE we send carries this packet id (§2.3.1); one subscribe, one id. */
 const SUBSCRIBE_PACKET_ID = 1;
@@ -246,6 +263,62 @@ function createMqttClient(cfg) {
   return { start: connect, stop };
 }
 
+/** The live-stream recorder behind --record: fold each forwarded frame into an in-memory
+ * twin-recording (../sim/recording.js contract) and, on demand, serialize it to NDJSON. Kept
+ * filesystem-pure (returns the body; the CLI owns the write, like --stats) so startBridge stays
+ * driveable in-process by the test. hz is DERIVED from the observed frame cadence — the bridge's
+ * `seq` is per-frame (not per-tick like the sim), so this reads as forwarded-frames-per-second;
+ * it is metadata (the viewer plays by t_ms), so any positive int is a valid recording.
+ * @returns {{ fold: (tag: string, value: number, seq: number) => void, serialize: () => string | null }} */
+function createRecorder() {
+  /** @type {import("../sim/recording.js").RecordingFrame[]} */
+  const frames = [];
+  /** @type {Map<string, { min: number, max: number }>} */
+  const range = new Map();
+  /** @type {Map<number, number>} first arrival t_ms per seq, for hz derivation */
+  const seqArrival = new Map();
+  /** @type {bigint | null} monotonic origin, set at the FIRST folded frame */
+  let t0 = null;
+
+  /** @param {string} tag @param {number} value @param {number} seq @returns {void} */
+  function fold(tag, value, seq) {
+    const now = process.hrtime.bigint();
+    t0 ??= now;
+    const tMs = Number((now - t0) / NS_PER_MS);
+    frames.push({ t_ms: tMs, tag, value, seq });
+    const r = range.get(tag);
+    if (r === undefined) range.set(tag, { min: value, max: value });
+    else {
+      r.min = Math.min(r.min, value);
+      r.max = Math.max(r.max, value);
+    }
+    if (!seqArrival.has(seq)) seqArrival.set(seq, tMs);
+  }
+
+  /** @returns {number} the integer header hz derived from the observed inter-frame cadence. */
+  function deriveHz() {
+    const seqs = [...seqArrival.keys()]; // insertion order = arrival order (ascending)
+    const first = seqs[0];
+    const last = seqs[seqs.length - 1];
+    if (first === undefined || last === undefined || last === first) return RECORD_FALLBACK_HZ;
+    const spanMs = (seqArrival.get(last) ?? 0) - (seqArrival.get(first) ?? 0);
+    if (spanMs <= 0) return RECORD_FALLBACK_HZ;
+    return Math.max(RECORD_FALLBACK_HZ, Math.round((1000 * (last - first)) / spanMs));
+  }
+
+  /** @returns {string | null} the NDJSON body (header + frames + trailing newline), or null when
+   * nothing was captured (the viewer rejects a frameless recording — write no file). */
+  function serialize() {
+    if (frames.length === 0) return null;
+    const tags = [...range.entries()].map(([tag, r]) => ({ tag, min: r.min, max: r.max }));
+    return (
+      [headerLine(deriveHz(), SEED_RECORDED, tags), ...frames.map(frameLine)].join("\n") + "\n"
+    );
+  }
+
+  return { fold, serialize };
+}
+
 /**
  * Start the bridge: a WebSocket server that fans DataBus frames out to viewer clients, fed by an
  * MQTT client subscribed to the broker. Pure of the filesystem (the CLI reads + parses the map;
@@ -257,8 +330,9 @@ function createMqttClient(cfg) {
  * @param {number} [opts.port]  WS port (0 = ephemeral, for tests)
  * @param {string} [opts.username] @param {string} [opts.password]
  * @param {number} [opts.reconnectDelayMs]
+ * @param {boolean} [opts.record]  accumulate a twin-recording of forwarded frames (--record)
  * @param {(msg: string) => void} [opts.log]
- * @returns {{ whenListening: Promise<number>, close: () => void, stats: () => { forwarded: number, dropped: { noRule: number, badPayload: number } } }}
+ * @returns {{ whenListening: Promise<number>, close: () => void, stats: () => { filters: string[], forwarded: number, dropped: { noRule: number, badPayload: number } }, recording: () => string | null }}
  */
 export function startBridge(opts) {
   const {
@@ -269,13 +343,16 @@ export function startBridge(opts) {
     username,
     password,
     reconnectDelayMs = DEFAULT_RECONNECT_MS,
+    record = false,
     log = () => {},
   } = opts;
+  const filters = filtersOf(map);
   /** @type {Set<net.Socket>} viewer clients */
   const clients = new Set();
   let seq = 0; // bridge-local monotonic counter — the bridge→viewer hop (see header honesty note)
   let forwarded = 0;
   const dropped = { noRule: 0, badPayload: 0 };
+  const recorder = record ? createRecorder() : null;
 
   // --- WebSocket server (mirror ../sim/server.js) ---
   const wsServer = http.createServer((_req, res) => {
@@ -293,11 +370,13 @@ export function startBridge(opts) {
       else dropped.badPayload++;
       return;
     }
+    const thisSeq = seq++;
     const frame = encodeTextFrame(
-      JSON.stringify({ tag: t.tag, value: t.value, seq: seq++, sent_ms: Date.now() }),
+      JSON.stringify({ tag: t.tag, value: t.value, seq: thisSeq, sent_ms: Date.now() }),
     );
     for (const c of clients) c.write(frame);
     forwarded++;
+    if (recorder) recorder.fold(t.tag, t.value, thisSeq);
   }
 
   const mqtt = createMqttClient({
@@ -305,7 +384,7 @@ export function startBridge(opts) {
     brokerPort,
     username,
     password,
-    filters: filtersOf(map),
+    filters,
     reconnectDelayMs,
     onPublish,
     log,
@@ -349,7 +428,8 @@ export function startBridge(opts) {
   return {
     whenListening,
     close,
-    stats: () => ({ forwarded, dropped: { ...dropped } }),
+    stats: () => ({ filters: [...filters], forwarded, dropped: { ...dropped } }),
+    recording: () => (recorder ? recorder.serialize() : null),
   };
 }
 
@@ -379,7 +459,7 @@ function main() {
   if (!args.broker || !args.map) {
     console.error(
       "usage: node tools/bridge/mqtt_ws.js --broker mqtt://host:1883 --map mqtt_map.json " +
-        "[--port 8766] [--user u --pass p] [--stats out.json]",
+        "[--port 8766] [--user u --pass p] [--stats out.json] [--record capture.ndjson]",
     );
     process.exit(1);
   }
@@ -396,6 +476,7 @@ function main() {
     return;
   }
 
+  const recordPath = args.record;
   const handle = startBridge({
     brokerHost: broker.host,
     brokerPort: broker.port,
@@ -403,6 +484,7 @@ function main() {
     port: Number(args.port ?? DEFAULT_BRIDGE_PORT),
     username: args.user,
     password: args.pass,
+    record: recordPath !== undefined,
     log: (m) => {
       console.log(m);
     },
@@ -411,6 +493,23 @@ function main() {
   const statsPath = args.stats;
   function shutdown() {
     handle.close();
+    if (recordPath) {
+      const body = handle.recording();
+      if (body === null) {
+        console.warn(`bridge: no frames captured — nothing written to '${recordPath}'`);
+      } else {
+        try {
+          writeFileSync(recordPath, body);
+          console.log(
+            `bridge: wrote recording → ${recordPath} (${handle.stats().forwarded} frames)`,
+          );
+        } catch (e) {
+          console.warn(
+            `bridge: could not write recording '${recordPath}' (${e instanceof Error ? e.message : String(e)})`,
+          );
+        }
+      }
+    }
     if (statsPath) {
       try {
         writeFileSync(statsPath, JSON.stringify(handle.stats(), null, 2) + "\n");

@@ -479,6 +479,18 @@ codex login             # ChatGPT account (incl. Free) or API key</pre
         </label>
         <div class="settings-status" id="docs-status"></div>
 
+        <hr class="settings-divider" />
+        <p class="modal-sub">
+          <strong>Twin data source</strong> — the upstream the twin viewer paints from
+          (<code>.xenodot.json</code> <code>twin.sourceUrl</code> / <code>TWIN_SOURCE_URL</code>). A
+          <strong>LIVE</strong> <code>ws://</code> source is integrator-side (e.g. the
+          <code>mqtt_ws.js</code> bridge on a plant broker) and is <strong>not hostable</strong> — a
+          published web demo bakes <code>url=""</code> and replays a baked recording instead. This
+          row is read-only: the bridge and viewer run outside the web UI; only the configured source
+          is shown here.
+        </p>
+        <div class="settings-status" id="twin-source-status"></div>
+
         <div class="modal-error" id="settings-error"></div>
         <div class="modal-actions">
           <button class="btn ghost" id="settings-cancel">Cancel</button>
