@@ -98,5 +98,20 @@ roadmap tick. AC4 route per machine facts above.
       Known limit carried forward: Hermes-path model attribution echoes the config label (the runs-API
       reply has no model id), so it can drift from the gateway's real model — precise only for the
       openai-compatible adapter today.
-- [ ] Scoped review + seat proof (orchestrator gate)
-- [ ] Merged to main, index ticked (orchestrator gate)
+- [x] Scoped review (independent Opus): merge-after-fixes → fixes landed in
+      `35819e6` + `2265fc7` and verified: MEDIUM-1 /v1 double-append (OpenRouter/vLLM
+      documented base form 404'd; adapter + probe now strip trailing /v1, tested incl.
+      fake-server POST path), MEDIUM-2 YAML frontmatter injection via untrusted
+      endpoint model string (worker/provider/model now JSON-encoded scalars, hostile
+      string test), LOW-4 unknown --tags loud warning, LOW-5 latest-wins overwrite
+      documented, NIT-6 size label unified. Accepted as-is: sha-of-utf8 provenance
+      caveat, illustrative provider label. Adversarial passes all clean: stats edges,
+      budget on final bytes, no timer leak, no apiKey leak, poll deadline, refactor
+      drift-free, guardrails 1–5 code+test verified. 185 tests green.
+- [x] Orchestrator honesty gate on the real report: synthetic seed disclosed, no
+      simulation/causality claims, numbers traceable to stats block, measurement-method
+      caveat unprompted. Worker typo ("42.54 W" for °C) left verbatim — worker body is
+      verbatim by contract.
+- [x] Acceptance criteria 1–6 met (AC4 with a REAL non-Anthropic run — Hermes
+      gateway, one billable call, gateway restored to found-down state). Merged to main
+      (no-ff), index + roadmap ticked. Item #5 CLOSED.
