@@ -387,44 +387,29 @@ func _fail(reason: String) -> void:
 func _write_status(passed: bool, reason := "") -> void:
 	if json_path == "":
 		return
-	var out_path := _globalized(json_path)
-	var merged: Dictionary = {}
-	var existing: Variant = JSON.parse_string(FileAccess.get_file_as_string(out_path))
-	if existing is Dictionary:
-		merged = existing
-	merged["bind_smoke"] = "OK" if passed else "FAIL"
+	# Every bind_* field is set on every terminal path — a stale green can never survive a later
+	# failure. The reason key is present only on FAIL. The merge/corrupt-file/write mechanics live in
+	# tools/lib/gate_report.gd (GateReport.merge_write), shared with the join and playback gates.
+	var fields: Dictionary = {"bind_smoke": "OK" if passed else "FAIL", "map": map_path}
 	if _binder != null:
 		var counts := _binder.target_counts()
-		merged["resolved"] = _binder.resolved_count
-		merged["total"] = _binder.total_count
-		merged["unresolved"] = _binder.unresolved_globalids()
-		merged["node_targets"] = counts["node"]
-		merged["mmi_targets"] = counts["mmi"]
-		merged["stage"] = "smoke"
+		fields["resolved"] = _binder.resolved_count
+		fields["total"] = _binder.total_count
+		fields["unresolved"] = _binder.unresolved_globalids()
+		fields["node_targets"] = counts["node"]
+		fields["mmi_targets"] = counts["mmi"]
+		fields["stage"] = "smoke"
 	else:
 		# Setup-level failure: nothing resolved, and SAYING so is the point — zero every count so a
 		# stale 6/6 from an earlier green run is clobbered by the merge, never inherited.
-		merged["resolved"] = 0
-		merged["total"] = 0
-		merged["unresolved"] = []
-		merged["node_targets"] = 0
-		merged["mmi_targets"] = 0
-		merged["stage"] = "setup"
-	if passed:
-		merged.erase("reason")  # a stale failure reason must not survive a later green run
-	else:
-		merged["reason"] = reason
-	merged["map"] = map_path
-	merged["bind_checked_at"] = Time.get_datetime_string_from_system(true) + "Z"
-	var fh := FileAccess.open(out_path, FileAccess.WRITE)
-	if fh == null:
-		push_error(
-			(
-				"BIND-SMOKE: could not write --json=%s (%s)"
-				% [out_path, error_string(FileAccess.get_open_error())]
-			)
-		)
-		return
-	fh.store_string(JSON.stringify(merged, " "))
-	fh.close()
-	print("BIND-SMOKE-JSON: %s" % out_path)
+		fields["resolved"] = 0
+		fields["total"] = 0
+		fields["unresolved"] = []
+		fields["node_targets"] = 0
+		fields["mmi_targets"] = 0
+		fields["stage"] = "setup"
+	# A stale failure reason must not survive a later green run; write an empty reason on OK so the
+	# merge overwrites any prior one (merge_write overwrites the gate's own keys every run).
+	fields["reason"] = "" if passed else reason
+	fields["bind_checked_at"] = GateReport.now_iso()
+	GateReport.merge_write(json_path, fields, "BIND-SMOKE")

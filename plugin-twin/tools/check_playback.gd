@@ -38,7 +38,12 @@ extends SceneTree
 ##
 ## Usage:
 ##   $GODOT --headless --fixed-fps <N> --path . --script tools/check_playback.gd -- \
-##       --recording=<fixture.ndjson> [--seek=<t_ms>[,<t_ms>…]] [--out=<emitted.txt>]
+##       --recording=<fixture.ndjson> [--seek=<t_ms>[,<t_ms>…]] [--out=<emitted.txt>] \
+##       [--json=<metrics.json>]
+##
+## --json=<path> merges the verdict as a STRUCT (playback_gate OK|FAIL, playback_hash,
+## playback_frames, playback_reason, playback_checked_at) into <path> via tools/lib/gate_report.gd —
+## the SAME writer the join and bind gates use, so one metrics file carries every gate's verdict.
 ##
 ## Asserts (each prints a line; a final verdict + exit 0/1):
 ##   - snapshot correctness per seek — the frames the player injects on seek(T) EQUAL an INDEPENDENT
@@ -88,6 +93,7 @@ const MAX_PROCESS_FRAMES := 100000
 var recording_path := ""
 var seeks: Array[int] = []
 var out_path := ""
+var json_path := ""
 
 # The captured emission: one canonical "tag|value|seq" per DataBus.tag_update, in arrival order.
 var _emitted: Array[String] = []
@@ -375,6 +381,20 @@ func _verdict(ok: bool, reason: String) -> void:
 	print("PLAYBACK-HASH: %s (%s over %d frame(s))" % [digest, HASH_ALGORITHM, _emitted.size()])
 	if out_path != "":
 		_write_out(blob)
+	(
+		GateReport
+		. merge_write(
+			json_path,
+			{
+				"playback_gate": "OK" if ok else "FAIL",
+				"playback_hash": digest,
+				"playback_frames": _emitted.size(),
+				"playback_reason": reason,
+				"playback_checked_at": GateReport.now_iso(),
+			},
+			"PLAYBACK"
+		)
+	)
 	if ok:
 		print("PLAYBACK-GATE: OK — ", reason)
 		quit(0)
@@ -401,6 +421,8 @@ func _parse_args() -> void:
 				seeks.append(int(part))
 		elif a.begins_with("--out="):
 			out_path = a.substr("--out=".length())
+		elif a.begins_with("--json="):
+			json_path = a.substr("--json=".length())
 
 
 func _globalize(p: String) -> String:

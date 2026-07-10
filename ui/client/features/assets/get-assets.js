@@ -385,13 +385,32 @@ function importCard(m) {
     if (c) row.append(c);
   });
   card.append(row);
-  if (m.join_gate) {
-    const ok = m.join_gate === "OK";
-    const gate = el("span", "desc", ok ? "✓ join gate OK" : "✗ join gate FAIL");
-    gate.style.color = ok ? "#3fb950" : "#f85149";
-    card.append(gate);
-  }
+  // Gate-verdict strip: one pass/fail badge per gate that wrote its verdict into this metrics file
+  // (check_twin_join.gd / check_playback.gd `--json`, via the shared GateReport writer). Each badge
+  // renders only when its verdict is present — a green→red flip here IS the gate's UI surface.
+  const strip = gateStrip([
+    ["join", m.join_gate],
+    ["playback", m.playback_gate],
+  ]);
+  if (strip) card.append(strip);
   return card;
+}
+
+/** Build a gate-verdict strip: a `✓/✗ <label> gate OK|FAIL` badge for every gate whose verdict is
+ * present. Returns null when no gate reported (so the card shows no empty strip). The colours match
+ * the binding N/N badge (green pass / red fail). @param {[string, string | undefined][]} gates
+ * @returns {HTMLElement | null} */
+function gateStrip(gates) {
+  const present = gates.filter(([, verdict]) => typeof verdict === "string");
+  if (present.length === 0) return null;
+  const strip = el("div", "asset-gate-strip");
+  for (const [label, verdict] of present) {
+    const ok = verdict === "OK";
+    const badge = el("span", "desc", ok ? `✓ ${label} gate OK` : `✗ ${label} gate FAIL`);
+    badge.style.color = ok ? "#3fb950" : "#f85149";
+    strip.append(badge);
+  }
+  return strip;
 }
 
 /** Fetch + render the import-metrics cards, with an honest empty state when nothing has been

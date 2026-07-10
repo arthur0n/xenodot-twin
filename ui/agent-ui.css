@@ -3230,6 +3230,14 @@ input.cmd::placeholder {
   margin: 4px 0 6px;
 }
 
+/* Gate-verdict strip on an import card — one pass/fail badge per gate that wrote its --json verdict
+   (join, playback), laid out in a row so the whole verify posture reads at a glance. */
+.asset-gate-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
 /* Async question (mcp__ui__ask) — inline answer affordance on a task-board row. */
 .task-answer {
   margin: 6px 0 2px;

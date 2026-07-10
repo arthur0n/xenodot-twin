@@ -187,11 +187,14 @@
 
 /** One IFC→twin import's machine-readable metrics — the `<model>.metrics.json` the twin-import
  * pipeline writes (`ifc_convert.py --metrics` for schema/shapes/elements/import_seconds, then
- * `check_twin_join.gd --json` merges the join_* verdict in). Read by the assets panel's import card.
- * Every field is optional because a metrics file half-written by one stage still renders what it has.
+ * `check_twin_join.gd --json` merges the join_* verdict in, and `check_playback.gd --json` the
+ * playback_gate — all via the shared GateReport writer). Read by the assets panel's import card,
+ * whose gate-verdict strip shows a badge per gate present. Every field is optional because a metrics
+ * file half-written by one stage still renders what it has.
  * @typedef {{ model?: string, schema?: string, shapes?: number, elements?: number,
  *   import_seconds?: number, timestamp?: string, join_matched?: number, join_total?: number,
- *   join_pct?: number, join_gate?: string, sidecar_keys?: number, file?: string }} ImportMetric */
+ *   join_pct?: number, join_gate?: string, sidecar_keys?: number, playback_gate?: string,
+ *   file?: string }} ImportMetric */
 
 /** One binding map's live resolution status — the `<map>.status.json` the twin-verify bind smoke
  * writes (`smoke_binding.gd --json`). `bind_smoke` is the OK|FAIL verdict; `resolved`/`total` drive

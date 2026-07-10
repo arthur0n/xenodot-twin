@@ -209,6 +209,45 @@ Writes `<out>/screenshot.png` + `<out>/console.log`. Contract:
 - Inspect `screenshot.png` before claiming a web build works — a blank/flat frame is a dead boot
   even at exit 0 (the tool flags an EMPTY capture, but a rendered-but-wrong frame is yours to read).
 
+## Machine-readable verdicts (`--json`) — one shape for every gate
+
+Each gate answers `--json=<path>` by MERGING its verdict struct into that file via the shared
+writer `tools/lib/gate_report.gd` (`GateReport.merge_write`), so ONE metrics file can carry every
+gate's result side by side (and beside `ifc_convert.py --metrics`), for a UI badge or CI reader to
+consume — no gate hand-rolls its own file I/O, and none can drift:
+
+```bash
+$GODOT --headless --path . --script tools/check_twin_join.gd -- \
+    --scene=models/m.glb --sidecar=models/m_props.json --json=.xenodot/metrics.json
+# → merges join_gate/join_matched/join_total/join_pct/join_min_pct/… beside anything already there
+```
+
+- Keys namespace per gate: `join_*` (JOIN), `bind_smoke`+counts (BIND-SMOKE), `playback_*` (PLAYBACK).
+- Every field is rewritten on every run, so a previously-green struct can never survive a later
+  failure and keep a badge lying green (the stale-green invariant, enforced in one place).
+- If `--json` points at NON-JSON bytes (a genuinely corrupt file), the original is LEFT UNTOUCHED
+  and the verdict goes to a sibling `<path>.<gate>.json` — a gate never clobbers evidence.
+
+## Trap catalog — proving each gate bites (gate-discipline.md)
+
+A check is not a gate until it is **trap-tested** — proven to go RED then GREEN under ONE unchanged
+command on ONE fixture (the durable rule: `docs/process/gate-discipline.md`). These are the named,
+reproducible corruptions that make each gate go RED, so a new gate (or a suspicious green) can be
+trap-tested without reinventing the corruption. Each is a scratch-only edit — byte-back up the file
+first (`cp x x.orig`) and restore after (`cp x.orig x`); never corrupt a tracked fixture in place.
+
+| Gate           | Trap (named, reversible)                                                                                            | RED signal                                                                     | Real bug it models                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| **JOIN**       | truncate the sidecar — drop a trailing block of GlobalId keys (`json.load` → keep first N keys → `json.dump`)       | `JOIN-GATE: FAIL`, `matched/total` below `--min`, `MISS_SAMPLE` names real ids | a partial / aborted IFC property extraction                  |
+| **BIND-SMOKE** | point one binding-map target's `globalid` at a 22-char id NOT in the scene                                          | `BIND-SMOKE: FAIL`, `resolved < total`, the missing id `push_warning`ed        | a stale binding map after a re-export renamed/dropped a part |
+| **PLAYBACK**   | between the two legs, perturb one frame's value in the synthesized fixture (or run one leg at a different `--seed`) | the two `PLAYBACK-HASH` lines DIFFER → `FAIL playback-determinism`             | a non-deterministic player (unordered emit, clock leak)      |
+
+Proven RED→GREEN (this machine): the JOIN row above, run on the Schependomlaan fixture, dropped
+`3505/3505 (100%)` → `3100/3505 (88.4%) FAIL` on a 408-key truncation and returned to
+`3505/3505 (100%) OK` on restore — same command, same threshold, opposite verdicts. It surfaces
+through the composed `verify_twin.sh` too (`verify-twin: FAIL join-coverage` → `verify-twin: OK`),
+not just the standalone script.
+
 ## Pass criteria
 
 1. `xenodot:godot-verify` floor: per that skill (verify_twin.sh runs its headless layers;

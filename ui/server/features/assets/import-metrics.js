@@ -55,6 +55,7 @@ function normalize(raw, file) {
     join_pct: num(o.join_pct),
     join_gate: typeof o.join_gate === "string" ? o.join_gate : undefined,
     sidecar_keys: count(o.sidecar_keys),
+    playback_gate: typeof o.playback_gate === "string" ? o.playback_gate : undefined,
     file,
   };
 }
