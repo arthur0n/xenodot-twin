@@ -71,4 +71,8 @@ recipe shows up.
 - [x] Gates: `npm run validate` (incl. check:sh), `npm test`, prettier, gdlint/gdformat, py_compile —
       all green. Materialization confirmed: `tools/bench/` pop files ride the recursive copy; `examples/`
       does not materialize.
-- [ ] Merged to main (orchestrator gate — NOT done here per instructions; no merge/push).
+- [x] Orchestrator review: arg surfaces verified (required scene-specific coords,
+      headless FAIL, ffmpeg preflight, header worked-example + honesty labeling).
+      Proportionality call: no separate review agent — moves-with-generalization
+      with parity proven exact to the recorded evidence digits; gates green.
+- [x] Merged to main (no-ff `cf26a8e`), pushed. Item CLOSED.
