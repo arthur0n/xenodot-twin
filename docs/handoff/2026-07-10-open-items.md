@@ -35,10 +35,15 @@ the loose ends. Each entry names its source log.
 
 ## Follow-up items (framework work, when priorities allow)
 
-5. **Occluder recipe bench** (named in the vis-range plan's out-of-scope).
-   `--occluders` has the same unmeasured-defaults smell the vis-range item just
-   fixed (`OCCLUDER_MIN_VOLUME_M3` reasoned-but-unbenched). The sweep harness
-   from item #4 (`twindemo/twin-spikes/vis-range-sweep/`) is reusable as-is.
+5. **Occluder recipe bench** — **DONE** (`feat/occluder-bench`). Swept 5 volume
+   gates × 3 real-shaped scenes: SCOPED WIN — real street-level win on
+   many-unique-mesh scenes (ucity street cpu −0.15 ms / −9%, objects −55..−73%,
+   lossless), net-negative on single buildings (duplex +0.16..+0.25 ms + interior
+   over-cull SSIM 0.983), no-op on instanced/aerial; 10 m³ default kept (the
+   measured sweet spot), `--occluder-min-volume=` added, stays opt-in. Rule-flaw
+   noted: the "win at BOTH vantages" bar is structurally unreachable by occlusion
+   (aerial no-op), verdict unaffected. Finding:
+   `plugin-twin/library/findings/twin-occluder-recipe-2026-07-10.md`.
 6. **Fade margin for aggressive vis classes** (item #4 findings). `coarser`/
    `aggressive` win up to −71% cpu but hard-pop at ~60 m; adoption is blocked on
    a measured `visibility_range_fade_mode`/begin-margin evaluation — measured

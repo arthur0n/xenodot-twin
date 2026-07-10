@@ -30,7 +30,7 @@ runtime via GLTFDocument), deterministic, headless-safe, exit 0 = optimized scen
 $GODOT --headless --path . --script tools/optimize_scene.gd -- \
     --in=<model.glb|scene.tscn> --out=<optimized.tscn> --report=<report.json> \
     [--chunks=auto|<int>] [--target-per-chunk=32] [--min-instances=8] \
-    [--hints=<hints.json>] [--occluders] [--vis-ranges]
+    [--hints=<hints.json>] [--occluders] [--occluder-min-volume=10.0] [--vis-ranges]
 ```
 
 Passes, in order:
@@ -93,10 +93,13 @@ Passes, in order:
   | `lod_end:<float>`  | `visibility_range_end = <float>` + `set_meta("twin_lod_end", <float>)`                                           |
   | `tags:[…]`         | `set_meta("twin_tags", PackedStringArray(tags))`                                                                 |
 
-- **`--occluders` (opt-in — occlusion culling can be net-negative, see below).** Any remaining
-  un-instanced mesh whose world-AABB volume exceeds 10 m³ (documented default) gets a child
-  OccluderInstance3D + BoxOccluder3D sized to 90% of its local AABB — the shrink avoids
-  self-occlusion artifacts, explicit box occluders need no bake.
+- **`--occluders` (opt-in, MEASURED — recipe below).** Any remaining un-instanced mesh whose
+  world-AABB volume exceeds `--occluder-min-volume=` (default 10 m³) gets a child
+  `OccluderInstance3D` with a `BoxOccluder3D` sized to 90% of its local AABB — the shrink avoids
+  self-occlusion artifacts, explicit box occluders need no bake. The default gate is now the benched
+  **scoped winner** (big on many-unique-mesh scenes at street level; net-negative on single
+  buildings, no-op on instanced/aerial) — recipe + numbers below and in
+  `library-twin/findings/twin-occluder-recipe-2026-07-10.md`.
 - **`--vis-ranges` (opt-in, MEASURED — recipe below).** Size classes by world-AABB diagonal:
   small (< 0.5 m) → `visibility_range_end = 40` m; medium (< 2 m) → 120 m; large → untouched
   (structure must never pop out). Un-instanced meshes only — chunked fields already cull per
@@ -229,19 +232,44 @@ fully-instanced scenes.
   `objects_rendered` delta; measure **both vantages** (street + aerial) — a street-only look misses
   the −32% aerial win, an aerial-only look misses that `dist_double` no-ops at street.
 
-## Occlusion culling — toggle discipline (it can be net-negative)
+## Recipe — occlusion culling (`--occluders`), measured
 
-Godot's occlusion culling is a **CPU Embree raster** every frame — it costs before it saves.
-On flat/open scenes it is **net-NEGATIVE**: the spike's occ-off control run beat the occ-on
-run on the same scene. Rules:
+`--occluders` gives every un-instanced mesh whose world-AABB volume exceeds `--occluder-min-volume=`
+(default 10 m³) a child `OccluderInstance3D` + `BoxOccluder3D` at 90% of its local AABB — a hard
+runtime cull that **costs before it saves** (Godot's occlusion culling is a CPU Embree depth raster
+every frame). Swept 5 volume-gate configs × 3 real-shaped scenes on M3 Pro Metal (full record:
+`library-twin/findings/twin-occluder-recipe-2026-07-10.md`, seat sweep `6146794`). Verdict:
+**SCOPED WIN** — real at street level on many-unique-mesh scenes, net-negative on single
+buildings, no-op on instanced/aerial scenes.
 
-- **Always ship it toggleable** (a flag / project-setting switch), never as the only path.
-- **Report primitive reduction alongside fps** — a big primitive drop with flat fps means the
-  bottleneck is elsewhere; fps alone can hide that occlusion is pure cost.
-- Requires the project setting `rendering/occlusion_culling/use_occlusion_culling = true`
-  (plus `get_viewport().use_occlusion_culling` at runtime).
-- **Explicit `OccluderInstance3D` + `BoxOccluder3D` needs NO bake** — baking is only for
-  deriving occluders from arbitrary meshes. Hand-placed box occluders on walls work at runtime.
+- **Reach for it on many-unique-mesh scenes at street level (measured)** — heavy heterogeneous
+  clutter where near geometry occludes far. On the 28,600-unique city at street: `cpu 1.67 → 1.52 ms
+(−0.15 ms, −9%)`, `objects_rendered −55..−73%`, `draw_calls −48..−64%`, visually lossless
+  (SSIM ≥ 0.9999, frame-reviewed). The near-buildings-occlude-far corridor is the live occluder cell.
+  An interior vantage on such a scene is expected to win by the same mechanism but is **unmeasured**
+  (the sweep's only interior cell was the single-building duplex — net-negative, below).
+- **Use the 10 m³ default (kept).** It is the measured sweet spot — it ties the 5 m³ gate for best
+  cpu; smaller gates (5, 2) only add occluder count for no cpu payoff (aggressive 2 m³ adds 2.4× the
+  occluders for the same win), and 20 under-covers. The sweep gave **no basis for changing it**.
+  `--occluder-min-volume=<m³>` exists to re-sweep the gate, not to lower the default.
+- **Skip it on single buildings** — the optimized duplex is **net-negative at BOTH vantages**
+  (`cpu +0.16..+0.25 ms`; on a sub-1 ms scene the depth-raster + cull overhead exceeds the few
+  submits saved) **and** it over-culls visible interior geometry (in-room SSIM 0.983 — a real
+  artifact). Don't enable occluders on single-building interiors.
+- **No-op on fully-instanced scenes** (the instancing pass consumes every mesh → 0 occluders added,
+  negative control asserted) **and from aerial/overhead vantages** (`objects_rendered` byte-identical
+  across every gate — nothing sits between the camera and the scene; any cpu spread there is session
+  drift, not a cull).
+- **Requires `rendering/occlusion_culling/use_occlusion_culling = true`** (plus
+  `get_viewport().use_occlusion_culling` at runtime) — the twin template ships it ON; a hand-rolled
+  project with it OFF renders the emitted occluder nodes **inert** (setup cost, no cull). **Explicit
+  `OccluderInstance3D` + `BoxOccluder3D` needs NO bake** — baking only derives occluders from
+  arbitrary meshes; hand-placed / auto box occluders work at runtime.
+- Same discipline as chunking/vis-ranges: **`cpu_ms` leads** (cap-immune), sub-cap fps second, then
+  `objects_rendered` / primitive reduction — a big primitive drop with flat fps means occlusion is
+  pure cost and the bottleneck is elsewhere. Measure **both vantage classes**, but read a per-vantage
+  win by scene (aerial is a structural no-op for occlusion; only ground-level vantages can win —
+  street measured, interior unmeasured).
 
 ## Benchmark methodology (how not to lie)
 
@@ -279,8 +307,10 @@ The following are NOT yet proven recipes; treat them as open work, not folklore:
 - **Calibrated frame-budget defaults per hardware tier** — budgets are per-project statements
   today.
 - **Semantic occluder authoring** (IFC walls/slabs/floorplan → fitted occluders) — the
-  `--occluders` pass is geometric only (AABB volume gate + shrunken box); it has not been
-  benched for fps effect, and thin-wall coverage from a floorplan is unproven.
+  `--occluders` pass is now benched (scoped win, recipe above) but stays geometric only (AABB volume
+  gate + shrunken box). Its net-negative + interior over-cull on single buildings comes from box
+  occluders bracketing the camera; fitted, semantics-aware occluders from a floorplan (thin walls,
+  no self-bracket) are the unproven next step that could turn the single-building case positive.
 
 ## RTK note
 

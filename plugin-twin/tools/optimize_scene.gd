@@ -17,8 +17,8 @@ extends SceneTree
 ##   $GODOT --headless --path . --script tools/optimize_scene.gd -- --in=<glb|tscn> \
 ##       --out=<optimized.tscn> --report=<report.json> [--chunks=auto|<int>] \
 ##       [--target-per-chunk=32] [--min-instances=8] [--hints=<h.json>] [--occluders] \
-##       [--vis-ranges] [--vis-small-diag=0.5] [--vis-medium-diag=2.0] [--vis-small-end=40] \
-##       [--vis-medium-end=120]
+##       [--occluder-min-volume=10.0] [--vis-ranges] [--vis-small-diag=0.5] \
+##       [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120]
 ##
 ## The four --vis-* flags override the VIS_* size-class defaults (so a benched sweep needs no source
 ## edit); each must parse as a number > 0, and the medium thresholds must exceed the small ones or
@@ -26,6 +26,12 @@ extends SceneTree
 
 ## --occluders: minimum world-AABB volume (cubic metres) for a leftover mesh to get an occluder.
 ## Below this, a box occluder costs more to rasterize into the depth buffer than the draws it saves.
+## MEASURED (scoped win, 10 m3 kept): this default is the sweet spot. On many-unique-mesh scenes at
+## street level it wins (unique-city cpu -0.15 ms / -9%, objects -55..-73%, lossless); it is
+## net-negative on single buildings and a no-op on instanced/aerial, so it stays opt-in. Smaller
+## gates only add occluder count for no cpu payoff. --occluder-min-volume= overrides this for a
+## sweep; must be a number > 0 (fails loud, no silent clamping) and the report echoes the value.
+## Sweep, tables, caveats: library-twin/findings/twin-occluder-recipe-2026-07-10.md.
 const OCCLUDER_MIN_VOLUME_M3 := 10.0
 
 ## --vis-ranges size classes by world-AABB diagonal (metres) and the distance each class fades at.
@@ -63,16 +69,23 @@ var chunks := DEFAULT_FIXED_CHUNKS  # fixed-grid fallback when --chunks=<int> is
 var target_per_chunk := DEFAULT_TARGET_PER_CHUNK
 var min_instances := DEFAULT_MIN_INSTANCES
 var want_occluders := false
+# --occluders effective volume gate (cubic m): OCCLUDER_MIN_VOLUME_M3 unless overridden per-run.
+# _occluder_pass and the report both read occluder_min_volume; the raw override is validated below.
+var occluder_min_volume := OCCLUDER_MIN_VOLUME_M3
 var want_vis_ranges := false
 # --vis-ranges effective size-class distances (metres): the VIS_* consts unless overridden per-run.
-# Keyed by CLI flag so _resolve_vis, _vis_range_pass and the report all read one source of truth.
+# Keyed by CLI flag so _resolve_overrides, _vis_range_pass and the report read one source of truth.
 var _vis := {
 	"--vis-small-diag=": VIS_SMALL_DIAGONAL_M,
 	"--vis-medium-diag=": VIS_MEDIUM_DIAGONAL_M,
 	"--vis-small-end=": VIS_SMALL_END_M,
 	"--vis-medium-end=": VIS_MEDIUM_END_M,
 }
-var _vis_raw := {}  # subset of the above flags -> raw override string, validated in _resolve_vis
+var _vis_raw := {}  # flag -> raw override string, validated in _resolve_overrides
+# --occluder-min-volume= raw override + a provided bit captured at parse time, so an EMPTY value
+# fails loud in _resolve_overrides like the --vis-* flags do (absent flag = keep the default).
+var _occluder_min_volume_raw := ""
+var _occluder_min_volume_provided := false
 var _skipped_surface_override := 0
 var _hinted_ids := {}  # MeshInstance3D.get_instance_id() -> true; survivors skipped by grouping
 
@@ -127,6 +140,7 @@ func _run() -> int:
 	report["est_draw_items_before"] = est_before
 	report["est_draw_items_after"] = est_after
 	report["occluders_added"] = occluders_added
+	report["occluder_min_volume"] = occluder_min_volume
 	report["vis_ranges_set"] = vis_ranges_set
 	report["vis_small_diag"] = _vis["--vis-small-diag="]
 	report["vis_medium_diag"] = _vis["--vis-medium-diag="]
@@ -261,6 +275,9 @@ func _parse_args() -> bool:
 			)
 		elif a == "--occluders":
 			want_occluders = true
+		elif a.begins_with("--occluder-min-volume="):
+			_occluder_min_volume_raw = a.substr("--occluder-min-volume=".length())
+			_occluder_min_volume_provided = true
 		elif a == "--vis-ranges":
 			want_vis_ranges = true
 		elif a.begins_with("--vis-small-diag="):
@@ -277,16 +294,17 @@ func _parse_args() -> bool:
 	if in_path == "" or out_path == "" or report_path == "":
 		push_error("OPTIMIZE: FAIL — --in=, --out= and --report= are all required")
 		return false
-	if not _resolve_vis():
+	if not _resolve_overrides():
 		return false
 	return true
 
 
-## Validate and apply the four --vis-* overrides onto _vis (default = the VIS_* consts). Fails loud,
-## like the other arg errors, on a non-numeric or non-positive value, or size classes that don't
+## Validate and apply the per-run numeric overrides (the four --vis-* size classes and
+## --occluder-min-volume=) onto their effective vars, keeping one validation home. Fails loud, like
+## the other arg errors, on a non-numeric or non-positive value, or --vis-* size classes that don't
 ## nest (each medium threshold must strictly exceed its small one, else a class is unreachable or
 ## inverted). Silent clamping (as --min-instances does) would corrupt a sweep row unnoticed.
-func _resolve_vis() -> bool:
+func _resolve_overrides() -> bool:
 	for flag: String in _vis_raw:
 		var raw: String = _vis_raw[flag]
 		if not raw.is_valid_float() or raw.to_float() <= 0.0:
@@ -299,6 +317,14 @@ func _resolve_vis() -> bool:
 	if _vis["--vis-medium-end="] <= _vis["--vis-small-end="]:
 		push_error("OPTIMIZE: FAIL — --vis-medium-end= must exceed --vis-small-end=")
 		return false
+	if _occluder_min_volume_provided:
+		var raw := _occluder_min_volume_raw
+		if not raw.is_valid_float() or raw.to_float() <= 0.0:
+			push_error(
+				"OPTIMIZE: FAIL — --occluder-min-volume= value must be a number > 0, got '%s'" % raw
+			)
+			return false
+		occluder_min_volume = raw.to_float()
 	return true
 
 
@@ -414,7 +440,7 @@ func _occluder_pass(scene_root: Node3D) -> int:
 	_collect_meshes(scene_root, meshes)
 	var added := 0
 	for mi: MeshInstance3D in meshes:
-		if (mi.global_transform * mi.mesh.get_aabb()).get_volume() <= OCCLUDER_MIN_VOLUME_M3:
+		if (mi.global_transform * mi.mesh.get_aabb()).get_volume() <= occluder_min_volume:
 			continue
 		TwinHints.add_occluder(mi)
 		added += 1
