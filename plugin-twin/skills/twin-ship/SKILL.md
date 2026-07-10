@@ -97,6 +97,9 @@ export_path="dist/<name>.app"
 # fails export ("template binary not found"). universal (x86_64 + arm64) is the safe default; it makes
 # the executable large (~170 MB — it carries both slices) but that is the engine binary, not your data.
 binary_format/architecture="universal"
+# macOS REQUIRES a bundle identifier — without it the export hard-fails
+# ("Invalid bundle identifier: Identifier is missing."). Any reverse-DNS string works unsigned.
+application/bundle_identifier="com.<site>.twin"
 # Unsigned build (see the Gatekeeper note). Signing/notarization is out of scope.
 codesign/codesign=0
 ```

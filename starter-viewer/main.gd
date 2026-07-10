@@ -168,9 +168,11 @@ func _load_model(path: String) -> bool:
 func _load_gltf(path: String) -> bool:
 	var bytes := FileAccess.get_file_as_bytes(_rooted_path(path))
 	if bytes.is_empty():
-		push_error(
-			"viewer: failed to read model '%s' (error %d)" % [path, FileAccess.get_open_error()]
-		)
+		# get_open_error() is OK (0) when the file OPENED fine but held no bytes — say so
+		# instead of printing a baffling "error 0" for an existing-but-empty file.
+		var open_err := FileAccess.get_open_error()
+		var why := "file exists but is empty" if open_err == OK else "error %d" % open_err
+		push_error("viewer: failed to read model '%s' (%s)" % [path, why])
 		return false
 	var gltf := GLTFDocument.new()
 	var state := GLTFState.new()

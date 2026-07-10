@@ -590,6 +590,8 @@ export_path="dist/duplex.app"
 [preset.0.options]
 # universal (x86_64 + arm64): Godot 4.6.3 ships no arm64-only macOS template, so an arm64 preset fails
 binary_format/architecture="universal"
+# macOS requires this — the export hard-fails without it ("Invalid bundle identifier: Identifier is missing.")
+application/bundle_identifier="com.example.twin.duplex"
 codesign/codesign=0   # unsigned POC build (see the Gatekeeper note)
 ```
 

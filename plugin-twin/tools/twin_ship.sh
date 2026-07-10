@@ -275,7 +275,9 @@ case "$PLAT_TOKEN" in
 macos) EXPORT_BIN="$(find "$EXPORT_OUT/Contents/MacOS" -type f 2>/dev/null | head -1)" ;;
 *) EXPORT_BIN="$EXPORT_OUT" ;;
 esac
-if echo "$EXPORT_LOG" | grep -qE '^ERROR:|export.*failed|template binary .* not found'; then
+# Filter the benign-noise list BEFORE the ERROR grep (the checks.sh scene-errors idiom), so a
+# benign shutdown line that happens to carry "ERROR:" can never false-fail the export gate.
+if echo "$EXPORT_LOG" | grep -vE "$XENO_BENIGN" | grep -qE '^ERROR:|export.*failed|template binary .* not found'; then
 	echo "$XENO_GATE: FAIL export — the engine reported an export error (see ERROR lines above)." >&2
 	echo "  Debug export failures with the base doctrine (skill: godot-export-builds) — template" >&2
 	echo "  mismatch (e.g. an architecture= with no matching template binary), a preset" >&2
@@ -542,7 +544,9 @@ else
 		fi
 	}
 	_assert "^viewer: model loaded from data/" "model loaded from data/"
-	_assert "^viewer: bindings resolved [0-9]+/[0-9]+" "bindings resolved (count present)"
+	# [1-9][0-9]*/ — at least ONE binding must resolve. "0/N" means the map resolves NOTHING
+	# (a broken twin); matching it would ship a green artifact that paints nothing.
+	_assert "^viewer: bindings resolved [1-9][0-9]*/[0-9]+" "bindings resolved (>0 — 0/N is a broken map)"
 	if [ -n "$REC_SHIP" ]; then
 		_assert "^viewer: playback of " "recording playback started"
 	else
