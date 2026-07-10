@@ -71,5 +71,19 @@ per item; an item that grows phases gets its own companion doc.
       false "gated per call" docs corrected everywhere, residual stated honestly.
       Human consulted on scope (keep-the-fix). 202 tests green. Full log:
       2026-07-10-analysis-mcp-orchestration.md.
-- [ ] #9 upstream PR offers (prepared; human gate before opening)
-- [ ] #10 plant instancing variant (assessed)
+- [x] #9 upstream PR offers — prepared as 3 minimal themed branches off
+      upstream/main (all 9 candidates viable, zero divergence; twin-only refactors
+      structurally excluded by editing upstream's own files), human APPROVED
+      opening → pushed + PRs live: xenodot-forge #1 (mcp-tool wording), #2 (prompt
+      blocks), #3 (ui strings). Prep record committed:
+      docs/handoff/2026-07-10-upstream-offers/.
+- [x] #10 plant instancing variant — ASSESSED, NO-BUILD (orchestrator verdict
+      from reviewed findings): the instancing showcase already exists (c2 city,
+      measured 34,800→964 draw items); the plant is the flavor/binding showcase by
+      design; the "if ever wanted" trigger has not fired. Trigger-ized in the
+      open-items doc; mechanism stays recorded in twin-plant-asset-2026-07-10.md.
+
+RUN COMPLETE — every agent-actionable open item (#4–#10) closed or
+trigger-ized; human-paced items (#1–#3) and the new #11 (dispatch prompts →
+dropped agents) remain in the open-items doc as the standing human/next-run
+queue.

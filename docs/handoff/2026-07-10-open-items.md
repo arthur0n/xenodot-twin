@@ -73,15 +73,22 @@ the loose ends. Each entry names its source log.
    next surface. Also: Hermes-path model attribution echoes the config label
    (runs-API reply carries no model id) — precise attribution only exists on the
    openai-compatible adapter today.
-9. **Upstream PR offers** (item #3 SEAMS flags). Five files went domain-neutral
+9. **DONE (2026-07-10)** — Upstream PR offers OPENED with human approval:
+   xenodot-forge PRs #1 (mcp-tool wording), #2 (prompt blocks), #3 (ui strings)
+   — 9 files, wording-only, prepared as minimal diffs against upstream/main
+   (prep record: `2026-07-10-upstream-offers/`). Original entry:
+   Five files went domain-neutral
    and are flagged "upstream candidate — offer as PR": `mcp-tools/hermes-tool.js`,
    `mcp-tools/promote-tool.js`, `ui/hermes-block.md`, `ui/docs-block.md`,
    `ui/codex-block.md`. Offering them to forge shrinks the sync seam.
-10. **Plant instancing variant** (item #8 findings). The synthetic plant is a
-    flavor/data-binding showcase, NOT an instancing one — the generator authors
-    unique geometry per element (0 `IfcRepresentationMap`). If an
-    instancing-showcase plant is ever wanted, extend `gen_plant_ifc.py` to emit
-    mapped representations; the finding records the mechanism.
+10. **ASSESSED — NO-BUILD (2026-07-10, orchestrator verdict).** The plant is
+    the flavor/data-binding showcase by design; the instancing showcase ALREADY
+    exists (instanced c2 city: 224 groups, 34,800→964 draw items, measured).
+    Building a mapped-representation plant variant would duplicate a proven
+    capability for no current demo or user need — the finding's own wording
+    ("if ever wanted") names the trigger, and it has not fired. TRIGGER-IZED
+    like index items 9–12: build when a demo/user needs an instanced plant at
+    scale; mechanism recorded in `twin-plant-asset-2026-07-10.md`.
 
 11. **UI feature-dispatch prompts name dropped agents** (found during item #7's
     de-brand): `ui/client/features/assets/get-assets.js` (wirePrompt) and
