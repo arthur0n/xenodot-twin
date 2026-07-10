@@ -37,3 +37,7 @@ plugin/.xenodot/
 .husky/post-commit.local
 
 .claude/token-audits/history.html
+
+# Internal working docs — session handoffs + research notes stay local, out of the public repo
+docs/handoff/
+docs/research/
