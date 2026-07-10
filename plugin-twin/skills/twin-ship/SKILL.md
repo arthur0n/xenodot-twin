@@ -31,6 +31,9 @@ export (--export-release) ─▶ assemble (data/ beside build) ─▶ smoke (boo
 ```
 tools/twin_ship.sh --preset <name> [--model <path>] [--map <path>] [--sidecar <path>]
                    [--recording <path>]... [--out dist/] [--zip] [--smoke|--no-smoke]
+
+tools/twin_ship.sh --retarget <shipped-dir> --model <path> [--map <path>]
+                   [--recording <path>]... [--json] [--no-smoke]   # no re-export — see below
 ```
 
 `--preset` (the `export_presets.cfg` `name=`) is the only required flag; model / sidecar / map default
@@ -75,6 +78,45 @@ deploy value is swapping model/map/recording **per site without re-exporting**. 
 of the _same_ binary — proven on the shipped artifact, no rebuild. The sidecar and map are reviewable
 data, not opaque baked assets. This is the whole point; don't "simplify" it by including the data in
 the pck.
+
+## Retargeting a shipped artifact — what a receiver may change without re-exporting
+
+The whole point of data-beside-build: the person who receives the zip retargets it with a **text edit**,
+never a rebuild. Two paths, and an explicit contract for which line is whose.
+
+**By hand (the site's deployment edit) — `url=`.** `url=` is **deployment-time**: it names _this_ site's
+live tag source (`ws://host:port` — a sim, an MQTT→WS bridge, a relay). The receiver opens `viewer.cfg`
+beside the executable and edits that one line; the next boot of the **same** binary paints live from the
+new source. This is the site's call, not the packager's — `twin_ship.sh` never rewrites `url=` (assemble
+leaves it untouched, `--retarget` asserts it stays untouched).
+
+**By tool (swap the data files) — `--retarget`.** To point an already-shipped artifact at a **different
+model / binding map / recording** without re-exporting, run:
+
+```
+tools/twin_ship.sh --retarget dist/<name>-<platform> --model data-source.glb [--map m.json] [--recording r.ndjson] [--json]
+```
+
+It copies the new data into the artifact's `data/`, rewrites the shipped `viewer.cfg` to those
+`data/`-relative paths, then **asserts the same-binary invariant**: the executable's mtime is UNCHANGED
+and `url=` is untouched — a retarget that rebuilt the binary would be a re-export wearing a retarget's
+name, and the tool fails loud if either moves. It boots the same binary as a smoke (model loaded +
+bindings > 0) where the host can run it, and SKIPs loud otherwise. `--json` writes `retarget.json` beside
+the build — a machine-readable manifest of exactly what a stranger may swap.
+
+**The contract (say this to the receiver):**
+
+| line / file                               | who owns it        | change without re-export?                                |
+| ----------------------------------------- | ------------------ | -------------------------------------------------------- |
+| `[viewer] url=`                           | the **site**       | **yes** — a one-line deployment edit (new live source)   |
+| `[viewer] model=` + `data/<model>`        | the **integrator** | **yes** — `--retarget --model` (or edit + drop the file) |
+| `[twin] binding_map=` + `data/<map>`      | the **integrator** | **yes** — `--retarget --map`                             |
+| `[twin] recording=` + `data/recordings/*` | the **integrator** | **yes** — `--retarget --recording`                       |
+| the executable / `.pck` (code + scenes)   | the **packager**   | **no** — re-export only (re-run `twin_ship.sh --preset`) |
+
+A bogus `model=` (a path with no file) must fail **LOUD** on boot (`ERROR: … failed to … model/scene`),
+never a silent blank window — that honesty is part of the contract, so a receiver who fat-fingers a swap
+sees it immediately instead of shipping a twin that paints nothing.
 
 ## The recommended export preset (hand-author `export_presets.cfg`, commit it)
 

@@ -47,6 +47,11 @@ usage: tools/twin_ship.sh --preset <name> [options]
   --out <dir>           output root (default: dist)
   --zip                 also produce a deterministic <name>-<platform>.zip of the assembled tree
   --smoke | --no-smoke  run/skip the exported-binary boot smoke (default: on iff preset == host)
+
+retarget mode (no re-export — swap the data beside an already-shipped build):
+  --retarget <dir>      an already-shipped artifact dir; swaps model/map/recording in its data/,
+                        rewrites its viewer.cfg, asserts the binary's mtime is UNCHANGED, url= untouched
+  --json                also write retarget.json (what a stranger may swap vs. re-export)
 USAGE
 }
 
@@ -60,6 +65,8 @@ OUT="dist"
 WANT_ZIP=0
 # SMOKE: -1 auto (on iff preset platform == host), 1 forced on, 0 forced off.
 SMOKE=-1
+RETARGET_DIR=""
+WANT_JSON=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--preset)
@@ -104,6 +111,15 @@ while [ $# -gt 0 ]; do
 		SMOKE=0
 		shift
 		;;
+	--retarget)
+		[ $# -ge 2 ] || _fail "--retarget requires a value"
+		RETARGET_DIR="$2"
+		shift 2
+		;;
+	--json)
+		WANT_JSON=1
+		shift
+		;;
 	-h | --help)
 		_usage
 		exit 0
@@ -118,7 +134,7 @@ while [ $# -gt 0 ]; do
 		;;
 	esac
 done
-if [ -z "$PRESET" ]; then
+if [ -z "$PRESET" ] && [ -z "$RETARGET_DIR" ]; then
 	_usage >&2
 	_fail "no --preset given"
 fi
@@ -132,6 +148,232 @@ _cfg_value() {
 		END { if (v != "") print v }
 	' "$3" 2>/dev/null
 }
+
+_emit_cfg_gd() {
+	cat >"$1" <<'CFG_EOF'
+extends SceneTree
+## twin_ship.sh assemble helper: rewrite the shipped viewer.cfg's model=/binding_map=/recording=
+## to their data/-relative paths, preserving comments and every other key. ConfigFile.save() drops
+## comments, so we validate the file parses as Godot INI (ConfigFile.load) then line-rewrite. This
+## is the twin_build.sh --wire idiom generalized to several [section] key=value rewrites. `out` is a
+## plain Array (reference-passed, so _flush's appends are seen by the caller — a PackedStringArray
+## is a copy-on-write value type and would not be); every pending[section] read is cast to a typed
+## Dictionary local before any method call, so nothing lands on an inferred Variant (the viewer
+## project escalates unsafe_method_access to an error).
+
+
+func _init() -> void:
+	quit(_run())
+
+
+func _run() -> int:
+	var cfg := ""
+	var sets: Array = []  # each entry: [section, key, value]
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--cfg="):
+			cfg = a.substr("--cfg=".length())
+		elif a.begins_with("--set="):
+			var spec := a.substr("--set=".length())
+			var parts := spec.split("|")
+			if parts.size() != 3:
+				push_error("SHIP-CFG: FAIL — bad --set '%s' (want section|key|value)" % spec)
+				return 1
+			sets.append([parts[0], parts[1], parts[2]])
+	if cfg == "" or sets.is_empty():
+		push_error("SHIP-CFG: FAIL — --cfg= and at least one --set= are required")
+		return 1
+	if not FileAccess.file_exists(cfg):
+		push_error("SHIP-CFG: FAIL — no such cfg %s" % cfg)
+		return 1
+	var probe := ConfigFile.new()
+	var perr := probe.load(cfg)
+	if perr != OK:
+		push_error("SHIP-CFG: FAIL — %s is not valid Godot INI (err %d)" % [cfg, perr])
+		return 1
+	var pending := {}  # section -> { key -> value }, consumed as written
+	for s: Array in sets:
+		var sect: String = s[0]
+		var key: String = s[1]
+		var value: String = s[2]
+		var inner: Dictionary = pending.get(sect, {})
+		inner[key] = value
+		pending[sect] = inner
+	var lines := FileAccess.get_file_as_string(cfg).split("\n")
+	var out: Array = []
+	var cur := ""
+	for line in lines:
+		var t := line.strip_edges()
+		if t.begins_with("[") and t.ends_with("]"):
+			_flush(out, pending, cur)
+			cur = t.substr(1, t.length() - 2)
+			out.append(line)
+			continue
+		if pending.has(cur):
+			var inner: Dictionary = pending[cur]
+			var key := t.split("=")[0].strip_edges()
+			if inner.has(key):
+				out.append('%s="%s"' % [key, inner[key]])
+				inner.erase(key)
+				continue
+		out.append(line)
+	_flush(out, pending, cur)
+	for sect: String in pending:
+		var inner: Dictionary = pending[sect]
+		if inner.is_empty():
+			continue
+		if out.size() > 0 and str(out[out.size() - 1]).strip_edges() != "":
+			out.append("")
+		out.append("[%s]" % sect)
+		for key: String in inner:
+			out.append('%s="%s"' % [key, inner[key]])
+	var fa := FileAccess.open(cfg, FileAccess.WRITE)
+	if fa == null:
+		push_error("SHIP-CFG: FAIL — cannot write %s" % cfg)
+		return 1
+	fa.store_string("\n".join(PackedStringArray(out)))
+	fa.close()
+	print("SHIP-CFG: OK — %s (%d key(s))" % [cfg, sets.size()])
+	return 0
+
+
+## Append any not-yet-written pending keys for `sect` to `out` (the section is about to close), then
+## empty that section so the trailing "never appeared" pass skips it. `out` is an Array on purpose
+## (reference semantics — see _run's header note).
+func _flush(out: Array, pending: Dictionary, sect: String) -> void:
+	if sect == "" or not pending.has(sect):
+		return
+	var inner: Dictionary = pending[sect]
+	for key: String in inner.keys():
+		out.append('%s="%s"' % [key, inner[key]])
+	inner.clear()
+CFG_EOF
+}
+
+# --retarget <dir>: swap ONLY the data-beside-build files (model / binding_map / recording) in an
+# ALREADY-shipped artifact — no re-export. The executable is never touched (its mtime is asserted
+# UNCHANGED — the same-binary invariant this tool used to only demonstrate by hand), and url= is left
+# alone (deployment-time — a site's own edit, not a retarget). Makes "retarget by editing the data
+# beside the build" a first-class, asserted capability. Runs from a Godot project root (it borrows the
+# engine only to line-rewrite the shipped viewer.cfg, comments preserved — the same helper assemble uses).
+_retarget() {
+	_stage retarget "swap data beside an already-shipped build (no re-export, binary untouched)"
+	[ -f project.godot ] || _fail "--retarget: run from a Godot project root (the engine rewrites the shipped viewer.cfg)"
+	[ -d "$RETARGET_DIR" ] || _fail "--retarget: no such dir '$RETARGET_DIR'"
+	[ -n "$MODEL" ] || _fail "--retarget requires --model (the new data-beside-build model to swap in)"
+	[ -f "$MODEL" ] || _fail "--retarget: no such model '$MODEL'"
+	if [ -n "$MAP" ] && [ ! -f "$MAP" ]; then _fail "--retarget: no such binding map '$MAP'"; fi
+	for rec in "${RECORDINGS[@]:-}"; do
+		[ -z "$rec" ] && continue
+		[ -f "$rec" ] || _fail "--retarget: no such recording '$rec'"
+	done
+	xeno_resolve_engine || exit 1
+
+	# Locate the shipped viewer.cfg (beside the executable) and its data/ tree.
+	SHIP_CFG="$(find "$RETARGET_DIR" -name viewer.cfg -type f 2>/dev/null | head -1)"
+	[ -n "$SHIP_CFG" ] || _fail "--retarget: no viewer.cfg found under '$RETARGET_DIR' (not a shipped artifact?)"
+	EXEC_DIR="$(dirname "$SHIP_CFG")"
+	DATA_DIR="$EXEC_DIR/data"
+	[ -d "$DATA_DIR" ] || _fail "--retarget: no data/ dir beside $SHIP_CFG"
+	# The executable beside viewer.cfg — the same-binary invariant subject.
+	BIN_PATH="$(find "$EXEC_DIR" -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)"
+	[ -n "$BIN_PATH" ] || _fail "--retarget: no executable found beside $SHIP_CFG"
+	MTIME_BEFORE="$(stat -f '%m' "$BIN_PATH")"
+	URL_BEFORE="$(_cfg_value viewer url "$SHIP_CFG")"
+
+	# Copy the new data into data/ and compute data/-relative ship paths.
+	cp "$MODEL" "$DATA_DIR/"
+	MODEL_SHIP="data/$(basename "$MODEL")"
+	MODEL_BASE="${MODEL%.*}"
+	if [ -z "$SIDECAR" ]; then
+		for cand in "${MODEL_BASE}_props.json" "${MODEL_BASE}.props.json"; do
+			[ -f "$cand" ] && SIDECAR="$cand" && break
+		done
+	fi
+	[ -n "$SIDECAR" ] && [ -f "$SIDECAR" ] && cp "$SIDECAR" "$DATA_DIR/"
+	CFG_SETS=("--set=viewer|model|$MODEL_SHIP")
+	MAP_SHIP=""
+	if [ -n "$MAP" ]; then
+		cp "$MAP" "$DATA_DIR/"
+		MAP_SHIP="data/$(basename "$MAP")"
+		CFG_SETS+=("--set=twin|binding_map|$MAP_SHIP")
+	fi
+	REC_SHIP=""
+	for rec in "${RECORDINGS[@]:-}"; do
+		[ -z "$rec" ] && continue
+		mkdir -p "$DATA_DIR/recordings"
+		cp "$rec" "$DATA_DIR/recordings/"
+		[ -z "$REC_SHIP" ] && REC_SHIP="data/recordings/$(basename "$rec")"
+	done
+	[ -n "$REC_SHIP" ] && CFG_SETS+=("--set=twin|recording|$REC_SHIP")
+
+	WORK="$(mktemp -d)"
+	trap 'rm -rf "$WORK"' EXIT
+	CFG_GD="$WORK/twin_ship_cfg.gd"
+	_emit_cfg_gd "$CFG_GD"
+	if ! "$GODOT" --headless --path . --script "$CFG_GD" -- "--cfg=$SHIP_CFG" "${CFG_SETS[@]}"; then
+		_fail "--retarget: failed to rewrite $SHIP_CFG"
+	fi
+
+	# The same-binary invariant: the executable must be byte-for-byte the same file — assert its mtime
+	# did not move. A retarget that rebuilt the binary would be a re-export wearing a retarget's name.
+	MTIME_AFTER="$(stat -f '%m' "$BIN_PATH")"
+	if [ "$MTIME_BEFORE" != "$MTIME_AFTER" ]; then
+		_fail "--retarget: binary mtime CHANGED ($MTIME_BEFORE -> $MTIME_AFTER) — the same-binary invariant broke"
+	fi
+	URL_AFTER="$(_cfg_value viewer url "$SHIP_CFG")"
+	if [ "$URL_BEFORE" != "$URL_AFTER" ]; then
+		_fail "--retarget: url= changed ($URL_BEFORE -> $URL_AFTER) — retarget must not touch the deployment-time source"
+	fi
+	echo "$XENO_GATE: PASS retarget — model=$MODEL_SHIP swapped; binary mtime UNCHANGED ($MTIME_BEFORE); url= untouched ($URL_AFTER)"
+
+	# --json: a manifest of exactly what a stranger may swap without re-exporting (and what they may not).
+	if [ "$WANT_JSON" -eq 1 ]; then
+		MANIFEST="$EXEC_DIR/retarget.json"
+		{
+			printf '{\n'
+			printf '  "artifact": "%s",\n' "$EXEC_DIR"
+			printf '  "binary": "%s",\n' "$(basename "$BIN_PATH")"
+			printf '  "binary_mtime": %s,\n' "$MTIME_AFTER"
+			printf '  "swappable_without_re_export": {\n'
+			printf '    "model": "%s",\n' "$MODEL_SHIP"
+			printf '    "binding_map": "%s",\n' "${MAP_SHIP:-$(_cfg_value twin binding_map "$SHIP_CFG")}"
+			printf '    "recording": "%s"\n' "${REC_SHIP:-$(_cfg_value twin recording "$SHIP_CFG")}"
+			printf '  },\n'
+			printf '  "deployment_time_edit_by_site": { "url": "%s" },\n' "$URL_AFTER"
+			printf '  "fixed_requires_re_export": [ "the executable / pck (code + starter scenes)" ]\n'
+			printf '}\n'
+		} >"$MANIFEST"
+		echo "$XENO_GATE: PASS retarget --json manifest ($MANIFEST)"
+	fi
+
+	# Boot the SAME binary to prove the swapped data paints (host-runnable only; a SKIP is LOUD).
+	if [ "$SMOKE" -eq 0 ]; then
+		echo "$XENO_GATE: SKIP retarget smoke — --no-smoke requested (a SKIP is not a pass)."
+	else
+		RLOG="$("$BIN_PATH" --headless -- --quit-after=20 2>&1)"
+		if echo "$RLOG" | grep -qE "^viewer: model loaded from data/"; then
+			echo "$RLOG" | grep -E "^viewer:" | sed 's/^/    /'
+			if ! echo "$RLOG" | grep -qE "^viewer: bindings resolved [1-9][0-9]*/[0-9]+"; then
+				_fail "--retarget smoke: model loaded but bindings 0/N (the new model does not match the map)"
+			fi
+			echo "$XENO_GATE: PASS retarget smoke — the swapped model booted painted from data/ (same binary)"
+		else
+			echo "$XENO_GATE: SKIP retarget smoke — this host could not boot the artifact's binary (a SKIP is"
+			echo "  NOT a pass — boot it on its target platform). First lines seen:"
+			echo "$RLOG" | head -3 | sed 's/^/    /'
+		fi
+	fi
+
+	echo
+	echo "$XENO_GATE: OK (retarget)"
+	echo "  artifact: $EXEC_DIR"
+	return 0
+}
+
+if [ -n "$RETARGET_DIR" ]; then
+	_retarget
+	exit $?
+fi
 
 # --- stage 1: preflight ------------------------------------------------------------------------
 _stage 1/5 "preflight"
@@ -346,103 +588,7 @@ else
 	printf '[viewer]\nurl="ws://localhost:8765"\n' >"$SHIP_CFG"
 fi
 CFG_GD="$WORK/twin_ship_cfg.gd"
-cat >"$CFG_GD" <<'CFG_EOF'
-extends SceneTree
-## twin_ship.sh assemble helper: rewrite the shipped viewer.cfg's model=/binding_map=/recording=
-## to their data/-relative paths, preserving comments and every other key. ConfigFile.save() drops
-## comments, so we validate the file parses as Godot INI (ConfigFile.load) then line-rewrite. This
-## is the twin_build.sh --wire idiom generalized to several [section] key=value rewrites. `out` is a
-## plain Array (reference-passed, so _flush's appends are seen by the caller — a PackedStringArray
-## is a copy-on-write value type and would not be); every pending[section] read is cast to a typed
-## Dictionary local before any method call, so nothing lands on an inferred Variant (the viewer
-## project escalates unsafe_method_access to an error).
-
-
-func _init() -> void:
-	quit(_run())
-
-
-func _run() -> int:
-	var cfg := ""
-	var sets: Array = []  # each entry: [section, key, value]
-	for a: String in OS.get_cmdline_user_args():
-		if a.begins_with("--cfg="):
-			cfg = a.substr("--cfg=".length())
-		elif a.begins_with("--set="):
-			var spec := a.substr("--set=".length())
-			var parts := spec.split("|")
-			if parts.size() != 3:
-				push_error("SHIP-CFG: FAIL — bad --set '%s' (want section|key|value)" % spec)
-				return 1
-			sets.append([parts[0], parts[1], parts[2]])
-	if cfg == "" or sets.is_empty():
-		push_error("SHIP-CFG: FAIL — --cfg= and at least one --set= are required")
-		return 1
-	if not FileAccess.file_exists(cfg):
-		push_error("SHIP-CFG: FAIL — no such cfg %s" % cfg)
-		return 1
-	var probe := ConfigFile.new()
-	var perr := probe.load(cfg)
-	if perr != OK:
-		push_error("SHIP-CFG: FAIL — %s is not valid Godot INI (err %d)" % [cfg, perr])
-		return 1
-	var pending := {}  # section -> { key -> value }, consumed as written
-	for s: Array in sets:
-		var sect: String = s[0]
-		var key: String = s[1]
-		var value: String = s[2]
-		var inner: Dictionary = pending.get(sect, {})
-		inner[key] = value
-		pending[sect] = inner
-	var lines := FileAccess.get_file_as_string(cfg).split("\n")
-	var out: Array = []
-	var cur := ""
-	for line in lines:
-		var t := line.strip_edges()
-		if t.begins_with("[") and t.ends_with("]"):
-			_flush(out, pending, cur)
-			cur = t.substr(1, t.length() - 2)
-			out.append(line)
-			continue
-		if pending.has(cur):
-			var inner: Dictionary = pending[cur]
-			var key := t.split("=")[0].strip_edges()
-			if inner.has(key):
-				out.append('%s="%s"' % [key, inner[key]])
-				inner.erase(key)
-				continue
-		out.append(line)
-	_flush(out, pending, cur)
-	for sect: String in pending:
-		var inner: Dictionary = pending[sect]
-		if inner.is_empty():
-			continue
-		if out.size() > 0 and str(out[out.size() - 1]).strip_edges() != "":
-			out.append("")
-		out.append("[%s]" % sect)
-		for key: String in inner:
-			out.append('%s="%s"' % [key, inner[key]])
-	var fa := FileAccess.open(cfg, FileAccess.WRITE)
-	if fa == null:
-		push_error("SHIP-CFG: FAIL — cannot write %s" % cfg)
-		return 1
-	fa.store_string("\n".join(PackedStringArray(out)))
-	fa.close()
-	print("SHIP-CFG: OK — %s (%d key(s))" % [cfg, sets.size()])
-	return 0
-
-
-## Append any not-yet-written pending keys for `sect` to `out` (the section is about to close), then
-## empty that section so the trailing "never appeared" pass skips it. `out` is an Array on purpose
-## (reference semantics — see _run's header note).
-func _flush(out: Array, pending: Dictionary, sect: String) -> void:
-	if sect == "" or not pending.has(sect):
-		return
-	var inner: Dictionary = pending[sect]
-	for key: String in inner.keys():
-		out.append('%s="%s"' % [key, inner[key]])
-	inner.clear()
-CFG_EOF
+_emit_cfg_gd "$CFG_GD"
 CFG_SETS=("--set=viewer|model|$MODEL_SHIP" "--set=twin|binding_map|$MAP_SHIP")
 [ -n "$REC_SHIP" ] && CFG_SETS+=("--set=twin|recording|$REC_SHIP")
 if ! "$GODOT" --headless --path . --script "$CFG_GD" -- "--cfg=$SHIP_CFG" "${CFG_SETS[@]}"; then

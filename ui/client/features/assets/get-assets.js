@@ -15,6 +15,12 @@
 // stays open so several requests can be filled in one session; each then asks the
 // orchestrator to import + wire it via godot-assets (a plant prop that should join
 // the data layer goes through the xenodot-twin:twin-asset-import skill), then verify.
+// CANDIDATE — NOT IMPLEMENTED (honest scope, do not wire without a plan). A natural future home for a
+// "shipped deliverables" row: a downloadable card per `tools/twin_ship.sh` artifact (name, model,
+// size, platform, the retarget.json manifest of what a receiver may swap — see
+// docs/process/data-beside-build.md). Nothing in ui/client surfaces ship artifacts today — the ship
+// tool writes to dist/ on disk and the zip is handed over directly (industrial users don't itch).
+// This comment marks the candidate seam so it is not "discovered" as if it already existed.
 import { $, el } from "../../core/dom.js";
 import { fetchJSON, postJSON } from "../../../lib/json.js";
 import { send } from "../../core/websocket.js";
