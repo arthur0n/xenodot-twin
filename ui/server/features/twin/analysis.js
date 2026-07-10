@@ -46,10 +46,14 @@ const HERMES_INSTRUCTIONS =
 /** Resolve the chat-completions endpoint from a configured base URL. Convention matches the other
  * integrations (Hermes treats its `apiUrl` as a base and appends `/v1/...`): a bare host/base gets
  * `/v1/chat/completions` appended; a URL that already ends in `/chat/completions` is used verbatim
- * (so a user who pasted the full endpoint isn't second-guessed). @param {string} apiUrl @returns {string} */
+ * (so a user who pasted the full endpoint isn't second-guessed). A base already ending in `/v1` —
+ * the DOCUMENTED form for OpenRouter (`https://openrouter.ai/api/v1`) and vLLM
+ * (`http://host:8000/v1`) — is stripped first so we never emit `/v1/v1/chat/completions`.
+ * @param {string} apiUrl @returns {string} */
 export function chatCompletionsUrl(apiUrl) {
   const trimmed = baseOf(apiUrl);
-  return /\/chat\/completions$/.test(trimmed) ? trimmed : `${trimmed}/v1/chat/completions`;
+  if (/\/chat\/completions$/.test(trimmed)) return trimmed;
+  return `${trimmed.replace(/\/v1$/, "")}/v1/chat/completions`;
 }
 
 /** POST the chat-completions request under an abort timeout; throws a clear timeout/reach error.

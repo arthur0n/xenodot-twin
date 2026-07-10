@@ -120,9 +120,9 @@ test("analyze CLI: full cycle — posts the composed prompt, framework writes th
     const report = readFileSync(reportPath, "utf8");
     assert.match(report, /kind: twin-analysis-report/);
     assert.match(report, /task: summarize-window/);
-    assert.match(report, /worker: openai-compatible/);
-    assert.match(report, new RegExp(`provider: 127\\.0\\.0\\.1:${port}`));
-    assert.match(report, /model: test-model-served/); // the model the endpoint reported
+    assert.match(report, /worker: "openai-compatible"/);
+    assert.match(report, new RegExp(`provider: "127\\.0\\.0\\.1:${port}"`));
+    assert.match(report, /model: "test-model-served"/); // the model the endpoint reported
     assert.match(report, /bundle_sha256: [0-9a-f]{64}/);
     assert.match(report, /window: \{ from_ms: 0, to_ms: 300 \}/);
     assert.match(report, /created_at: \d{4}-\d{2}-\d{2}T/);

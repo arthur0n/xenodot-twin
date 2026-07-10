@@ -19,7 +19,11 @@ import {
 } from "../../core/config.js";
 import { parseJSON } from "../../../lib/json.js";
 import { parseArgs } from "../../../../plugin-twin/tools/sim/stream.js";
-import { buildBundle, SIZE_BUDGET_BYTES } from "../../../../plugin-twin/tools/analyze/bundle.js";
+import {
+  buildBundle,
+  unmatchedTags,
+  SIZE_BUDGET_BYTES,
+} from "../../../../plugin-twin/tools/analyze/bundle.js";
 import { selectWorker } from "./analysis.js";
 import {
   TASK_TYPES,
@@ -97,7 +101,7 @@ function resolveBundleJson(args, allowOversize) {
     fail("--points-per-tag must be a positive integer");
   const recording = readInput(args.recording);
   if (!recording) fail("--recording could not be read");
-  const { json, bytes } = buildBundle({
+  const { json, bytes, bundle } = buildBundle({
     recording,
     map: readInput(args.map),
     sidecar: readInput(args.sidecar),
@@ -106,6 +110,12 @@ function resolveBundleJson(args, allowOversize) {
     tags: tagsArg,
     pointsPerTag: pts ?? undefined,
   });
+  const missing = unmatchedTags(bundle, tagsArg);
+  if (missing.length > 0)
+    console.warn(
+      `analyze: WARNING — --tags matched no frames for: ${missing.join(", ")}. ` +
+        "Check the tag names against the recording header's tag table (typos filter silently).",
+    );
   if (bytes > SIZE_BUDGET_BYTES && !allowOversize)
     fail(
       `inline bundle is ${bytes} bytes — ${bytes - SIZE_BUDGET_BYTES} over the ${SIZE_BUDGET_BYTES}-byte budget. ` +

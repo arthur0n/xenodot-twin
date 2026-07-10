@@ -40,17 +40,25 @@ export function composeInstructions({ template, bundleJson }) {
 /** Render a number-or-null for the YAML window inline map. @param {number | null} n @returns {string} */
 const numOrNull = (n) => (typeof n === "number" ? String(n) : "null");
 
-/** Build the machine-readable frontmatter block (report-format.md). @param {{ task: string,
- * workerId: string, provider: string, model: string, bundleSha256: string, window: { from_ms: number
- * | null, to_ms: number | null }, createdAt: string }} f @returns {string} */
+/** Encode an UNTRUSTED scalar for YAML: JSON-encode it (YAML is a JSON superset, so a JSON string
+ * is one well-formed double-quoted YAML scalar). `model` comes back from the endpoint's own
+ * response body — a newline or a `: ` inside it must not break or inject frontmatter (guardrail 4).
+ * @param {string} s @returns {string} */
+const yamlStr = (s) => JSON.stringify(s);
+
+/** Build the machine-readable frontmatter block (report-format.md). Worker/provider-influenced
+ * scalars (worker, provider, model) are JSON-encoded; `task` is whitelisted (TASK_TYPES) and the
+ * hash is hex, so they stay plain. @param {{ task: string, workerId: string, provider: string,
+ * model: string, bundleSha256: string, window: { from_ms: number | null, to_ms: number | null },
+ * createdAt: string }} f @returns {string} */
 export function buildFrontmatter(f) {
   return [
     "---",
     "kind: twin-analysis-report",
     `task: ${f.task}`,
-    `worker: ${f.workerId}`,
-    `provider: ${f.provider}`,
-    `model: ${f.model}`,
+    `worker: ${yamlStr(f.workerId)}`,
+    `provider: ${yamlStr(f.provider)}`,
+    `model: ${yamlStr(f.model)}`,
     `bundle_sha256: ${f.bundleSha256}`,
     `window: { from_ms: ${numOrNull(f.window.from_ms)}, to_ms: ${numOrNull(f.window.to_ms)} }`,
     `created_at: ${f.createdAt}`,

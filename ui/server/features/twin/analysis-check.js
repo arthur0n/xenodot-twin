@@ -18,6 +18,13 @@ import { selectWorker } from "./analysis.js";
  * endpoint answered; `ok` = ready to dispatch. @typedef {{ ok: boolean, worker: string, configured:
  * boolean, reachable?: boolean, models?: string[], status?: number, error?: string }} AnalysisCheck */
 
+/** Derive the models-list probe URL from a configured base. Mirrors chatCompletionsUrl's rule for
+ * `/v1`-terminated bases (the documented OpenRouter/vLLM form): strip a trailing `/v1` before
+ * appending, so the probe never emits `/v1/v1/models`. @param {string} apiUrl @returns {string} */
+export function modelsUrl(apiUrl) {
+  return `${baseOf(apiUrl).replace(/\/v1$/, "")}/v1/models`;
+}
+
 /** Probe the openai-compatible endpoint with `GET {base}/v1/models`. @param {string} apiUrl @param
  * {string | null} apiKey @param {number} timeoutMs @returns {Promise<AnalysisCheck>} */
 async function probeOpenAiCompatible(apiUrl, apiKey, timeoutMs) {
@@ -30,7 +37,7 @@ async function probeOpenAiCompatible(apiUrl, apiKey, timeoutMs) {
     Math.max(1, timeoutMs),
   );
   try {
-    const res = await fetch(`${base}/v1/models`, {
+    const res = await fetch(modelsUrl(apiUrl), {
       headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {},
       signal: ctrl.signal,
     });

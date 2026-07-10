@@ -447,6 +447,26 @@ function fail(msg) {
   process.exit(EXIT_FAILURE);
 }
 
+/** The requested `--tags` entries that matched NO frames in the analyzed window — a silent typo
+ * (or an all-unknown filter) would otherwise vanish into a valid 0-tag bundle. PURE: the CLI warns.
+ * @param {{ stats: TagStats[] }} bundle @param {string[] | null} requested @returns {string[]} */
+export function unmatchedTags(bundle, requested) {
+  if (!requested || requested.length === 0) return [];
+  const matched = new Set(bundle.stats.map((s) => s.tag));
+  return requested.filter((t) => !matched.has(t));
+}
+
+/** Warn loudly when `--tags` entries matched no frames (see unmatchedTags). @param {{ stats:
+ * TagStats[] }} bundle @param {string[] | null} requested @returns {void} */
+function warnUnmatchedTags(bundle, requested) {
+  const missing = unmatchedTags(bundle, requested);
+  if (missing.length === 0) return;
+  console.warn(
+    `bundle: WARNING — --tags matched no frames for: ${missing.join(", ")}. ` +
+      "Check the tag names against the recording header's tag table (typos filter silently).",
+  );
+}
+
 /** Enforce the size budget: over budget with no --allow-oversize ⇒ fail loudly (no file written);
  * with the override ⇒ a loud warning. @param {number} bytes @param {boolean} allowOversize
  * @returns {void} */
@@ -488,6 +508,7 @@ function main(argv) {
     tags: tagsArg,
     pointsPerTag: pts ?? undefined,
   });
+  warnUnmatchedTags(bundle, tagsArg);
   enforceBudget(bytes, allowOversize);
   writeFileSync(args.out, json);
   console.log(

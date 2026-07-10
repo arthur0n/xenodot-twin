@@ -15,6 +15,7 @@ import {
   chatCompletionsUrl,
   selectWorker,
 } from "./analysis.js";
+import { modelsUrl } from "./analysis-check.js";
 
 /** @typedef {{ method: string, url: string, headers: import("node:http").IncomingHttpHeaders, body: string }} Captured */
 
@@ -190,6 +191,33 @@ test("chatCompletionsUrl: appends /v1/chat/completions to a base, leaves a full 
     chatCompletionsUrl("https://x.ai/v1/chat/completions"),
     "https://x.ai/v1/chat/completions",
   );
+});
+
+test("chatCompletionsUrl: a /v1-terminated base (OpenRouter/vLLM documented form) never doubles /v1", () => {
+  assert.equal(
+    chatCompletionsUrl("https://openrouter.ai/api/v1"),
+    "https://openrouter.ai/api/v1/chat/completions",
+  );
+  assert.equal(chatCompletionsUrl("http://host:8000/v1/"), "http://host:8000/v1/chat/completions");
+});
+
+test("modelsUrl (probe): mirrors the /v1 rule — no /v1/v1/models from a /v1-terminated base", () => {
+  assert.equal(modelsUrl("https://openrouter.ai/api/v1"), "https://openrouter.ai/api/v1/models");
+  assert.equal(modelsUrl("http://host:8000/v1/"), "http://host:8000/v1/models");
+  assert.equal(modelsUrl("http://host:11434"), "http://host:11434/v1/models");
+});
+
+test("openai-compatible: a /v1-terminated apiUrl posts to /v1/chat/completions (not /v1/v1/…)", async () => {
+  const srv = await startServer((_cap, res) => {
+    json(res, 200, { choices: [{ message: { content: "ok" } }] });
+  });
+  try {
+    const adapter = openAiCompatibleAdapter({ apiUrl: `${srv.url}/v1`, apiKey: null, model: "m" });
+    await adapter.analyze({ instructions: "x" });
+    assert.equal(srv.last()?.url, "/v1/chat/completions");
+  } finally {
+    await srv.close();
+  }
 });
 
 // --- hermes adapter: reuses the runs-API bridge, faked at globalThis.fetch --------

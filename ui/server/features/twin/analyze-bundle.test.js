@@ -16,6 +16,7 @@ import { headerLine, frameLine } from "../../../../plugin-twin/tools/sim/recordi
 import {
   buildBundle,
   serializeBundle,
+  unmatchedTags,
   SCHEMA_VERSION,
   BUNDLE_KIND,
   DEFAULT_POINTS_PER_TAG,
@@ -152,6 +153,21 @@ test("bundle: --tags selects a subset deterministically", () => {
     a.bundle.bindings.map((x) => x.tag),
     ["pump.temp"],
   );
+});
+
+test("unmatchedTags: names --tags entries that matched no frames (typos must not vanish silently)", () => {
+  const { bundle } = buildGolden({ tags: ["pump.temp", "pump.tmep", "ghost"] });
+  assert.deepEqual(unmatchedTags(bundle, ["pump.temp", "pump.tmep", "ghost"]), [
+    "pump.tmep",
+    "ghost",
+  ]);
+  // all-unknown filter → every entry reported (the bundle itself is a valid 0-tag document)
+  const empty = buildGolden({ tags: ["nope"] });
+  assert.deepEqual(empty.bundle.stats, []);
+  assert.deepEqual(unmatchedTags(empty.bundle, ["nope"]), ["nope"]);
+  // no filter / full match → nothing to report
+  assert.deepEqual(unmatchedTags(buildGolden().bundle, null), []);
+  assert.deepEqual(unmatchedTags(buildGolden({ tags: ["pump.temp"] }).bundle, ["pump.temp"]), []);
 });
 
 test("bundle: an empty window ⇒ no stats, frames 0, requested bounds preserved", () => {

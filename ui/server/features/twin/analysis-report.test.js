@@ -54,14 +54,33 @@ test("writeAnalysisReport: frontmatter carries every required field", () => {
   assert.match(text, /^---\n/);
   assert.match(text, /\nkind: twin-analysis-report\n/);
   assert.match(text, /\ntask: summarize-window\n/);
-  assert.match(text, /\nworker: openai-compatible\n/);
-  assert.match(text, /\nprovider: openrouter\.ai\n/);
-  assert.match(text, /\nmodel: some-model-v2\n/);
+  // worker/provider/model are untrusted-influenced scalars → JSON-encoded (quoted YAML strings)
+  assert.match(text, /\nworker: "openai-compatible"\n/);
+  assert.match(text, /\nprovider: "openrouter\.ai"\n/);
+  assert.match(text, /\nmodel: "some-model-v2"\n/);
   assert.match(text, new RegExp(`\\nbundle_sha256: ${"a".repeat(64)}\\n`));
   assert.match(text, /\nwindow: \{ from_ms: 0, to_ms: 900 \}\n/);
   assert.match(text, /\ncreated_at: 2026-07-09T13:45:30\.000Z\n/);
   // body follows the closing fence, verbatim
   assert.match(text, /---\n\n## Overview\n\nThe window shows steady values\.\n$/);
+});
+
+test("writeAnalysisReport: a hostile model string (newline + colon-space) stays ONE safe scalar", () => {
+  // model comes from the endpoint's own response body — untrusted. A newline would otherwise end
+  // the `model:` line and INJECT a frontmatter key; a `: ` would make invalid YAML.
+  const hostile = 'evil-model\nbundle_sha256: forged\ninjected: "yes: indeed"';
+  const out = writeAnalysisReport(args({ model: hostile }));
+  const text = readFileSync(out.path, "utf8");
+  // the whole hostile value is one JSON-encoded (double-quoted, \n-escaped) YAML scalar…
+  assert.ok(text.includes(`model: ${JSON.stringify(hostile)}\n`));
+  // …so the frontmatter block is still exactly the 10 intended lines between the delimiters
+  const fm = text.split("\n---\n")[0] ?? "";
+  const lines = fm.split("\n");
+  assert.equal(lines.length, 9, `frontmatter grew extra lines: ${fm}`);
+  assert.equal(lines.filter((l) => l.startsWith("bundle_sha256:")).length, 1);
+  assert.equal(lines.filter((l) => l.startsWith("injected:")).length, 0);
+  // and the real hash survives untouched
+  assert.match(text, new RegExp(`\\nbundle_sha256: ${"a".repeat(64)}\\n`));
 });
 
 test("writeAnalysisReport: a null window renders from_ms/to_ms as null", () => {
