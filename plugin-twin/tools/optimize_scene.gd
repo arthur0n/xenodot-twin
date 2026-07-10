@@ -18,11 +18,16 @@ extends SceneTree
 ##       --out=<optimized.tscn> --report=<report.json> [--chunks=auto|<int>] \
 ##       [--target-per-chunk=32] [--min-instances=8] [--hints=<h.json>] [--occluders] \
 ##       [--occluder-min-volume=10.0] [--vis-ranges] [--vis-small-diag=0.5] \
-##       [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120]
+##       [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120] \
+##       [--vis-fade-margin=<m>] [--vis-fade-mode=self|deps]
 ##
 ## The four --vis-* flags override the VIS_* size-class defaults (so a benched sweep needs no source
 ## edit); each must parse as a number > 0, and the medium thresholds must exceed the small ones or
 ## the run fails loud. The report echoes the effective values, so every scene is self-describing.
+## --vis-fade-margin=<m> (metres > 0) adds a fade transition to the cull instead of a hard pop at
+## the end distance; --vis-fade-mode=self|deps picks the fade enum (a mode needs a margin, a margin
+## alone defaults to self). VERIFIED Godot 4.6.3: the fade renders under Forward+ ONLY — the
+## Compatibility renderer (web export) treats it as DISABLED, so the pop returns. See TwinVisRange.
 
 ## --occluders: minimum world-AABB volume (cubic metres) for a leftover mesh to get an occluder.
 ## Below this, a box occluder costs more to rasterize into the depth buffer than the draws it saves.
@@ -66,6 +71,12 @@ var want_vis_ranges := false
 # VIS_* defaults + any per-run overrides. TwinVisRange.apply and the report read this one dict.
 var _vis_params := {}
 var _vis_raw := {}  # flag -> raw --vis-* override string, validated by TwinVisRange.resolve
+# --vis-fade-margin=/--vis-fade-mode= raw overrides + provided bits (an EMPTY value must fail loud,
+# so "" cannot double as absent). Validated + coupled by TwinVisRange.resolve into _vis_params.
+var _vis_fade_margin_raw := ""
+var _vis_fade_margin_provided := false
+var _vis_fade_mode_raw := ""
+var _vis_fade_mode_provided := false
 # --occluder-min-volume= raw override + a provided bit captured at parse time, so an EMPTY value
 # fails loud in _resolve_overrides like the --vis-* flags do (absent flag = keep the default).
 var _occluder_min_volume_raw := ""
@@ -130,6 +141,9 @@ func _run() -> int:
 	report["vis_medium_diag"] = _vis_params["--vis-medium-diag="]
 	report["vis_small_end"] = _vis_params["--vis-small-end="]
 	report["vis_medium_end"] = _vis_params["--vis-medium-end="]
+	report["vis_fade_margin"] = _vis_params["fade_margin"]
+	var fade_mode: int = _vis_params["fade_mode"]  # typed local: mode_label takes int, not Variant
+	report["vis_fade_mode"] = TwinVisRange.mode_label(fade_mode)
 	if not _write_report(report):
 		return 1
 	var summary := report.duplicate()
@@ -272,6 +286,12 @@ func _parse_args() -> bool:
 			_vis_raw["--vis-small-end="] = a.substr("--vis-small-end=".length())
 		elif a.begins_with("--vis-medium-end="):
 			_vis_raw["--vis-medium-end="] = a.substr("--vis-medium-end=".length())
+		elif a.begins_with("--vis-fade-margin="):
+			_vis_fade_margin_raw = a.substr("--vis-fade-margin=".length())
+			_vis_fade_margin_provided = true
+		elif a.begins_with("--vis-fade-mode="):
+			_vis_fade_mode_raw = a.substr("--vis-fade-mode=".length())
+			_vis_fade_mode_provided = true
 		else:
 			push_error("OPTIMIZE: FAIL — unknown argument '%s'" % a)
 			return false
@@ -288,7 +308,13 @@ func _parse_args() -> bool:
 ## --occluder-min-volume= is validated inline the same way. Silent clamping (as --min-instances
 ## does) would corrupt a sweep row unnoticed, so both fail loud in the OPTIMIZE: FAIL style.
 func _resolve_overrides() -> bool:
-	_vis_params = TwinVisRange.resolve(_vis_raw)
+	_vis_params = TwinVisRange.resolve(
+		_vis_raw,
+		_vis_fade_margin_raw,
+		_vis_fade_margin_provided,
+		_vis_fade_mode_raw,
+		_vis_fade_mode_provided
+	)
 	if not _vis_params["ok"]:
 		push_error(_vis_params["error"])
 		return false
