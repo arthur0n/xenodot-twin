@@ -12,8 +12,8 @@ export const scrollChat = () => {
   chatScroll.scrollTop = chatScroll.scrollHeight;
 };
 
-/** Echo a user message into the chat — also used by the asset / transcript /
- * draw-level wizards that post a prompt on the user's behalf. @param {string} text */
+/** Echo a user message into the chat — also used by the asset / transcript
+ * wizards that post a prompt on the user's behalf. @param {string} text */
 export function addUser(text) {
   update((s) => ({ ...s, chat: [...s.chat, { kind: "user", text }] }));
 }

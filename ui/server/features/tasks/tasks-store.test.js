@@ -49,7 +49,7 @@ test("applyOp update: unknown status/owner ignored, valid ones applied, stale id
 });
 
 test("applyOp update with answer: records it and resolves the question to done", () => {
-  store.addQuestion("Ship it?", ["yes", "no"], "game-designer", NOW);
+  store.addQuestion("Ship it?", ["yes", "no"], "twin-architect", NOW);
   const list = store.applyOp({ op: "update", id: "t1", answer: "yes" }, NOW);
   assert.equal(list[0]?.answer, "yes");
   assert.equal(list[0]?.status, "done");

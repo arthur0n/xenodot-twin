@@ -13,7 +13,8 @@
 // free-library example assets kept out of the game tree). The server (POST /api/asset)
 // copies it into <place>/textures/ (PNG) or <place>/models/ (GLB), routed by file type. The panel
 // stays open so several requests can be filled in one session; each then asks the
-// orchestrator to run asset-advisor to verify it and dispatch godot-dev (on PASS).
+// orchestrator to import + wire it via godot-assets (a plant prop that should join
+// the data layer goes through the xenodot-twin:twin-asset-import skill), then verify.
 import { $, el } from "../../core/dom.js";
 import { fetchJSON, postJSON } from "../../../lib/json.js";
 import { send } from "../../core/websocket.js";
@@ -138,22 +139,20 @@ function wirePrompt(ask, savedPath) {
   if (savedPath.endsWith(".glb")) {
     return (
       `I sourced the "${ask.name}" model and saved it to ${savedPath}${task}. ` +
-      `First run the asset-advisor agent (gate 2) to verify it (.glb format, scale/units, materials, ` +
-      `placement, licence). Only on PASS, dispatch godot-dev to wire it per the game's art-import skill ` +
-      `(asset-advisor sets the import spec from the game's art direction) — import, scale to the prop's ` +
-      `footprint, instance it in place of the matching greybox node (keep its name + position) — then ` +
-      `verify with godot-verify and mark the task done once it renders. If asset-advisor fails it, ` +
-      `report why and the corrected sourcing spec instead of wiring.`
+      `Import and wire it into the viewer scene: if it's plant equipment / a prop that should join the ` +
+      `data layer, use the xenodot-twin:twin-asset-import skill (it mints a synthetic IFC GlobalId so the ` +
+      `prop binds to master data); otherwise dispatch godot-assets to bring it in as ad-hoc scene dressing ` +
+      `— import, verify the .glb format + scale/units, scale it to the prop's real footprint, and instance ` +
+      `it in place of the matching placeholder node (keep its name + position). Then verify with godot-verify ` +
+      `and mark the task done once it renders.`
     );
   }
   return (
-    `I generated the "${ask.name}" texture and saved it to ${savedPath}${task}. ` +
-    `First run the asset-advisor agent to verify it against the request (type, dimensions, alpha, ` +
-    `placement, import settings). Only on PASS, dispatch godot-dev to import it per the game's ` +
-    `art-import skill (asset-advisor sets filter / mipmaps / material from the game's art direction) ` +
-    `and wire it into the matching material — e.g. the relevant StandardMaterial3D albedo — then ` +
-    `verify with godot-verify and mark the task done once it renders. If asset-advisor fails it, ` +
-    `report why and the corrected generation prompt instead of wiring.`
+    `I sourced the "${ask.name}" texture and saved it to ${savedPath}${task}. ` +
+    `Dispatch godot-assets to import it (set filter / mipmaps / material from the project's art direction, ` +
+    `and check type / dimensions / alpha against the request) and wire it into the matching material — ` +
+    `e.g. the relevant StandardMaterial3D albedo — then verify with godot-verify and mark the task done ` +
+    `once it renders.`
   );
 }
 
