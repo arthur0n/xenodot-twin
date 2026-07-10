@@ -27,7 +27,7 @@
     {
       "name": "xenodot-twin",
       "description": "Digital-twin domain: the twin-architect / scene-optimizer / data-binder agents and twin-import / twin-optimize / twin-bind-data / twin-verify / twin-playback skills for building IFC/BIM \u2192 Godot viewers with live data. Loads alongside the xenodot base and references its capabilities.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Xenodot Twin"
       },
