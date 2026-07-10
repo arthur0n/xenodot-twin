@@ -115,7 +115,7 @@ _twin_binding_map() {
 	fi
 	echo "binding_map.json"
 }
-# The gate runs its OWN sim on 8899 — deliberately NOT the sim default 8765 (plugin-twin/tools/sim/
+# The gate runs its OWN sim on 8899 — deliberately NOT the sim default 8765 (plugin/tools/sim/
 # server.js DEFAULT_PORT, which the viewer's core/data_bus.gd DEFAULT_URL also targets). Using a
 # different port means this gate never collides with a sim a developer is already running on 8765
 # during authoring. Override with TWIN_SIM_PORT=<free port> if 8899 is taken.

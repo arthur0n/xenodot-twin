@@ -6,8 +6,8 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)
-![Skills: 16](https://img.shields.io/badge/Skills-16-purple.svg)
-![Agents: 10](https://img.shields.io/badge/Agents-10-orange.svg)
+![Skills: 25](https://img.shields.io/badge/Skills-25-purple.svg)
+![Agents: 13](https://img.shields.io/badge/Agents-13-orange.svg)
 ![Status: POC](https://img.shields.io/badge/Status-POC-yellow.svg)
 
 > **Turn a real building or plant model into a live, data-bound 3D digital twin on Godot — driven by a
@@ -58,7 +58,7 @@ pass.
 
 ## Measured, not claimed
 
-Numbers from the spike + benchmark findings in [`plugin-twin/library/findings/`](plugin-twin/library/findings)
+Numbers from the spike + benchmark findings in [`plugin/library/findings/`](plugin/library/findings)
 (one machine — M3 Pro, macOS/Metal, Godot 4.6.3; recipes generalize, percentages don't automatically):
 
 - **Optimize: 4.4×.** A city block of repeated real BIM (114,400 mesh instances) goes **27.3 → 119.4
@@ -117,7 +117,7 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
   an already-imported Duplex → a generated 10×10 city block (28,600 mesh instances) → optimized and
   **measured**. Where the plant is the data-binding showcase, this is the **instancing / scale** one
   — chunked MultiMesh, the join gate's honest duplicate-id caveat, before/after benched by hand.
-- **[`plugin-twin/examples/`](plugin-twin/examples)** — the bundled kit the tutorial uses: a sample
+- **[`plugin/examples/`](plugin/examples)** — the bundled kit the tutorial uses: a sample
   IFC (`Duplex_A_20110907.ifc`), an example `binding_map`, and an example `viewer.cfg`, so you don't
   have to source any files yourself.
 
@@ -142,10 +142,10 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
   `godot-assets`, `godot-refactor`, the researchers, `godot-docs-evangelist`) and Godot skills
   (`godot-verify`, `godot-code-rules`, `godot-composition`, `godot-export-builds`, `godot-main-scene`,
   …). Loaded into every session.
-- **The `xenodot-twin` plugin** (`plugin-twin/`) — the digital-twin domain: `twin-architect`,
+- **The digital-twin domain** (also in `plugin/`, `twin-*` prefix) — `twin-architect`,
   `scene-optimizer`, `data-binder` and the `twin-import` / `twin-optimize` / `twin-bind-data` /
-  `twin-playback` / `twin-verify` skills. It **composes** the base plugin via the `xenodot:`
-  namespace rather than copying it.
+  `twin-playback` / `twin-verify` skills. Folded into the one `xenodot` plugin: the engine-generic
+  base and the twin capabilities ship together under the `xenodot:` namespace.
 - **The viewer starter** (`starter-viewer/`) — the minimal Godot project `new` scaffolds.
 
 A full capability catalog is in [`FEATURES.md`](FEATURES.md).

@@ -36,4 +36,4 @@ the gate and badged in the UI — is the line between "looks bound" and "is boun
 
 Proven end-to-end on the Schependomlaan real building (IFC2X3, 3505/3505 join): the red→green pair
 and the in-UI badge flip are recorded in
-`plugin-twin/library/findings/twin-bind-overlay-2026-07-10.md`.
+`plugin/library/findings/twin-bind-overlay-2026-07-10.md`.

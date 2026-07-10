@@ -3,7 +3,7 @@
 // No test runner: computeSessionSkills is pure, so it's exercised directly. Guards the override
 // semantics Layer 1 depends on (default-deny, wildcard, per-name, floor always-on, dedup) plus
 // the viewer floor extension (getPluginOrchestratorSkills — audience-tag reads over a temp
-// fixture plugin, so nothing depends on plugin-twin/ existing).
+// fixture plugin, so nothing depends on the real plugin dir layout).
 // Importing skills.js triggers config.js's one-time engine probe — harmless, hand-run only.
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";

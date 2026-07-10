@@ -4,7 +4,7 @@
 # core/playback.gd owns those. Split out of the player so each file stays small and the
 # format contract lives in exactly one place on the viewer side.
 #
-# File contract (PINNED cross-agent — plugin-twin/tools/sim/recording.js writes this
+# File contract (PINNED cross-agent — plugin/tools/sim/recording.js writes this
 # exact shape; do not deviate on either side):
 #   line 1 (header):  {"version":1,"kind":"twin-recording","hz":<int>,"seed":<int>,
 #                      "tags":[{"tag":str,"min":float,"max":float}, ...]}

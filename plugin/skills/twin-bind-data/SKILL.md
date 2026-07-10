@@ -215,7 +215,7 @@ real assert instead of a flake:
 - Flags: `--seed` (default 42), `--port` (8765), `--hz` (10), `--map`, `--stats <path>` (writes
   per-tag last-seq + frames-sent on exit, to cross-check the viewer's `stats()`).
 - **No npm dependency, by design**: the sim is PLUGIN CAPABILITY (it lives in the xenodot-twin
-  plugin at `plugin-twin/tools/sim/` and is materialized into every viewer project's `tools/`, so
+  plugin at `plugin/tools/sim/` and is materialized into every viewer project's `tools/`, so
   even wire-in-place viewers get it and it never drifts). The materialized `tools/` ships no
   `package.json`, so it must run under a bare `node tools/sim/server.js`. The sim is a minimal RFC6455 server
   on node's `http` + `crypto` (handshake + server→client unmasked text frames + just enough
@@ -275,7 +275,7 @@ exists. (Drop nuance: against a real broker, `dropped.noRule` is structurally un
 broker only delivers topics matching a subscription, and every subscription is a rule — so real
 drops are `badPayload`: a subscribed topic carrying a non-numeric payload.)
 
-Map file (`mqtt_map.json`, example: `plugin-twin/examples/mqtt_map.example.json`) — a `rules` list,
+Map file (`mqtt_map.json`, example: `plugin/examples/mqtt_map.example.json`) — a `rules` list,
 **first match wins** (order matters):
 
 - `topic` — an exact topic or MQTT wildcard filter (`+` one level, `#` remaining levels); the bridge
@@ -291,19 +291,19 @@ Modules: `mqtt_protocol.js` (codec), `map.js` (pure translation), `mqtt_ws.js` (
 reusing `../sim/protocol.js`). To try it without a real broker, `tools/bridge/demo_publish.js`
 (bare `node`, same codec) publishes the six example-map topics with animated values — the MQTT
 counterpart to the seeded sim. Live-validated against Mosquitto (codec-level) —
-`plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`; run end-to-end from a fresh seat's own
+`plugin/library/findings/twin-mqtt-bridge-2026-07-09.md`; run end-to-end from a fresh seat's own
 `viewer.cfg url=`, with `--record`→playback proving the live→hostable path —
-`plugin-twin/library/findings/twin-mqtt-live-seat-2026-07-10.md`.
+`plugin/library/findings/twin-mqtt-live-seat-2026-07-10.md`.
 
 ## Serving to the browser / Grafana embed (the web recipe)
 
 The same viewer exports to a Godot Web (WASM) build that embeds in a Grafana dashboard as a live 3D
 panel (the OpenTwins pattern). The relay-side facts a data-binder needs — measured, from
-`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md` (Chrome 150, one machine; **Safari
+`plugin/library/findings/twin-web-ceiling-2026-07-10.md` (Chrome 150, one machine; **Safari
 unverified** — see the caveat there, do not claim Safari works):
 
 - **Ship the no-threads variant.** Export presets:
-  `plugin-twin/examples/export_presets.web-{nothreads,threads}.cfg` (annotated). `thread_support=false`
+  `plugin/examples/export_presets.web-{nothreads,threads}.cfg` (annotated). `thread_support=false`
   needs no `SharedArrayBuffer`, so it embeds in a Grafana `<iframe>` (whose parent is not
   cross-origin isolated); `thread_support=true` is **dead on arrival in Grafana** (needs COI on the
   top document, Grafana serves no COEP). Measured: threads buys **zero** rendering fps here (Godot 4's
@@ -352,7 +352,7 @@ unverified** — see the caveat there, do not claim Safari works):
   iframe**: the no-threads build boots **live-bound at 120 fps, 6/6 bindings, 0 drops**, no
   COI/SharedArrayBuffer error, no mixed-content block (an https hosted demo is safe because `url=""`
   means there is no live socket). Full evidence + the fair OpenTwins side-by-side:
-  `plugin-twin/library/findings/twin-grafana-embed-2026-07-10.md`.
+  `plugin/library/findings/twin-grafana-embed-2026-07-10.md`.
 
 - **Mixed-content rule (the relay behind https).** The DataBus opens a WebSocket to the source. An
   `https` page may only open a **`wss://`** socket — a browser blocks plain `ws://` from a secure page.

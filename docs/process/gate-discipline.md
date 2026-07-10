@@ -33,7 +33,7 @@ Corollaries (already enforced across `tools/verify_twin.sh`):
 4. Restore (`cp fixture.orig fixture`) → run the SAME command → capture the verbatim GREEN output.
 5. Confirm it composes: the same corruption surfaces through `tools/verify_twin.sh`, not just the
    standalone gate script.
-6. File the RED and GREEN outputs verbatim in a `plugin-twin/library/findings/` note.
+6. File the RED and GREEN outputs verbatim in a `plugin/library/findings/` note.
 
 The trap catalog exists so this is repeatable: you never reinvent the corruption per gate, and a new
 gate joins the framework only once its RED→GREEN pair is on record.

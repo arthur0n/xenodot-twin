@@ -17,7 +17,7 @@ about **scale and instancing**, and nothing else.
 > duplicated candidate matches the same sidecar key. Concretely, **if you painted live data onto
 > one of these ids, all 100 copies would paint identically.** A real multi-building site needs
 > per-building-unique ids upstream (out of scope here). That is the honest read straight from the
-> [optimizer benchmark finding](../../plugin-twin/library/findings/twin-optimizer-benchmark-2026-07-08.md);
+> [optimizer benchmark finding](../../plugin/library/findings/twin-optimizer-benchmark-2026-07-08.md);
 > this tutorial inherits it rather than softening it.
 
 > **Every number below was actually run** on one machine (macOS, M3 Pro / Metal, Godot 4.6.3). The
@@ -62,7 +62,7 @@ cd ../city-scale
 
 # Get a Duplex GLB in place (the same pinned-venv convert the house tutorial teaches):
 mkdir -p models
-cp ../xenodot-twin/plugin-twin/examples/Duplex_A_20110907.ifc models/
+cp ../xenodot-twin/plugin/examples/Duplex_A_20110907.ifc models/
 tools/twin_venv.sh                                                   # provision .venv-ifc once
 tools/twin_venv.sh --run tools/ifc_convert.py models/Duplex_A_20110907.ifc \
   --glb models/duplex.glb --sidecar models/duplex_props.json
@@ -89,7 +89,7 @@ copy the file into your project:
 
 ```bash
 $GODOT --headless --path . \
-  --script ../xenodot-twin/plugin-twin/examples/gen_city.gd -- \
+  --script ../xenodot-twin/plugin/examples/gen_city.gd -- \
   --src=res://models/duplex.glb --out=res://models/city_before.scn --grid=10 --pitch=30.0
 ```
 
@@ -325,19 +325,19 @@ geometry — a single real building's un-instanced leftovers, or plant-fitting c
 when you have such a scene:
 
 - **`--vis-ranges`** — distance culls small/medium un-instanced meshes.
-  [`twin-vis-range-recipe-2026-07-09.md`](../../plugin-twin/library/findings/twin-vis-range-recipe-2026-07-09.md).
+  [`twin-vis-range-recipe-2026-07-09.md`](../../plugin/library/findings/twin-vis-range-recipe-2026-07-09.md).
 - **`--vis-fade-margin` / `--vis-fade-mode`** — an alpha ramp so the aggressive vis-range tier fades
   instead of popping (Forward+ only).
-  [`twin-vis-fade-2026-07-10.md`](../../plugin-twin/library/findings/twin-vis-fade-2026-07-10.md).
+  [`twin-vis-fade-2026-07-10.md`](../../plugin/library/findings/twin-vis-fade-2026-07-10.md).
 - **`--occluders`** — box occluders on large un-instanced meshes (a scoped street-level win, net
   cost on single buildings).
-  [`twin-occluder-recipe-2026-07-10.md`](../../plugin-twin/library/findings/twin-occluder-recipe-2026-07-10.md).
+  [`twin-occluder-recipe-2026-07-10.md`](../../plugin/library/findings/twin-occluder-recipe-2026-07-10.md).
 - **`tools/bench_sweep.sh`** — run a whole optimize×vantage matrix declaratively instead of
   hand-running each pair; its worked example
-  ([`bench_sweep.vis-fade.example.json`](../../plugin-twin/examples/bench_sweep.vis-fade.example.json))
+  ([`bench_sweep.vis-fade.example.json`](../../plugin/examples/bench_sweep.vis-fade.example.json))
   regenerates this exact city as its `scene_in`.
 
-The [`twin-optimize` skill](../../plugin-twin/skills/twin-optimize/SKILL.md) is the operator's
+The [`twin-optimize` skill](../../plugin/skills/twin-optimize/SKILL.md) is the operator's
 reference for all of these, including the `--chunks` guidance this tutorial exercised.
 
 ---
@@ -346,7 +346,7 @@ reference for all of these, including the `--chunks` guidance this tutorial exer
 
 - **The external `--script` path works — no copy needed.** `gen_city.gd`'s header offers copying the
   file into the project _or_ passing its path to `--script`. On Godot 4.6.3 the external path
-  (`--script ../xenodot-twin/plugin-twin/examples/gen_city.gd`) ran cleanly, so the demo-asset
+  (`--script ../xenodot-twin/plugin/examples/gen_city.gd`) ran cleanly, so the demo-asset
   generator never has to land in your project tree.
 - **The optimizer's first run needs a class-cache seed.** On a never-opened project it parse-fails
   on `TwinChunks`; a one-off `$GODOT --headless --path . --import` fixes it (covered inline above).

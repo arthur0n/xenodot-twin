@@ -94,7 +94,7 @@ Feed the URL + sha256 to `tools/twin_fetch_model.sh` (it handles the Git-LFS med
 
 | Model                  | Schema | Size    | sha256 (prefix) | Source (see detail below)                         |
 | ---------------------- | ------ | ------- | --------------- | ------------------------------------------------- |
-| **Duplex** (bundled)   | IFC2X3 | 2.3 MB  | —               | `plugin-twin/examples/` + XBimDemo raw mirror     |
+| **Duplex** (bundled)   | IFC2X3 | 2.3 MB  | —               | `plugin/examples/` + XBimDemo raw mirror          |
 | **Schependomlaan**     | IFC2X3 | 62 MB   | `57fafa59f03b…` | buildingsmart-community sample repo (LFS media)   |
 | **NBU Medical Clinic** | IFC4   | 27 MB\* | `32b5f8008a39…` | TIB DURAARK mirror (zip; \*per-discipline models) |
 
@@ -115,7 +115,7 @@ rtk proxy head -c 13 Duplex_A_20110907.ifc    # must print: ISO-10303-21;
 If it prints `<!DOCTYPE` or anything else, the URL served a web page, not a model.
 
 A vetted copy of the Duplex sample (plus an example binding map + viewer config) ships in the
-try-it kit at `plugin-twin/examples/` — see its `README.md` for the copy-in-and-convert
+try-it kit at `plugin/examples/` — see its `README.md` for the copy-in-and-convert
 quickstart and `NOTICE.md` for provenance.
 
 ### Fetch + verify + stamp in one command: `tools/twin_fetch_model.sh`

@@ -39,9 +39,9 @@ cd ../house
 
 # 1. Copy the kit in (the IFC goes under models/ so the build's artifacts co-locate there):
 mkdir -p models
-cp /path/to/xenodot-twin/plugin-twin/examples/Duplex_A_20110907.ifc models/
-cp /path/to/xenodot-twin/plugin-twin/examples/binding_map.example.json binding_map.json
-cp /path/to/xenodot-twin/plugin-twin/examples/viewer.cfg.example viewer.cfg
+cp /path/to/xenodot-twin/plugin/examples/Duplex_A_20110907.ifc models/
+cp /path/to/xenodot-twin/plugin/examples/binding_map.example.json binding_map.json
+cp /path/to/xenodot-twin/plugin/examples/viewer.cfg.example viewer.cfg
 
 # 2. Create the pinned 3.12 ifcopenshell venv ONCE (twin_build looks for exactly .venv-ifc;
 #    ifcopenshell has no 3.14 wheel — twin_build never auto-creates it, it FAILs loud instead):
@@ -86,9 +86,9 @@ the box. Same quickstart, plant files:
 ```bash
 # From a freshly scaffolded viewer project (npm run new -- ../plant --viewer; cd ../plant):
 mkdir -p models
-cp /path/to/xenodot-twin/plugin-twin/examples/plant.ifc models/
-cp /path/to/xenodot-twin/plugin-twin/examples/binding_map.plant.example.json binding_map.json
-cp /path/to/xenodot-twin/plugin-twin/examples/viewer.cfg.plant.example viewer.cfg
+cp /path/to/xenodot-twin/plugin/examples/plant.ifc models/
+cp /path/to/xenodot-twin/plugin/examples/binding_map.plant.example.json binding_map.json
+cp /path/to/xenodot-twin/plugin/examples/viewer.cfg.plant.example viewer.cfg
 
 # Create the pinned venv once (as above), then one gated command:
 uv venv --python 3.12 .venv-ifc && uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5
@@ -102,7 +102,7 @@ them from the fresh `models/plant_props.json` sidecar before editing the map (th
 shows the one-liner). To regenerate/scale the model itself:
 
 ```bash
-.venv-ifc/bin/python /path/to/xenodot-twin/plugin-twin/examples/gen_plant_ifc.py \
+.venv-ifc/bin/python /path/to/xenodot-twin/plugin/examples/gen_plant_ifc.py \
   --tanks 4 --pumps 3 --seed 42 --out models/plant.ifc      # the bundled default
 .venv-ifc/bin/python .../gen_plant_ifc.py --tanks 40 --pumps 30 --out models/plant_big.ifc
 ```

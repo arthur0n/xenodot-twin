@@ -11,7 +11,7 @@
 // --map (or an unreadable one) it falls back to a built-in 5-tag demo set.
 //
 // This is PLUGIN CAPABILITY, not starter content: the sim lives in the xenodot-twin plugin
-// (plugin-twin/tools/sim/) and is MATERIALIZED into every viewer project at tools/sim/server.js on
+// (plugin/tools/sim/) and is MATERIALIZED into every viewer project at tools/sim/server.js on
 // each server start / doctor run (materializeTwinTools). So wire-in-place viewers — an existing
 // project.godot, no scaffold copy — get the sim too (had it stayed starter content the binding
 // smoke would SKIP there forever), and it can never drift from the plugin. The project keeps only

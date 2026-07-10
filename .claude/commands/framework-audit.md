@@ -23,7 +23,7 @@ the agreed subset. The human decides every change.
 The framework ships to every game. A skill dirty with one game's names, an agent grown past
 its remit, a misleading skill name, or a bloated prompt all degrade every game silently.
 Catching these on a cadence keeps the framework general, lean, and data-driven — the
-properties the promotion rubric (`plugin/docs/process/promotion.md`) demands.
+properties the promotion rubric (`docs/process/promotion.md`) demands.
 
 ## Where the data lives (paths are repo-relative; cwd = forge root)
 

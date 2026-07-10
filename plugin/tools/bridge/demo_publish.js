@@ -1,6 +1,6 @@
 // tools/bridge/demo_publish.js — a tiny MQTT demo publisher: the broker-side counterpart to the
 // seeded sim, so the MQTT path can be tried end-to-end WITHOUT hand-writing a mosquitto_pub loop.
-// It publishes the six house demo topics (the ones plugin-twin/examples/mqtt_map.example.json maps)
+// It publishes the six house demo topics (the ones plugin/examples/mqtt_map.example.json maps)
 // to a broker at a gentle rate, with smooth animated values, so the bridge → viewer paints and
 // moves. Point it at any MQTT 3.1.1 broker; then run mqtt_ws.js against the same broker.
 //
@@ -42,7 +42,7 @@ const PING_INTERVAL_MS = (KEEP_ALIVE_SEC * 1000) / 2;
 /** MQTT client id for the publisher (§3.1.3.1); clean session, distinct from the bridge's. */
 const CLIENT_ID = "xenodot-twin-demo-pub";
 
-/** The six demo topics, matching plugin-twin/examples/mqtt_map.example.json. `field` publishes a
+/** The six demo topics, matching plugin/examples/mqtt_map.example.json. `field` publishes a
  * JSON object `{ [field]: value }`; `integer` rounds to a whole number (the door is 0/1); the rest
  * publish a bare one-decimal number. `[min,max]` is the value range (also the ramp range).
  * @type {{ topic: string, min: number, max: number, field?: string, integer?: boolean }[]} */

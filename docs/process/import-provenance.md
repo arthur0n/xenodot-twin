@@ -3,8 +3,8 @@
 Every model that enters the twin arrives with **provenance** (where it came from, verified bytes,
 attribution) and stays on the right side of a **license wall**. This is a durable convention, not
 per-plan copy: any IFC/BIM import — a demo, a seat, a test — produces the same two artifacts and
-obeys the same license rule. The tools that automate it are `plugin-twin/tools/twin_fetch_model.sh`
-(fetch → verify → stamp) and `plugin-twin/tools/ifc_convert.py --metrics` (import metrics); the skill
+obeys the same license rule. The tools that automate it are `plugin/tools/twin_fetch_model.sh`
+(fetch → verify → stamp) and `plugin/tools/ifc_convert.py --metrics` (import metrics); the skill
 is `twin-import`.
 
 ## 1. `models/PROVENANCE.md` — required for every imported model

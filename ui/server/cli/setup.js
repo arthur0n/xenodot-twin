@@ -5,7 +5,7 @@
 //
 // Usage: npm run setup -- ../viewer      (or any path to your digital-twin viewer project)
 //        npm run setup                    (defaults to ../viewer, the sibling folder)
-// Every project is a digital-twin VIEWER (loads plugin-twin + the viewer orchestrator); the game
+// Every project is a digital-twin VIEWER (loads the xenodot plugin + the viewer orchestrator); the game
 // domain lives upstream in xenodot-forge, so `--game` is refused here.
 //
 // Hermes (external researcher) can be switched on here too — these only touch the
@@ -76,7 +76,7 @@ if (arg || !hermesArgs) {
     saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
   } catch {}
   // Project type: xenodot-twin ships one domain, so every project is a digital-twin viewer
-  // (loads plugin-twin + the viewer orchestrator). `--viewer` is accepted but redundant.
+  // (loads the xenodot plugin + the viewer orchestrator). `--viewer` is accepted but redundant.
   const projectType = "viewer";
   writeFileSync(
     CONFIG_FILE,

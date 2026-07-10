@@ -33,7 +33,7 @@
 # The no-threads build embeds in Grafana with NO cross-origin-isolation headers (a threads build needs
 # SharedArrayBuffer/COEP and is dead on arrival there); local-serve reference: tools/web/serve_coi.py.
 # Measured: the no-threads build boots live-bound at 120 fps in a real Grafana panel
-# (plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md, Chrome 150, one machine).
+# (plugin/library/findings/twin-web-ceiling-2026-07-10.md, Chrome 150, one machine).
 set -u
 # Resolve the script dir BEFORE cd, so sourcing is robust however the script was invoked.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -217,7 +217,7 @@ _emit_embed() {
      web build: it embeds with NO cross-origin-isolation headers, so it works inside a Grafana iframe
      (whose parent document is not cross-origin isolated). A threads build needs SharedArrayBuffer /
      COEP and is dead on arrival in Grafana. Measured: no-threads boots live-bound at 120 fps in a
-     real Grafana panel (plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md; Chrome 150, one
+     real Grafana panel (plugin/library/findings/twin-web-ceiling-2026-07-10.md; Chrome 150, one
      machine — Safari unverified). To serve/preview locally with the right headers instead of the
      hosted URL: python3 tools/web/serve_coi.py --dir <this demo dir> --port 8070 . Opening this
      embed.html directly in a browser previews exactly what the Grafana panel will show. -->
@@ -278,7 +278,7 @@ fi
 # user export config behind their back) — FAIL loud. An existing preset is used VERBATIM, so a seat
 # that defines its own exclude_filter is honored as-is (this default only applies to the generated one).
 # The generated preset mirrors the canonical annotated example
-# (plugin-twin/examples/export_presets.web-nothreads.cfg) — thread_support=false (the embed-anywhere /
+# (plugin/examples/export_presets.web-nothreads.cfg) — thread_support=false (the embed-anywhere /
 # no-COI-headers build) — but sets include_filter so the RAW, FileAccess-read files (viewer.cfg CONFIG,
 # binding map JSON, recording NDJSON — none of them imported resources) bake into the pck. viewer.cfg
 # is the load-bearing one: the web viewer reads res://viewer.cfg for model=/recording=/url=, and a
@@ -306,7 +306,7 @@ if [ -f export_presets.cfg ]; then
 	' export_presets.cfg | grep -q yes; then
 		echo "$XENO_GATE: FAIL preflight — export_presets.cfg exists but has no preset named '$PRESET'." >&2
 		echo "  Add the annotated no-threads Web preset (do not let this tool clobber your presets):" >&2
-		echo "    cp <framework>/plugin-twin/examples/export_presets.web-nothreads.cfg  # merge its [preset.N]" >&2
+		echo "    cp <framework>/plugin/examples/export_presets.web-nothreads.cfg  # merge its [preset.N]" >&2
 		exit 1
 	fi
 else

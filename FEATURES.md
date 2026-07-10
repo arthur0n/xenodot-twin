@@ -7,7 +7,7 @@ positioning, and setup, see the [README](README.md); for the wire protocol, see
 Counts below are badge-tracked (`npm run badges` rewrites them and cross-checks
 the base-agent list against `plugin/agents/`; wired into pre-commit). The live
 source of truth is the **Agents** tab in the UI and the plugin dirs
-(`plugin/agents/`, `plugin/skills/`, `plugin-twin/agents/`, `plugin-twin/skills/`).
+(`plugin/agents/`, `plugin/skills/`).
 
 ## The pipeline
 
@@ -40,9 +40,9 @@ product: nothing is reported "done" without passing real engine + twin checks.
   partitions scope to disjoint file sets, re-verifies a transient gate fail
   during a concurrent build, and accepts the residual race rather than chase it.
 
-## Twin agents & skills (`xenodot-twin:<name>`)
+## Twin agents & skills (`xenodot:<name>`)
 
-The digital-twin domain plugin (`plugin-twin/`). Three agents:
+The digital-twin domain, folded into the one `xenodot` plugin (`twin-*` prefix). Three agents:
 
 - `twin-architect` — the design gate: interviews you, owns the scene / join /
   overlay architecture, writes a `design/` doc small enough to build and verify

@@ -20,7 +20,7 @@
 # The matrix is JSON (dependency-free — parsed by merge_sweep.py, the same python3 every sweep merge
 # is written in; no jq). Loading it VALIDATES it, so a bad matrix (unknown key, missing baseline,
 # malformed config) fails loud at the first stage that reads it. Worked example matrix (recreates the
-# fade sweep): plugin-twin/examples/bench_sweep.vis-fade.example.json.
+# fade sweep): plugin/examples/bench_sweep.vis-fade.example.json.
 #
 # Usage (from the project root or via tools/bench_sweep.sh):
 #   tools/bench_sweep.sh <matrix.json> [stage]

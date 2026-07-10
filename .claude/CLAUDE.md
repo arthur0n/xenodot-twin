@@ -25,9 +25,11 @@ Rules for working **on the framework itself** (the Node/TS web UI and tooling un
   helpers, `main.js` entry) and `features/{chat,activity,tasks,approvals,agents,settings,
 sessions,promotions,project,level-editor,assets}/`. `ui/lib/` — shared JSDoc typedefs + helpers.
 - `plugin/` — the **xenodot** Claude Code plugin: the framework's agents, skills, tools, hooks
-  and knowledge base (`library/`). The single source of truth, loaded into every game session
-  via the SDK `plugins` option (`session.js`) so games need no copies; terminal use installs it
-  once (`.claude-plugin/marketplace.json`). Capabilities namespace as `xenodot:<name>`.
-- `starter/` — the minimal Godot project + thin templates `forge new` scaffolds into a new game.
-- Never put game-specific files in the framework; it points at an external game (default
-  `../game`), reads it in place, and the game stays pure game.
+  and knowledge base (`library/`). ONE plugin — the engine-generic base and the digital-twin
+  domain (the `twin-*` prefix) ship together. The single source of truth, loaded into every
+  session via the SDK `plugins` option (`session.js`) so projects need no copies; terminal use
+  installs it once (`.claude-plugin/marketplace.json`). Capabilities namespace as `xenodot:<name>`.
+- `starter-viewer/` — the minimal Godot viewer project + thin templates `forge new` scaffolds
+  into a new digital-twin viewer.
+- Never put project-specific files in the framework; it points at an external viewer (default
+  `../viewer`), reads it in place, and the viewer stays pure project.

@@ -56,9 +56,10 @@ git push origin main
 ## Conflicts
 
 A conflict appears where upstream edited a line we also changed — a seam file in
-[`SEAMS.md`](SEAMS.md), or an identity file. There is **no rebrand codemod**: we keep the `xenodot` /
-`xenodot-twin` names and namespaces verbatim, so identifiers never need re-flipping. Resolve to keep
-our version PLUS upstream's real behavior change, then let the gates catch anything left over.
+[`SEAMS.md`](SEAMS.md), or an identity file. There is **no rebrand codemod**: we keep the `xenodot`
+plugin name and the `xenodot:` namespace verbatim (only the GitHub repo is `xenodot-twin`), so
+identifiers never need re-flipping. Resolve to keep our version PLUS upstream's real behavior change,
+then let the gates catch anything left over.
 
 ## Never
 
@@ -66,5 +67,6 @@ our version PLUS upstream's real behavior change, then let the gates catch anyth
 - **Never blanket `-X theirs`/`-X ours`** — resolve conflicts file-by-file with visible reasoning.
 - **Never carry the game payload** — re-drop the SEAMS divergences every sync; `check:skills` +
   `check:contamination` + `test:onboarding` are the tripwires.
-- **Never rename the plugins or namespaces** — `plugin-twin/**` composes base skills as
-  `xenodot:<name>`; a rename breaks every cross-plugin reference.
+- **Never rename the plugin or namespace** — the fork ships ONE `xenodot` plugin; its `twin-*`
+  capabilities live in `plugin/` beside the base and compose it as `xenodot:<name>`. A rename breaks
+  those references.

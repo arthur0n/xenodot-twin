@@ -29,9 +29,9 @@ We track upstream closely but ship a viewer-only product. So on every conflict:
 - **Engine / twin / framework wins → take them,** plus our behavioral seam edits.
 - **Identity → OURS, always.** `package.json` name/description, `.claude-plugin/marketplace.json`,
   `plugin/.claude-plugin/plugin.json` description, `README.md`, `FEATURES.md`.
-- **No rebrand codemod.** We keep the `xenodot` / `xenodot-twin` plugin names + `xenodot:` /
-  `xenodot-twin:` namespaces verbatim — cross-plugin frontmatter depends on them. Identifiers never
-  need re-flipping; there is nothing to codemod.
+- **No rebrand codemod.** We keep the `xenodot` plugin name + `xenodot:` namespace verbatim (only the
+  GitHub repo is `xenodot-twin`) — the fork ships ONE plugin, with the `twin-*` capabilities in
+  `plugin/` beside the base. Identifiers never need re-flipping; there is nothing to codemod.
 
 ## Arguments
 
@@ -55,9 +55,10 @@ still runs validate). Let `REF = <remote>/<branch>`.
    **read** the commit list and triage what's landing into three buckets, and say so to the human
    before touching anything:
    - **Framework / twin wins we want** — spine refactors, new CORE skills/hooks/MCP-tools, test-suite
-     additions, security/self-improvement gates, Hermes/codex/graphify improvements, and anything
-     under `plugin-twin/`, `starter-viewer/`, `ui/server/features/twin/`, `ui/orchestrator-viewer.md`,
-     `docs/tutorials/`. These are the point of the sync.
+     additions, security/self-improvement gates, Hermes/codex/graphify improvements, and the fork's
+     twin surface (the `twin-*` skills/agents in `plugin/`, `starter-viewer/`,
+     `ui/server/features/twin/`, `ui/orchestrator-viewer.md`, `docs/tutorials/`). These are the point
+     of the sync.
    - **Game payload we'll drop** — gameplay `godot-*` skills/agents, the game orchestrator, `starter/`,
      game roadmap docs, game library records. Cross-check against `SEAMS.md`.
    - **Identity hunks we resolve as OURS** — `package.json`, `.claude-plugin/marketplace.json`,
@@ -133,5 +134,6 @@ game-designer,level-designer,godot-playtester,art-director,asset-advisor,bug-tri
   that analysis is the whole point of using a command here.
 - **Never take game payload.** Re-drop the `SEAMS.md` divergences every sync; the gates (step 7–8) are
   the tripwire — never silence them.
-- **Never rename the plugins or namespaces.** `plugin-twin/**` composes base skills as
-  `xenodot:<name>`; a rename breaks every cross-plugin reference. There is no rebrand codemod.
+- **Never rename the plugin or namespace.** The fork ships ONE `xenodot` plugin; its `twin-*`
+  capabilities live in `plugin/` beside the base and compose it as `xenodot:<name>`. A rename breaks
+  those references. There is no rebrand codemod.

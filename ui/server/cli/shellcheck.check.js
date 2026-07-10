@@ -7,7 +7,7 @@
 //
 // Flags mirror how the scripts are written: `-x` follows sourced files so the `# shellcheck
 // source=lib/checks.sh` directives resolve; --source-path=SCRIPTDIR finds each script's own
-// lib/, and --source-path=plugin/tools points the plugin-twin scripts (whose lib/checks.sh is
+// lib/, and --source-path=plugin/tools points the plugin's tool scripts (whose lib/checks.sh is
 // materialized at runtime, absent from the repo) at the canonical shared library.
 //
 // Bare-node, no test runner (same style as ui/structure.check.js); wired into `npm run validate`,

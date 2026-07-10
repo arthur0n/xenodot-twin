@@ -65,5 +65,5 @@ recording/map/sidecar).
 ## Task types (v1)
 
 `narrate-anomalies`, `summarize-window`, `inspection-report`. Prompt templates are reviewable files
-(Phase 3, `plugin-twin/skills/twin-analyze/tasks/*.md`); each states the role, embeds the honesty
+(Phase 3, `plugin/skills/twin-analyze/tasks/*.md`); each states the role, embeds the honesty
 rules above, defines the required report structure, and appends the bundle JSON verbatim.

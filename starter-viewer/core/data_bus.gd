@@ -29,7 +29,7 @@ extends Node
 signal tag_update(tag: String, value: float, seq: int, latency_ms: float)
 signal connection_changed(up: bool)
 
-# Default tag-source URL. The :8765 port is the sim's DEFAULT_PORT (plugin-twin/tools/sim/
+# Default tag-source URL. The :8765 port is the sim's DEFAULT_PORT (plugin/tools/sim/
 # stream.js — the shared default the sim server and recorder both import) — a sim started with no
 # --port pairs with a default viewer out of the box. (The verify_twin.sh gate deliberately runs its
 # own sim on 8899 instead, to avoid colliding with a dev-running sim on 8765.)

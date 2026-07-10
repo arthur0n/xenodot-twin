@@ -27,7 +27,7 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
   `plugin/commands/*.md`, the forge-local `.claude/commands/*.md` (the self-improvement commands —
   when a D7 finding targets an audit command itself), `plugin/library/{transcripts,verdicts}/`.
 - Editing a plugin file directly **is** the sanctioned path for a general improvement
-  (`plugin/docs/process/promotion.md`: "General improvement → edit the file directly in the
+  (`docs/process/promotion.md`: "General improvement → edit the file directly in the
   plugin"). A skill stays game-agnostic; the game's own FACTS live GAME-LOCAL (the game repo), NOT
   in `plugin/library/` (it symlinks/ships to every game). `plugin/library/` is for AGNOSTIC records.
 - **Search with the Grep TOOL or `/opt/homebrew/bin/rg` (full path), NEVER bash `grep`** — the `rtk`

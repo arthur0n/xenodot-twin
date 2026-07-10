@@ -96,7 +96,7 @@ When the sim has served its purpose and you have a real broker:
 
 **What happens:** the Hive knows the **MQTT→WS bridge already ships** — it does **not** design a new
 ingress. It tells you to author an `mqtt_map.json` (topic→tag rules; example at
-`plugin-twin/examples/mqtt_map.example.json`), run the bridge —
+`plugin/examples/mqtt_map.example.json`), run the bridge —
 
 ```bash
 node tools/bridge/mqtt_ws.js --broker mqtt://host:1883 --map mqtt_map.json --port 8766

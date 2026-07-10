@@ -20,7 +20,7 @@ VENV: needs ifcopenshell, which has NO wheel for Python 3.14 — run inside the 
 
     uv venv --python 3.12 .venv-ifc
     uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5
-    .venv-ifc/bin/python plugin-twin/examples/gen_plant_ifc.py --out plant.ifc
+    .venv-ifc/bin/python plugin/examples/gen_plant_ifc.py --out plant.ifc
 
 DETERMINISM: same --seed ⇒ byte-identical file (identical sha256). ifcopenshell.guid.new()
 is random, so this generator does NOT use it: it seeds its own PRNG and derives every

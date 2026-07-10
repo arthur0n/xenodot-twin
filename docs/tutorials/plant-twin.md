@@ -14,14 +14,14 @@ different asset.
 > is written into the IFC header on purpose). And the scene optimizer is a **structural no-op** on
 > it: every element is unique geometry, so there is nothing to instance at any scale. That is a
 > settled, measured finding —
-> [`twin-plant-asset-2026-07-10.md`](../../plugin-twin/library/findings/twin-plant-asset-2026-07-10.md)
+> [`twin-plant-asset-2026-07-10.md`](../../plugin/library/findings/twin-plant-asset-2026-07-10.md)
 > — and this tutorial inherits its honest framing rather than re-testing it. If you want the
 > _scale / instancing_ story, that is the city benchmark, not this. What the plant _does_ show
 > beautifully is **data binding**: eight literal plant tags (pump/tank/valve/motor) painting
 > live onto labelled equipment.
 
 **House vs. plant — which demo when** (straight from
-[`plugin-twin/examples/README.md`](../../plugin-twin/examples/README.md)):
+[`plugin/examples/README.md`](../../plugin/examples/README.md)):
 
 - **House** (Duplex) — a **real BIM model, small and fast**: the _teaching_ asset, the thing you
   learn the pipeline on. Start there ([`digital-twin.md`](digital-twin.md)).
@@ -73,9 +73,9 @@ cd ../plant
 
 # 2. Copy the PLANT kit in (three files — the IFC goes under models/ so build artifacts co-locate):
 mkdir -p models
-cp ../xenodot-twin/plugin-twin/examples/plant.ifc models/
-cp ../xenodot-twin/plugin-twin/examples/binding_map.plant.example.json binding_map.json
-cp ../xenodot-twin/plugin-twin/examples/viewer.cfg.plant.example viewer.cfg
+cp ../xenodot-twin/plugin/examples/plant.ifc models/
+cp ../xenodot-twin/plugin/examples/binding_map.plant.example.json binding_map.json
+cp ../xenodot-twin/plugin/examples/viewer.cfg.plant.example viewer.cfg
 
 # 3. Provision the pinned 3.12 ifcopenshell venv ONCE (idempotent; twin_build looks for exactly
 #    .venv-ifc and never auto-creates it — a missing venv FAILs loud):
@@ -286,7 +286,7 @@ You can regenerate the plant at any size. Regenerating the **default** `--seed 4
 vendored `plant.ifc` byte-for-byte (the generator seeds its own PRNG and pins the STEP header):
 
 ```bash
-tools/twin_venv.sh --run ../xenodot-twin/plugin-twin/examples/gen_plant_ifc.py \
+tools/twin_venv.sh --run ../xenodot-twin/plugin/examples/gen_plant_ifc.py \
   --tanks 4 --pumps 3 --seed 42 --out models/plant_regen.ifc
 diff models/plant_regen.ifc models/plant.ifc     # identical — nothing to commit
 ```
@@ -297,7 +297,7 @@ still yields **`groups_instanced: 0`, `multimeshes: 0`, `est_draw_items 189 → 
 items, zero clawed back:
 
 ```bash
-tools/twin_venv.sh --run ../xenodot-twin/plugin-twin/examples/gen_plant_ifc.py \
+tools/twin_venv.sh --run ../xenodot-twin/plugin/examples/gen_plant_ifc.py \
   --tanks 40 --pumps 30 --seed 42 --out models/plant_big.ifc
 tools/twin_venv.sh --run tools/ifc_convert.py models/plant_big.ifc \
   --glb models/plant_big.glb --sidecar models/plant_big_props.json    # 189 shapes

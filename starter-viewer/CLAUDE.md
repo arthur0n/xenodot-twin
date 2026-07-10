@@ -3,7 +3,7 @@
 This repo is a **digital-twin viewer**, not a game. It renders an external 3D model and
 live process data on top of it; it has no gameplay, levels, or win state. The AI framework
 that builds it — agents, `godot-*`/`twin-*` skills, the verify/gen tools — loads from the
-**xenodot** (+ **xenodot-twin**) Claude Code plugins (the single source of truth); it is
+**xenodot** Claude Code plugin (the single source of truth); it is
 **not** in this repo. Its working files appear here only as gitignored, generated paths:
 `tools/` (copied from the plugin) and `library/` (a symlink to the plugin's knowledge base).
 Twin-specific skills/agents you author live in this repo's `.claude/` until you promote

@@ -257,4 +257,4 @@ Prefix shell commands with `rtk` as usual. The Godot binary (`$GODOT`) runs with
 filtered. Never reference rtk inside the `.sh`/`.gd` tools.
 
 Measured seat artifact sizes + the layout contract, proven end-to-end (clean-stranger unzip, README-only
-run, windowed boot, the data-swap contract): `plugin-twin/library/findings/twin-ship-2026-07-10.md`.
+run, windowed boot, the data-swap contract): `plugin/library/findings/twin-ship-2026-07-10.md`.

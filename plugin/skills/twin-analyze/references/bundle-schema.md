@@ -1,6 +1,6 @@
 # Contract 1 — the analysis bundle (`twin-analysis-bundle`)
 
-The **data-in** half of the analysis seam. `plugin-twin/tools/analyze/bundle.js` packs a twin
+The **data-in** half of the analysis seam. `plugin/tools/analyze/bundle.js` packs a twin
 recording (plus an optional binding map and property sidecar) into **one deterministic JSON
 document** that a swappable worker — another model, or a human pasting into a chat UI — narrates.
 The seam IS this contract; the worker is an adapter.

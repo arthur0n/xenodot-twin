@@ -27,7 +27,7 @@ that EMBEDS a threads build in an `<iframe>` must itself be cross-origin isolate
 build inside a Grafana iframe never gets SharedArrayBuffer and is dead on arrival
 regardless of this server's headers — which is exactly why the shipped recipe uses
 the no-threads variant for in-Grafana embeds. Measured evidence + the recipe:
-`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`.
+`plugin/library/findings/twin-web-ceiling-2026-07-10.md`.
 
 Also sets the correct WASM/PCK MIME types (`.wasm` must be `application/wasm` or
 the browser refuses streaming compilation) and `Cache-Control: no-store` so a dev

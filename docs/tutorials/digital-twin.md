@@ -6,7 +6,7 @@ a green end-to-end gate. Every command and output snippet below was actually run
 (Godot 4.6.3, Node 22, Python 3.12); the wrinkles are the ones a stranger really hits, with the
 fix that cleared each.
 
-It uses the bundled **try-it kit** ([`plugin-twin/examples/`](../../plugin-twin/examples/)) — the
+It uses the bundled **try-it kit** ([`plugin/examples/`](../../plugin/examples/)) — the
 sample IFC, an example `binding_map`, and an example `viewer.cfg` — so you don't have to source
 any files yourself.
 
@@ -133,9 +133,9 @@ auto-creates it (a missing venv FAILs loud with the exact `uv` lines):
 ```bash
 cd ../house
 mkdir -p models
-cp ../xenodot-twin/plugin-twin/examples/Duplex_A_20110907.ifc models/
-cp ../xenodot-twin/plugin-twin/examples/binding_map.example.json binding_map.json
-cp ../xenodot-twin/plugin-twin/examples/viewer.cfg.example viewer.cfg
+cp ../xenodot-twin/plugin/examples/Duplex_A_20110907.ifc models/
+cp ../xenodot-twin/plugin/examples/binding_map.example.json binding_map.json
+cp ../xenodot-twin/plugin/examples/viewer.cfg.example viewer.cfg
 uv venv --python 3.12 .venv-ifc && uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5
 
 tools/twin_build.sh models/Duplex_A_20110907.ifc --map binding_map.json
@@ -162,7 +162,7 @@ twin-build: OK
 
 Boot that printed command to see the optimized, data-painted twin. On an M3 Pro the whole
 command runs in ~19.5 s cold — measured, with machine caveats, in
-[`plugin-twin/library/findings/twin-build-2026-07-09.md`](../../plugin-twin/library/findings/twin-build-2026-07-09.md).
+[`plugin/library/findings/twin-build-2026-07-09.md`](../../plugin/library/findings/twin-build-2026-07-09.md).
 No binding map? The build still does import + optimize + join; the smoke SKIPs loudly and the
 summary points you at authoring one (skill `twin-bind-data`).
 
@@ -211,7 +211,7 @@ node names carry it, the property sidecar is keyed by it, and live tags bind thr
 folder at the workspace root):
 
 ```bash
-cp ../xenodot-twin/plugin-twin/examples/Duplex_A_20110907.ifc .
+cp ../xenodot-twin/plugin/examples/Duplex_A_20110907.ifc .
 head -c 13 Duplex_A_20110907.ifc    # must print: ISO-10303-21;
 ```
 
@@ -219,7 +219,7 @@ That header check matters: the canonical buildingSMART sample URLs are **dead** 
 error page that "converts" into garbage. A real IFC (a STEP file) starts with `ISO-10303-21;`. If
 you fetch a fresh copy instead of using the bundled one, a working mirror for the Duplex model is
 `https://raw.githubusercontent.com/andyward/XBimDemo/master/Xbim.TestApp/Duplex_A_20110907.ifc`
-(see [`plugin-twin/examples/NOTICE.md`](../../plugin-twin/examples/NOTICE.md) for provenance).
+(see [`plugin/examples/NOTICE.md`](../../plugin/examples/NOTICE.md) for provenance).
 
 **Build the Python venv** (pinned to 3.12; `.venv` is gitignored by the starter). Keep it _inside_
 `house/` — it's a host build toolchain, not project runtime; Godot never touches Python:
@@ -257,8 +257,8 @@ The GLB + sidecar under `models/` are **gitignored** — they're runtime-loaded 
 kit ships one ready to use — copy it in:
 
 ```bash
-cp ../xenodot-twin/plugin-twin/examples/binding_map.example.json binding_map.json
-cp ../xenodot-twin/plugin-twin/examples/viewer.cfg.example viewer.cfg
+cp ../xenodot-twin/plugin/examples/binding_map.example.json binding_map.json
+cp ../xenodot-twin/plugin/examples/viewer.cfg.example viewer.cfg
 ```
 
 The example ids are for **this** IFC and are deterministic across converts of the same file, so
@@ -436,7 +436,7 @@ The seeded sim is the fixture; a real plant speaks MQTT. The **MQTT→WS bridge*
 same relay seam — no viewer change. It is a client: **you point it at a broker you already have.**
 Its only dependency is `node` (materialized into the project's `tools/`, bare `node`, no
 `npm install`) — **no Docker, nothing to deploy.** Write an `mqtt_map.json` mapping your broker's
-topics to your tags (example: `xenodot-twin/plugin-twin/examples/mqtt_map.example.json`), then:
+topics to your tags (example: `xenodot-twin/plugin/examples/mqtt_map.example.json`), then:
 
 ```bash
 # 1) point the bridge at YOUR broker (host, port, and credentials if it needs them)
@@ -474,7 +474,7 @@ Godot **games**, use the sibling framework: [github.com/arthur0n/xenodot-forge](
 The same viewer exports to a browser build (Godot Web / WASM) and drops into a Grafana dashboard as a
 live 3D panel — the OpenTwins pattern. The measured browser fps ceiling, the variant choice, and the
 two caveats below all come from
-[`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`](../../plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md)
+[`plugin/library/findings/twin-web-ceiling-2026-07-10.md`](../../plugin/library/findings/twin-web-ceiling-2026-07-10.md)
 (Chrome 150, M3 Pro, Godot 4.6.3 — one machine).
 
 ### 1. Export the no-threads build
@@ -493,7 +493,7 @@ Two Web export variants exist and the choice is the whole story:
 Copy the annotated example preset in as your project's `export_presets.cfg`, then export headless:
 
 ```bash
-cp ../xenodot-twin/plugin-twin/examples/export_presets.web-nothreads.cfg export_presets.cfg
+cp ../xenodot-twin/plugin/examples/export_presets.web-nothreads.cfg export_presets.cfg
 $GODOT --headless --path . --export-release "Web-nothreads" builds/web/index.html
 ```
 
@@ -630,7 +630,7 @@ model/map/recording are read at runtime, so swapping them per site is a text edi
 
 Measured artifact sizes (universal `.app`, the code-only pck, the deterministic zip), the clean-stranger
 run, the windowed boot, and the data-swap proof:
-[`plugin-twin/library/findings/twin-ship-2026-07-10.md`](../../plugin-twin/library/findings/twin-ship-2026-07-10.md).
+[`plugin/library/findings/twin-ship-2026-07-10.md`](../../plugin/library/findings/twin-ship-2026-07-10.md).
 The tool's operator manual (when to ship vs iterate, reading each stage's failure): skill `twin-ship`.
 
 ---

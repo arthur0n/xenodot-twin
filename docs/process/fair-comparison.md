@@ -16,7 +16,7 @@ weakness of theirs dressed as ours. Name the real thing they do that we don't.
 ## Worked example — OpenTwins (the canonical case)
 
 OpenTwins is the acknowledged blueprint (a 3D scene as a live Grafana panel). The fair side-by-side
-(`plugin-twin/library/findings/twin-grafana-embed-2026-07-10.md`) names two gaps in OpenTwins' favor:
+(`plugin/library/findings/twin-grafana-embed-2026-07-10.md`) names two gaps in OpenTwins' favor:
 
 1. **Bidirectional click-through / write-back to the source** — OpenTwins lets an operator act on the
    source from the scene; this framework is read-only **visualization** today.
@@ -44,5 +44,5 @@ From `docs/research/landscape-2026-07.md` (permanent, verified):
   the competitor's favor, the comparison is not ready to ship.
 
 Cross-refs: `docs/research/landscape-2026-07.md` (refuted claims + honesty notes);
-`plugin-twin/library/findings/twin-grafana-embed-2026-07-10.md` (the OpenTwins side-by-side in full).
+`plugin/library/findings/twin-grafana-embed-2026-07-10.md` (the OpenTwins side-by-side in full).
 </content>

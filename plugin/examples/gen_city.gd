@@ -5,7 +5,7 @@ extends SceneTree
 ## worked example matrix (examples/bench_sweep.vis-fade.example.json) names its output `scene_in`.
 ## It is a DEMO ASSET generator — it lives in examples/ (like gen_plant_ifc.py) and is NOT
 ## materialized into a user project's tools/; run it as a --script against a viewer to build it.
-## Prior art / methodology: plugin-twin/library/findings/twin-optimizer-benchmark-2026-07-08.md and
+## Prior art / methodology: plugin/library/findings/twin-optimizer-benchmark-2026-07-08.md and
 ## the twin-optimize skill.
 ##
 ## Loads a single real BIM model (duplex.glb — the tutorial's Duplex, ~286 meshes) once via

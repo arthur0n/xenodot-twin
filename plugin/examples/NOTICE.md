@@ -29,7 +29,7 @@
   `gen_plant_ifc.py` (bundled beside this file) and is reproducible: the "synthetic demonstration
   model" label is written into the IFC `FILE_DESCRIPTION` header and the generator's docstring.
 - **How to reproduce it (byte-identical):** in the pinned 3.12 ifcopenshell venv,
-  `.venv-ifc/bin/python plugin-twin/examples/gen_plant_ifc.py --seed 42 --tanks 4 --pumps 3
+  `.venv-ifc/bin/python plugin/examples/gen_plant_ifc.py --seed 42 --tanks 4 --pumps 3
 --out plant.ifc`. Same `--seed` ⇒ same GlobalIds/layout ⇒ identical `sha256` (the generator
   seeds its own PRNG, derives every GlobalId from it, and pins the STEP header time_stamp — it
   never calls the random `ifcopenshell.guid.new()` or wall-clock). Turn `--tanks`/`--pumps` up for
