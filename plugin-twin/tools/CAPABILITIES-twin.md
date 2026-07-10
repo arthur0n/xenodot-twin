@@ -100,8 +100,36 @@ Converts an IFC model to GLB with node names carrying the IFC GlobalIds
 (`get_psets`, `json.dump default=str`). Validates the STEP header first — the guard
 against dead sample URLs that download HTML.
 
-Needs a **Python 3.12** venv with `ifcopenshell==0.8.5` (3.14 has no wheel) — setup in
-skill `twin-import`. No engine needed.
+Needs a **Python 3.12** venv with `ifcopenshell==0.8.5` (3.14 has no wheel) — provisioned by
+`twin_venv.sh` (below); setup in skill `twin-import`. No engine needed.
+
+## `twin_venv.sh` — provision the pinned ifcopenshell venv (idempotent)
+
+```
+tools/twin_venv.sh [--dir .venv-ifc] [--python 3.12] [--ifcopenshell 0.8.5]
+tools/twin_venv.sh --run tools/ifc_convert.py <model.ifc>
+```
+
+Folds the venv bootstrap the IFC convert path needs into one idempotent command: an existing
+valid `.venv-ifc` is **reused**, a missing one is **provisioned** (`uv venv --python 3.12` +
+`uv pip install ifcopenshell==0.8.5`), and a **version mismatch FAILs loud** (never a silent
+rebuild — same drift-visible discipline as `twin_build.sh`). `--run` executes a script with the
+venv's python once the venv is ready. Needs `uv`; no engine.
+
+## `twin_fetch_model.sh` — fetch IFC + integrity + provenance stamp
+
+```
+tools/twin_fetch_model.sh <url> --sha256 <hex> [--out models/x.ifc] [--license <line>] \
+    [--models-dir models] [--name <label>] [--no-lfs-rewrite]
+```
+
+Download → **Git-LFS handling** (a raw/blob GitHub URL for an LFS file serves a text pointer;
+auto-rewrites to the `media.githubusercontent.com/media/` endpoint and re-fetches) → **sha256
+verify** against the expected digest → **STEP-header** (`ISO-10303-21;`) sanity (dead-URL guard)
+→ schema read → **stamp `models/PROVENANCE.md`** (URL, license, sha256, size, schema). Idempotent
+(reuses an output whose sha256 already matches) and never leaves a half-verified file at the
+output path. Verified sample (Schependomlaan, IFC2X3, 62 MB) is pinned in skill `twin-import`.
+Needs `curl`; no engine.
 
 ## `optimize_scene.gd` — the scene optimizer
 
@@ -366,6 +394,24 @@ mixed-content rule). The two annotated Web export presets ship as examples:
 ceiling, the threads-vs-no-threads no-delta finding, and the Grafana-embed evidence:
 `plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`. Recipe + embed snippet: skill
 `twin-bind-data` → "Serving to the browser / Grafana embed".
+
+## `web/twin_evidence.js` — browser evidence capture (CDP screenshot + console)
+
+```
+node tools/web/twin_evidence.js (--url <url> | --dir <build>) --out <dir> [--seconds N] \
+    [--allow <regex>]... [--port N] [--chrome <path>]
+```
+
+Verify a web build in a **real headed browser** over the DevTools Protocol — the proof an HTTP 200
+and a desktop smoke can't give (both have lied). Given a URL, or a local build dir it serves via
+`serve_coi.py`, it drives Chrome, collects the **verbatim** console/exception log (auto-attaching
+to child frames, so an embedded build's console is captured too), takes a **screenshot**, and
+writes `<out>/screenshot.png` + `<out>/console.log`. **Exits non-zero on any un-allowlisted
+console error** (exit 1; exit 2 = setup fail) — Godot web exports route engine warnings through
+`console.error`, so allowlist those with `--allow "Occlusion culling|_print_warning"` and nothing
+more. Node built-ins only (global WebSocket + fetch) — no npm deps, same runtime policy as the sim;
+needs Chrome (`$CHROME` or the macOS app path). Generalized from the archived `web-ceiling` CDP
+drivers. Wired as `twin-verify` step 6 (browser evidence); feeds demo card art.
 
 ## Referenced (NOT bundled) — base xenodot capabilities
 

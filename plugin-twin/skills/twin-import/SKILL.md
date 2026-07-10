@@ -29,7 +29,18 @@ Proven end-to-end on the Duplex sample: 2.3 MB IFC → GLB + sidecar in ~1.1 s w
 ## Step 0 — the Python venv (the version trap)
 
 ifcopenshell ships **no wheel for Python 3.14** (the current macOS system python) — `pip install
-ifcopenshell` on 3.14 fails with "no matching distribution". Pin **3.12**:
+ifcopenshell` on 3.14 fails with "no matching distribution". The venv MUST pin **3.12**, and
+**0.8.5** is the proven version. `tools/twin_venv.sh` owns that recipe so you never hand-run it:
+
+```bash
+rtk tools/twin_venv.sh                         # ensure .venv-ifc (idempotent)
+rtk tools/twin_venv.sh --run tools/ifc_convert.py model.ifc   # ensure, then convert inside it
+```
+
+It is **idempotent**: an existing valid `.venv-ifc` is reused; a missing one is provisioned
+(`uv venv --python 3.12` + `uv pip install ifcopenshell==0.8.5`); a different ifcopenshell
+already installed **FAILs loud** with the fix (it never silently rebuilds — drift stays visible).
+The equivalent by hand, if you ever need it:
 
 ```bash
 rtk uv venv --python 3.12 .venv-ifc
@@ -80,6 +91,32 @@ If it prints `<!DOCTYPE` or anything else, the URL served a web page, not a mode
 A vetted copy of the Duplex sample (plus an example binding map + viewer config) ships in the
 try-it kit at `plugin-twin/examples/` — see its `README.md` for the copy-in-and-convert
 quickstart and `NOTICE.md` for provenance.
+
+### Fetch + verify + stamp in one command: `tools/twin_fetch_model.sh`
+
+Don't hand-run the download/verify/provenance chore — `tools/twin_fetch_model.sh` does all of it:
+download → **Git-LFS media-endpoint handling** → **sha256 verify** against the expected digest →
+**STEP-header** (`ISO-10303-21;`) sanity → schema read → **stamp `models/PROVENANCE.md`**
+(URL, license, sha256, size, schema). It's idempotent (an output whose sha256 already matches is
+reused) and never leaves a half-verified file.
+
+```bash
+rtk tools/twin_fetch_model.sh <url> --sha256 <hex> --out models/<name>.ifc --license "<line>"
+```
+
+**The Git-LFS trap:** the buildingSMART community sample repo tracks its `.ifc` files with Git
+LFS, so a plain `raw.githubusercontent.com` / GitHub `blob` URL serves a ~130-byte **text
+pointer**, not the model. The tool auto-detects the pointer and re-fetches from the
+`media.githubusercontent.com/media/` endpoint (which serves the real bytes); pass a media URL
+directly and it just works.
+
+**Verified working sample — Schependomlaan** (a real 62 MB IFC2X3 Dutch row-house project, the
+BIM-seat model; CC BY 4.0, credit line required — see the seat's `PROVENANCE.md`):
+
+```
+https://media.githubusercontent.com/media/buildingsmart-community/Community-Sample-Test-Files/main/IFC%202.3.0.1%20(IFC%202x3)/Schependomlaan/As%20Planned%20models/IFC%20Schependomlaan%20incl%20planningsdata.ifc
+  65,078,748 bytes  IFC2X3  sha256 57fafa59f03b18c05be211a456e346bdd0445d5c35d66522e598d339e81dfcf4
+```
 
 ### More dead / trap URLs — DO NOT RE-WALK (plant-asset sourcing spike, 2026-07-10)
 
@@ -175,7 +212,7 @@ GlobalIds — diagnose from `MISS_SAMPLE`, never ship a low-join model into bind
 
 | Symptom                                                       | Fix                                                                                                                            |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `pip install ifcopenshell` — no matching distribution         | Python too new (3.14 has no wheel). `uv venv --python 3.12`, install `ifcopenshell==0.8.5`                                     |
+| `pip install ifcopenshell` — no matching distribution         | Python too new (3.14 has no wheel). Run `tools/twin_venv.sh` (pins 3.12 + `ifcopenshell==0.8.5`)                               |
 | Downloaded "IFC" fails to open / parses as garbage            | Dead buildingSMART URL served HTML. Use the XBimDemo raw.githubusercontent.com mirror; validate `head -c 13` = `ISO-10303-21;` |
 | GLB node names are display names, not 22-char ids             | `use-element-guids` not set on **serializer_settings** (it is a serializer setting, not a geometry setting)                    |
 | `json.dump` raises TypeError on psets                         | Missing `default=str` — pset values include IFC entity refs/dates                                                              |
