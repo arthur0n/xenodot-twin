@@ -1,6 +1,6 @@
 /* ============================================================
-   Xenodot Forge — UI styles
-   "The Forge Temple": the Xenodot creature's bioluminescent
+   Xenodot Twin — UI styles
+   The Xenodot creature's bioluminescent
    workshop. Void-ink maroon-black void, forge-green machine-spirit
    glow, alien-lime hotspots. Sharp corners, stamped labels.
    Official palette (assets/VoidInk_style.md):
@@ -346,7 +346,7 @@ body.resizing iframe {
   }
 }
 
-/* Wordmark echoes the emblem's stamped banner: tracked caps, "FORGE"
+/* Wordmark echoes the emblem's stamped banner: tracked caps, "TWIN"
    quenched to alien lime as a second tier. */
 .brand-word {
   display: inline-flex;
@@ -3042,7 +3042,7 @@ input.cmd::placeholder {
 }
 
 /* Transcript harvest modal — paste a raw transcript, framework writes it to the
-   game's transcripts/ drop zone and runs transcript-researcher. */
+   project's transcripts/ drop zone and runs transcript-researcher. */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -3234,7 +3234,7 @@ input.cmd::placeholder {
   margin-top: 6px;
 }
 
-/* Promotions board — game-local capability → framework plugin requests. */
+/* Promotions board — project-local capability → framework plugin requests. */
 .promo-row {
   border: 1px solid var(--border);
   border-radius: var(--radius);
