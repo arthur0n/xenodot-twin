@@ -58,7 +58,7 @@ docs/tutorials  ui/server/cli/materialize.test.js
 plugin-twin/tools/twin_build.sh  plugin-twin/skills/twin-build
 plugin-twin/tools/analyze  plugin-twin/skills/twin-analyze
 plugin-twin/tools/web  plugin-twin/examples/export_presets.web-nothreads.cfg  plugin-twin/examples/export_presets.web-threads.cfg
-plugin-twin/tools/twin_ship.sh  plugin-twin/skills/twin-ship
+plugin-twin/tools/twin_ship.sh  plugin-twin/skills/twin-ship  plugin-twin/tools/twin_publish_web.sh
 plugin-twin/examples/plant.ifc  plugin-twin/examples/binding_map.plant.example.json  plugin-twin/examples/viewer.cfg.plant.example  plugin-twin/examples/gen_plant_ifc.py  plugin-twin/examples/NOTICE.md  plugin-twin/examples/README.md
 plugin-twin/tools/bench_sweep.sh  plugin-twin/tools/bench  plugin-twin/examples/bench_sweep.vis-fade.example.json
 plugin-twin/examples/gen_city.gd
@@ -100,6 +100,17 @@ plugin-twin/examples/gen_city.gd
 > `e250d11` re-deletion can't touch them) — the explicit lines are belt-and-suspenders, not a second
 > mechanism. (The starter-viewer export-compat changes this skill rides on — `main.gd` buffer-load,
 > exe-adjacent `viewer.cfg`, `--quit-after=` — live under `starter-viewer/`, already whole-restored.)
+>
+> `plugin-twin/tools/twin_publish_web.sh` (the WEB ship path — export the no-threads WASM build, bake
+> model + map + recording into the pck for AUTOPLAY playback, stage into a demos repo, regenerate its
+> root index, optional `--movie` hero capture) is the load-bearing surface of the demo-publish loop
+> and is named explicitly for the same reason. It sits **inside** the whole-`plugin-twin` restore above
+> and is a fork-only file upstream never carried (a sync's `e250d11` re-deletion can't touch it) —
+> belt-and-suspenders, not a second mechanism. It rides the recursive `tools/` materialize into user
+> projects (a pipeline tool, like the sim + `serve_coi.py`) and is self-contained (it embeds the
+> no-threads preset rather than reading `examples/`, which is never materialized). The starter-viewer
+> compat it rides on — `main.gd`'s `res://` model/recording load + `data_bus.config_path()`'s
+> `res://viewer.cfg` fallback on web — lives under `starter-viewer/`, already whole-restored.
 >
 > `plugin-twin/tools/bench_sweep.sh` (the reusable declarative optimize→bench→merge recipe sweep) +
 > `plugin-twin/tools/bench/` (its dependency-free `merge_sweep.py` analysis/determinism-assert half,
