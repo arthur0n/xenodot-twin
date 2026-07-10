@@ -133,12 +133,24 @@ model resolves to **0 targets** — the viewer boots, the HUD still shows the ot
 nothing flags the dead row unless you count. So author against the sidecar, and let the gate count.
 
 1. **Never copy the example's own ids.** `binding_map.example.json` carries Duplex ids; they do not
-   resolve against your model. Grep the model's sidecar (`<model>_props.json`, `GlobalId → {ifc_class,
-name, psets}`) for the elements you mean, and take the **22-char key**, not the `name`:
+   resolve against your model. **Query the candidates, don't grep the sidecar** — the framework lists
+   valid GlobalIds filtered by IFC class / Name so you PICK joins instead of scanning a 22 MB
+   `<model>_props.json` by hand. Take the **22-char GlobalId**, never the `name`. Three surfaces, one
+   shared core (they can't drift):
 
    ```bash
-   rtk grep -o '"[0-9A-Za-z_$]\{22\}": {[^}]*buitenblad' models/<model>_props.json   # e.g. exterior walls
+   # Terminal / seat (from the framework repo, pointed at your game):
+   npm run binding -- --model <model> --class IfcWall --name buitenblad --limit 20   # exterior walls
+   npm run binding -- --model <model> --class IfcDoor --json                          # machine artifact
    ```
+
+   - **Agent session:** call `mcp__ui__find_binding_candidates` (`ifcClass` / `name` / `model`,
+     paged by `offset` — read-only, confined to the project's own sidecars, never dumps the model).
+   - **UI:** each imported-model card in the assets panel has a _browse binding candidates_ box
+     (`/api/binding-candidates`) — type a class or name and read the GlobalId rows.
+   - `ifcClass` is a **prefix** match (`IfcWall` catches `IfcWall` AND `IfcWallStandardCase`); omit it
+     to get the model's class histogram — the "what classes exist here?" answer. Storey filtering is
+     best-effort (ifc_convert's sidecar rarely records per-element storey); class + name are reliable.
 
 2. **Wire it.** `viewer.cfg [twin] binding_map=binding_map.json`. The seeded sim derives its tags +
    ranges FROM the map (`--map binding_map.json`), so the fixture never drifts from the rows.

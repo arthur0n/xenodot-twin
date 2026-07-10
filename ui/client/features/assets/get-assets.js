@@ -399,7 +399,77 @@ function importCard(m) {
     ["playback", m.playback_gate],
   ]);
   if (strip) card.append(strip);
+  if (m.model) card.append(candidateBrowser(m.model));
   return card;
+}
+
+/** @typedef {{ globalId: string, ifcClass: string, name: string | null, storey?: string }} Candidate */
+/** @typedef {{ matched: number, total: number, count: number, candidates: Candidate[],
+ *   classes: { ifcClass: string, count: number }[], error?: string }} CandidateResult */
+
+/** The binding-candidate browser under an import card: type an IFC class ("IfcWall") or a name
+ * substring and list candidate GlobalIds to bind, so authoring a binding_map.json is a PICK, not a
+ * hand-grep of the model's 22 MB `<model>_props.json`. Reads GET /api/binding-candidates (the same
+ * shared core as the CLI + mcp tool); a value starting "ifc" filters by class, else by name. Shows a
+ * bounded page + the class histogram — never the whole model. @param {string} model model stem
+ * @returns {HTMLElement} */
+function candidateBrowser(model) {
+  const wrap = el("div", "asset-candidate-browser");
+  const row = el("div", "asset-path-row");
+  const input = /** @type {HTMLInputElement} */ (el("input", "form-input"));
+  input.placeholder = "bind: IFC class (IfcWall) or name substring…";
+  const out = el("div", "modal-sub");
+  const run = () => {
+    void browseCandidates(model, input.value.trim(), out);
+  };
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") run();
+  };
+  const btn = el("button", "btn ghost", "browse binding candidates");
+  btn.onclick = run;
+  row.append(input, btn);
+  wrap.append(row, out);
+  return wrap;
+}
+
+/** Fetch + render one page of binding candidates into `out`. A missing sidecar (model not imported
+ * with ifc_convert.py, or ambiguous) is an honest one-line message, never a thrown error.
+ * @param {string} model @param {string} query @param {HTMLElement} out @returns {Promise<void>} */
+async function browseCandidates(model, query, out) {
+  out.replaceChildren(el("span", "desc", "querying sidecar…"));
+  const params = new URLSearchParams({ model, limit: "8" });
+  if (query) params.set(/^ifc/i.test(query) ? "class" : "name", query);
+  /** @type {CandidateResult} */
+  let r;
+  try {
+    r = /** @type {CandidateResult} */ (await fetchJSON(`/api/binding-candidates?${params}`));
+  } catch {
+    out.replaceChildren(
+      el("div", "modal-sub", "no property sidecar for this model — run ifc_convert.py first"),
+    );
+    return;
+  }
+  if (r.error) {
+    out.replaceChildren(el("div", "modal-sub", r.error));
+    return;
+  }
+  out.replaceChildren();
+  out.append(
+    el("div", "desc", `${r.matched} of ${r.total} match — showing ${r.count}`),
+    el(
+      "div",
+      "desc",
+      "classes: " + (r.classes.map((c) => `${c.ifcClass}×${c.count}`).join(", ") || "(none)"),
+    ),
+  );
+  for (const c of r.candidates) {
+    const line = el(
+      "div",
+      "tree-item-path",
+      `${c.globalId}  ${c.ifcClass}  ${c.name ?? "(unnamed)"}`,
+    );
+    out.append(line);
+  }
 }
 
 /** Build a gate-verdict strip: a `✓/✗ <label> gate OK|FAIL` badge for every gate whose verdict is

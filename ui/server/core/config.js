@@ -263,6 +263,14 @@ export const HERMES_TOOL = "mcp__ui__hermes";
 // stays the canonical (operator-run, unconfined) CLI path.
 export const ANALYZE_TOOL = "mcp__ui__analyze";
 
+// In-process MCP tool an agent calls to list candidate GlobalIds out of a model's IFC property
+// sidecar (`<model>_props.json`), filtered by IFC class / Name — so a session picks binding-map joins
+// instead of hand-grepping a 22 MB JSON (see mcp-tools/binding-tool.js). READ-ONLY: it only reads a
+// sidecar and returns text, no side effect, so it auto-allows (uiControlAllow → PLAIN_ALLOW_TOOLS).
+// Its model-supplied `sidecar`/`model` path is CONFINED to the project root before any read (the
+// analyze-tool confinement precedent) so the read-only tool can't be turned into an arbitrary-file read.
+export const BINDING_TOOL = "mcp__ui__find_binding_candidates";
+
 /** Hermes model ids for the settings dropdown; the user can also enter a custom id. The Nous
  * Portal (provider `nous`) routes non-Nous ids too (e.g. `qwen/*`, `z-ai/*`), so they're valid
  * picklist entries as long as they're in the Portal model catalog.

@@ -9,14 +9,16 @@ import {
   ASSET_TOOL,
   AUTONOMOUS_TOOL,
   COMPACT_TOOL,
+  BINDING_TOOL,
   DOCS_GET_CLASS_TOOL,
 } from "./config.js";
 
 // These get the calling agent stamped as `_by` so the server can attribute the record
 // (task/question/promotion owner). The server overrides any model-supplied `_by`.
 const STAMP_BY_TOOLS = new Set([TASK_TOOL, ASK_TOOL, PROMOTE_TOOL]);
-// These auto-allow with no stamp.
-const PLAIN_ALLOW_TOOLS = new Set([ASSET_TOOL, AUTONOMOUS_TOOL, COMPACT_TOOL]);
+// These auto-allow with no stamp. BINDING_TOOL is a read-only sidecar query, confined to the project
+// root inside the tool — no side effect, so like ASSET_TOOL it bypasses the per-call permission gate.
+const PLAIN_ALLOW_TOOLS = new Set([ASSET_TOOL, AUTONOMOUS_TOOL, COMPACT_TOOL, BINDING_TOOL]);
 
 /** Auto-allow result for a UI-control tool, or null if `toolName` isn't one.
  * @param {string} toolName @param {Record<string, unknown>} input @param {string} agent */

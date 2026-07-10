@@ -13,6 +13,7 @@ import { makeAutonomousTool } from "./autonomous-tool.js";
 import { makeCompactTool } from "./compact-tool.js";
 import { makeSetSkillTool } from "./set-skill-tool.js";
 import { makeAnalyzeTool } from "./analyze-tool.js";
+import { makeBindingTool } from "./binding-tool.js";
 
 /**
  * Build the in-process "ui" MCP server for one session. Deps are the session-scoped closures the
@@ -48,6 +49,10 @@ export function buildUiServer({ waitFor, formAgentQueue, send, hermesPush, compa
       // uiControlAllow), autonomous/all-policy sessions auto-allow it — so the tool itself confines
       // every model-supplied file read to the project root (its load-bearing control).
       makeAnalyzeTool(),
+      // Read-only binding-candidate query over a model's IFC property sidecar (mcp__ui__
+      // find_binding_candidates). No session-scoped closure; confines its model-supplied path to the
+      // project root, so it auto-allows (config.BINDING_TOOL ∈ uiControlAllow) yet can't escape the tree.
+      makeBindingTool(),
     ],
   });
 }

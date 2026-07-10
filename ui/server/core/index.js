@@ -37,6 +37,7 @@ import { writeTranscript } from "../features/transcripts/transcript-write.js";
 import { writeAsset, writeAssetFromPath } from "../features/assets/asset-write.js";
 import { readImportMetrics } from "../features/assets/import-metrics.js";
 import { readBindingStatus } from "../features/assets/binding-status.js";
+import { handleBindingCandidatesGet } from "../features/assets/binding-candidates-http.js";
 import { readTasks, reapHandoffs } from "../features/tasks/tasks-store.js";
 import { serveStatic } from "./http/static.js";
 import { reclaimPortIfBusy } from "./http/port.js";
@@ -431,6 +432,12 @@ const POST_ROUTES = {
 
 const server = http.createServer((req, res) => {
   const url = req.url ?? "";
+  // Parameterized GET (query string), so not a GET_ROUTES entry. The handler lives in
+  // features/assets/binding-candidates-http.js so its realpath confinement is unit-tested.
+  if (url.startsWith("/api/binding-candidates")) {
+    handleBindingCandidatesGet(url, res, PROJECT_DIR);
+    return;
+  }
   const getRoute = GET_ROUTES[url];
   if (getRoute) {
     res.writeHead(200, { "content-type": "application/json" });

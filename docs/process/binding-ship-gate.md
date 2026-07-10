@@ -14,9 +14,13 @@ and the gate exits non-zero.
 
 ## The mechanics
 
-- **Author against the sidecar.** Grep `<model>_props.json` for the 22-char GlobalId **key** of each
-  element (never the example map's own ids). Recipe: skill `twin-bind-data` → "Authoring a map
-  against real GlobalIds".
+- **Author against the sidecar — query, don't grep.** List valid GlobalIds filtered by IFC class /
+  Name so you PICK joins instead of scanning a 22 MB `<model>_props.json` by hand: `npm run binding --
+--model <model> --class IfcWall` (terminal/seat), the `mcp__ui__find_binding_candidates` tool (agent
+  session), or the _browse binding candidates_ box on each imported-model assets card
+  (`/api/binding-candidates`) — one shared core behind all three. Take the 22-char GlobalId **key**,
+  never the example map's own ids. Recipe: skill `twin-bind-data` → "Authoring a map against real
+  GlobalIds". (Discovery is now _assisted_; the smoke below is still the ship gate.)
 - **Smoke with `--json`.** `smoke_binding.gd --json=binding_map.status.json` writes
   `{bind_smoke, resolved, total, unresolved[], node_targets, mmi_targets}` on **every** terminal path
   (pass and fail), so the count is machine-readable.
