@@ -1,6 +1,18 @@
 # Xenodot Twin
 
-<p align="center"><img src="assets/full_logo.png" alt="Xenodot Twin" width="340"></p>
+<p align="center">
+  <a href="https://arthur0n.github.io/xenodot-twin-demos/plant/">
+    <img src="assets/hero.gif" alt="A live digital-twin viewer replaying plant telemetry in 3D, elements coloring by value" width="640">
+  </a>
+</p>
+
+> **Turn a real building or plant model into a live, data-bound 3D digital twin on Godot — driven by a
+> deliberate pipeline, not a chat box.**
+
+**▶ Live demos** — no install, runs in your browser (no-threads Godot/WASM, autoplaying recorded
+telemetry): **[plant](https://arthur0n.github.io/xenodot-twin-demos/plant/)** ·
+**[duplex](https://arthur0n.github.io/xenodot-twin-demos/duplex/)** ·
+[all demos](https://arthur0n.github.io/xenodot-twin-demos/)
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Godot-family 4.x](https://img.shields.io/badge/Godot--family-4.x-blue.svg)

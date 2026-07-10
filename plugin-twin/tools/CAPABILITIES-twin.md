@@ -53,9 +53,41 @@ preset platform matches the host — a cross-platform build SKIPs LOUDLY, never 
 never a pass. The deploy value it unlocks: a site retargets `url=`/`model=` by editing the
 shipped `viewer.cfg` — WITHOUT re-exporting (the data is read at runtime). Unsigned builds
 (signing/notarization out of scope); the shipped `README.txt` states the Gatekeeper warning
-honestly. Web builds do NOT ship here — they use the web-embed recipe (`tools/web/serve_coi.py`
-and the Web presets). Operator manual: skill `twin-ship`. Measured seat artifact sizes + the
-clean-stranger run: `plugin-twin/library/findings/twin-ship-2026-07-10.md`.
+honestly. Web builds do NOT ship here — they publish via `twin_publish_web.sh` (below). Operator manual: skill
+`twin-ship`. Measured seat artifact sizes + the clean-stranger run:
+`plugin-twin/library/findings/twin-ship-2026-07-10.md`.
+
+## `twin_publish_web.sh` — export + publish a Web (WASM) demo into a static demos repo
+
+```
+tools/twin_publish_web.sh --demos-repo <dir> --name <demo> [--model <path>] [--map <path>] \
+    [--recording <path>] [--preset <name>] [--movie] [--movie-seconds <N>] [--movie-fps <N>]
+```
+
+The WEB counterpart of `twin_ship.sh`. Where `twin_ship` stages a desktop build's data BESIDE the
+executable, a Web build has no executable-adjacent filesystem, so this bakes the model, binding map
+and recording INTO the pck as `res://` resources (confirmed: on web `data_bus.config_path()` falls
+back to `res://viewer.cfg` and `_rooted_path` passes `res://` through — identical resolution to a
+dev-checkout boot). Seven loud stages — **preflight** (engine, Web export template for the exact
+version, demos-repo dir, and the no-threads preset — generated self-contained when `export_presets.cfg`
+is absent, NEVER clobbering an existing one; model/map/recording discovery mirroring `verify_twin.sh`,
+extended to newest `recordings/*.ndjson`) → **wire** (rewrite `viewer.cfg` `model=`, `binding_map=`
+and `recording=` to `res://` paths via the `twin_ship` ConfigFile idiom, comments preserved, `.bak`
+kept then restored — a set `recording=` makes the demo AUTOPLAY on boot) → **export** (headless
+`--export-release "Web-nothreads"`; the no-threads variant needs NO cross-origin-isolation headers, so
+it serves from GitHub Pages as-is; asserts the wasm stays under the 100 MB/file Pages limit) →
+**smoke** (boots the DEV checkout headless with the same wired `viewer.cfg` — a wasm build cannot run
+in a shell, so this identical-`res://`-resolution boot is the honest proxy: asserts model loaded,
+bindings > 0, and playback autostarts; it RUNS, never a SKIP) → **stage** (copy the export into
+`<demos-repo>/<name>/`) → **movie** (optional `--movie`: a windowed `--write-movie` capture — no
+screen-recording TCC — piped through ffmpeg to `<name>/hero.mp4`, `hero.gif` and `poster.png`; SKIPs
+LOUDLY without `--movie`) → **index** (regenerate the demos-repo root `index.html`, a deterministic
+static listing of every demo folder with posters, plus a `.nojekyll` marker). Same discipline as
+`twin_ship.sh`: loud labels, exit nonzero on the FIRST failure, a SKIP is never a pass. The demos repo
+is committed and pushed by the caller; Pages serves the no-threads builds with no special headers.
+Boundary: this is the WEB ship path (the `serve_coi.py` recipe is the LOCAL-preview / Grafana-embed
+half). Measured web fps ceiling and the no-threads recipe:
+`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`.
 
 ## `ifc_convert.py` — IFC → GLB + property sidecar
 

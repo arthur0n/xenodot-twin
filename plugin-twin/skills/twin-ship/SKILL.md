@@ -166,11 +166,14 @@ deliverable, handed over directly.
 ## Boundary — web builds are NOT this skill
 
 A Web (WASM) build does not ship through `twin_ship.sh`. It has a different runtime (no
-executable-adjacent filesystem, browser fetch instead), a different serving story (cross-origin
-isolation headers), and its own measured recipe. Ship web via the **web-embed recipe**: the tutorial's
-"Put it on the web (and embed it in Grafana)" section + the two annotated Web presets +
-`tools/web/serve_coi.py` (skill `twin-bind-data` → "Serving to the browser / Grafana embed"). Do not
-add a Web preset to `twin_ship.sh` — point at that recipe.
+executable-adjacent filesystem — its data rides INSIDE the pck as `res://` resources, not beside the
+build), a different serving story, and its own tool. Ship web via **`tools/twin_publish_web.sh`**: it
+exports the no-threads variant (needs no cross-origin-isolation headers → GitHub-Pages-compatible),
+bakes the model + binding map + recording into the pck for AUTOPLAY playback, stages the build into a
+static demos repo, and regenerates that repo's root index (optional `--movie` captures a hero clip).
+Do not add a Web preset to `twin_ship.sh` — point at that tool. (For a LOCAL browser preview or a
+Grafana-iframe embed rather than a published demo, `tools/web/serve_coi.py` + the annotated Web presets
+are the dev-serving half — skill `twin-bind-data` → "Serving to the browser / Grafana embed".)
 
 ## Out of scope (named)
 

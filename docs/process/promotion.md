@@ -45,3 +45,15 @@ copy once by hand.)
 `promote` only ADDS new capabilities — it never UPDATES a file already in the plugin. To improve a
 materialized core tool/skill/agent, edit it in the plugin directly (it re-materializes to every game);
 keep game-specific bits in a game-local extension that sources the core.
+
+## Test seats are disposable — the standing demo-publish loop
+
+A **test seat** (a scaffolded viewer project — `npm run new`) is a scratch space, not an artifact:
+you scaffold it, prove a recipe end-to-end against real assets, **harvest the learnings back into the
+framework** (a finding under `plugin-twin/library/findings/`, a promoted tool/skill, a doc update),
+publish a shareable demo of the result with **`plugin-twin/tools/twin_publish_web.sh`** (the no-threads
+WASM build → the demos repo → GitHub Pages), and then **discard the seat**. The split is the point:
+the **framework keeps the learnings** (findings + tools + docs, the durable knowledge), the **demos
+repo keeps the artifacts** (the running builds anyone can open), and nothing durable is ever trapped
+in a throwaway seat. Never hand-edit a seat's materialized `tools/`; fix the source in the plugin and
+re-materialize, so the loop always flows seat → framework, never the reverse.
