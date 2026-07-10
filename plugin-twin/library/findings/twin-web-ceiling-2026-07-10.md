@@ -153,6 +153,7 @@ dashboards provisioned via API, each a text/HTML panel embedding one variant's `
 - **threads-in-Grafana → DOA (as predicted).** Godot's own boot check throws, console verbatim:
 
   > `The following features required to run Godot projects on the Web are missing:`
+  > `Cross-Origin Isolation - Check that the web server configuration sends the correct headers.`
   > `SharedArrayBuffer - Check that the web server configuration sends the correct headers.`
 
   Grafana's top-level document is not `crossOriginIsolated` (it serves no COEP), so the iframe never

@@ -83,7 +83,10 @@ def main() -> None:
         sys.exit(f"serve_coi: no such directory: {args.dir}")
     os.chdir(args.dir)
 
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), COIHandler)
+    try:
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), COIHandler)
+    except OSError as e:
+        sys.exit(f"serve_coi: port {args.port} unavailable: {e}")
     print(
         f"serve_coi: COOP=same-origin COEP=require-corp on "
         f"http://127.0.0.1:{args.port}/  (serving {os.getcwd()})",
