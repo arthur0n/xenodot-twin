@@ -198,6 +198,59 @@ reusing `../sim/protocol.js`). To try it without a real broker, `tools/bridge/de
 counterpart to the seeded sim. Live-validated against Mosquitto — see
 `plugin-twin/library/findings/twin-mqtt-bridge-2026-07-09.md`.
 
+## Serving to the browser / Grafana embed (the web recipe)
+
+The same viewer exports to a Godot Web (WASM) build that embeds in a Grafana dashboard as a live 3D
+panel (the OpenTwins pattern). The relay-side facts a data-binder needs — measured, from
+`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md` (Chrome 150, one machine; **Safari
+unverified** — see the caveat there, do not claim Safari works):
+
+- **Ship the no-threads variant.** Export presets:
+  `plugin-twin/examples/export_presets.web-{nothreads,threads}.cfg` (annotated). `thread_support=false`
+  needs no `SharedArrayBuffer`, so it embeds in a Grafana `<iframe>` (whose parent is not
+  cross-origin isolated); `thread_support=true` is **dead on arrival in Grafana** (needs COI on the
+  top document, Grafana serves no COEP). Measured: threads buys **zero** rendering fps here (Godot 4's
+  web renderer is single-threaded), so no-threads sacrifices nothing.
+- **Serve with the COI headers** using the bundled tool (Python 3 stdlib, dependency-free — rides the
+  recursive `tools/` copy like the sim):
+
+  ```
+  python3 tools/web/serve_coi.py --dir builds/web --port 8070
+  ```
+
+  It sends `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp`
+  (required by a threads build, ignored by a no-threads build — safe default for both), the correct
+  `application/wasm` / `.pck` MIME types, and `Cache-Control: no-store` for dev. It is a **dev/local**
+  server (127.0.0.1, no TLS); for a hosted deploy send the same two headers from your own server/CDN.
+
+- **Grafana embed** — a Text panel in HTML mode (Grafana started with
+  `GF_PANELS_DISABLE_SANITIZE_HTML=true`):
+
+  ```html
+  <iframe
+    src="http://your-host:8070/index.html?scene=duplex&vantage=street"
+    width="1000"
+    height="640"
+    style="border:0"
+  ></iframe>
+  ```
+
+  Measured inside a real Grafana OSS text/HTML panel: the no-threads build booted **live-bound at
+  120 fps, 0 drops**.
+
+- **Mixed-content rule (the relay behind https).** The DataBus opens a WebSocket to the source. An
+  `https` page may only open a **`wss://`** socket — a browser blocks plain `ws://` from a secure page.
+  Local demo (`http://localhost` page + relay): `ws://localhost:8765` is fine. Hosted: put the
+  `/twin-data` relay (or the bridge) behind **`wss://`** (terminate TLS at your reverse proxy) and
+  point the viewer at it via `viewer.cfg [twin] url=` / `TWIN_SOURCE_URL` — the same `sourceUrl` seam
+  the MQTT bridge plugs into.
+
+- **Optimize heavy scenes first.** The browser is not the bottleneck for a single building or an
+  instanced/c2-style city (~1.3k objects — both peg the display cap). Many-unique-mesh scenes hit the
+  ceiling: a 28,600-individual-mesh case fell to **~17 fps aerial** (~10× native CPU cost, WebGL2
+  Compatibility vs Metal). Run the optimizer first (skill `twin-optimize`; `--vis-ranges` targets
+  this regime) before shipping such a scene to web.
+
 ## Phase 3 TODO — honest boundaries
 
 Built and proven now: the binding-map runtime (`core/binding_map.gd` — loader, resolution index

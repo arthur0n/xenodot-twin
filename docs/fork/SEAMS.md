@@ -57,6 +57,7 @@ plugin-twin  starter-viewer  ui/orchestrator-viewer.md  ui/server/features/twin
 docs/tutorials  ui/server/cli/materialize.test.js
 plugin-twin/tools/twin_build.sh  plugin-twin/skills/twin-build
 plugin-twin/tools/analyze  plugin-twin/skills/twin-analyze
+plugin-twin/tools/web  plugin-twin/examples/export_presets.web-nothreads.cfg  plugin-twin/examples/export_presets.web-threads.cfg
 ```
 
 > `plugin-twin/tools/twin_build.sh` (the one-command IFC→verified-twin driver) and
@@ -74,6 +75,13 @@ plugin-twin/tools/analyze  plugin-twin/skills/twin-analyze
 > under `ui/server/features/twin/` (already whole-restored above); these two lines cover its
 > fork-only tool + skill surface. Both are inside the whole-`plugin-twin` restore and are fork-only
 > files upstream never carried — belt-and-suspenders, not a second mechanism.
+>
+> `plugin-twin/tools/web/` (the `serve_coi.py` cross-origin-isolation static server) and
+> `plugin-twin/examples/export_presets.web-{nothreads,threads}.cfg` (the two annotated Web export
+> presets) are the load-bearing surface of Nice-to-Have #6 (the web/Grafana embed recipe) and are
+> named explicitly for the same reason. Both sit **inside** the whole-`plugin-twin` restore above and
+> are fork-only files upstream never carried (a sync's `e250d11` re-deletion can't touch them) — the
+> explicit lines are belt-and-suspenders, not a second mechanism.
 
 **Shared-file twin-unwiring — reject to OURS every sync** (upstream's `e250d11` stripped twin
 awareness from these; the fork keeps its twin wiring — restore from HEAD, then fold in any SEPARABLE

@@ -473,6 +473,97 @@ Godot **games**, use the sibling framework: [github.com/arthur0n/xenodot-forge](
 
 ---
 
+## Put it on the web (and embed it in Grafana)
+
+The same viewer exports to a browser build (Godot Web / WASM) and drops into a Grafana dashboard as a
+live 3D panel — the OpenTwins pattern. The measured browser fps ceiling, the variant choice, and the
+two caveats below all come from
+[`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`](../../plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md)
+(Chrome 150, M3 Pro, Godot 4.6.3 — one machine).
+
+### 1. Export the no-threads build
+
+Two Web export variants exist and the choice is the whole story:
+
+- **no-threads** (`variant/thread_support=false`) — the **embed-anywhere** build. It needs no
+  `SharedArrayBuffer`, so it runs inside a Grafana `<iframe>` (whose parent page is not cross-origin
+  isolated). **This is the one to ship.** Measured: it holds the 120 fps display cap on the optimized
+  duplex with live binding active — and it costs **zero** fps versus the threads build (Godot 4's web
+  renderer is single-threaded regardless, so threads buys nothing here).
+- **threads** (`variant/thread_support=true`) — needs `SharedArrayBuffer`, which the browser exposes
+  only to a `crossOriginIsolated` document. It is **dead on arrival inside a Grafana iframe** (Grafana
+  serves no COEP). Use it only for a standalone tab on your own COI-served domain.
+
+Copy the annotated example preset in as your project's `export_presets.cfg`, then export headless:
+
+```bash
+cp ../xenodot-twin/plugin-twin/examples/export_presets.web-nothreads.cfg export_presets.cfg
+$GODOT --headless --path . --export-release "Web-nothreads" builds/web/index.html
+```
+
+(The threads companion is `export_presets.web-threads.cfg`; both files carry inline comments
+explaining exactly what `thread_support` toggles and when each applies.)
+
+### 2. Serve it with the cross-origin-isolation headers
+
+A Godot web build must be served with `Cross-Origin-Opener-Policy: same-origin` +
+`Cross-Origin-Embedder-Policy: require-corp` (a threads build refuses to boot without them; a
+no-threads build ignores them — so sending them is the safe default for both). The bundled tool does
+exactly that, dependency-free (Python 3 stdlib):
+
+```bash
+python3 tools/web/serve_coi.py --dir builds/web --port 8070
+# → http://127.0.0.1:8070/index.html
+```
+
+It also sets the correct `application/wasm` / `.pck` MIME types and `Cache-Control: no-store` for a
+clean dev edit-export-reload loop. It is a **dev/local** server (127.0.0.1, no TLS); for a hosted
+deployment serve the same two headers from your own web server / CDN behind `https`.
+
+### 3. Embed it in a Grafana text/HTML panel
+
+Add a **Text** panel, set its mode to **HTML**, and paste the iframe (Grafana must allow unsanitized
+HTML — start it with `GF_PANELS_DISABLE_SANITIZE_HTML=true`):
+
+```html
+<iframe
+  src="http://your-host:8070/index.html?scene=duplex&vantage=street"
+  width="1000"
+  height="640"
+  style="border:0"
+></iframe>
+```
+
+That is the whole embed. Measured inside a real Grafana OSS text/HTML panel, the no-threads build
+booted **fully live-bound at 120 fps, 0 dropped frames** — the OpenTwins-equivalent in-iframe embed
+with data flowing.
+
+### 4. Live data behind https — the mixed-content rule
+
+The viewer's DataBus opens a WebSocket to your relay/source. A page served over **`https`** may only
+open a **`wss://`** socket — a browser blocks plain `ws://` from a secure page as mixed content. So:
+
+- Local demo (page + relay both on `http://localhost`): plain `ws://localhost:8765` is fine.
+- Hosted (`https` page): put the framework `/twin-data` relay (or your source) behind **`wss://`** —
+  terminate TLS at your reverse proxy — and point the viewer at it via `viewer.cfg [twin] url=` /
+  `TWIN_SOURCE_URL` (the same `sourceUrl` seam the MQTT bridge uses above).
+
+### 5. Optimize heavy scenes first (the scale caveat)
+
+The browser is **not** the bottleneck for a realistic single building or an instanced/c2-style city
+(~1.3k objects) — both peg the display cap. The ceiling shows only on **many-unique-mesh** scenes: a
+28,600-individual-mesh stress case fell to **~17 fps at an aerial vantage** in the browser (~10× the
+native CPU render time — the WebGL2 Compatibility backend vs native Metal). If your scene is heavy
+and heterogeneous, run the optimizer first (skill `twin-optimize`; instancing + `--vis-ranges` target
+exactly this regime) before shipping to web.
+
+> **Safari is unverified.** The numbers above are **Chrome-measured**. Safari (the WASM worst case)
+> could not be automated on the test machine (three macOS TCC/interactive barriers) — it is a
+> standing open item, **not** a claim that it does or does not work. Re-measure on a machine where
+> Safari automation is permitted before promising Safari support.
+
+---
+
 ## Wrinkles I actually hit (and the fix for each)
 
 - **Fresh-clone `validate` used to fail on a stale library index (now fixed).** `npm run validate`

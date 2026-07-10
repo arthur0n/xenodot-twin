@@ -236,6 +236,28 @@ that's what `verify_twin.sh` gates. Synthesized fixtures only (`seed>=0`); the h
 order-exact, so it is stable across cold/warm engine starts. Contract: skill
 `twin-playback`.
 
+## `web/serve_coi.py` — cross-origin-isolation static server (web/Grafana embed)
+
+```
+python3 tools/web/serve_coi.py [--dir builds/web] [--port 8070]
+```
+
+The dev/local server for a Godot **Web (WASM)** export — the serving half of the web/Grafana embed
+recipe. Sends `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy:
+require-corp` on every response (a `thread_support=true` build refuses to boot without them; a
+no-threads build ignores them — so the headers are the **safe default for both variants**), plus the
+correct `application/wasm` / `.pck` MIME types and `Cache-Control: no-store` for a clean dev
+edit-export-reload loop. Dependency-free — **Python 3 standard library only** (`http.server`), same
+runtime policy as `ifc_convert.py`; rides the recursive `tools/` copy into projects (shebang → exec
+bit on materialize) like the sim. Bound to `127.0.0.1`, no TLS — for a hosted deploy send the same
+two headers from your own web server / CDN behind `https` (and use `wss://` for the live relay:
+mixed-content rule). The two annotated Web export presets ship as examples:
+`plugin-twin/examples/export_presets.web-nothreads.cfg` (the embed-anywhere / Grafana build) +
+`export_presets.web-threads.cfg` (the standalone-tab / own-COI-domain build). Measured browser fps
+ceiling, the threads-vs-no-threads no-delta finding, and the Grafana-embed evidence:
+`plugin-twin/library/findings/twin-web-ceiling-2026-07-10.md`. Recipe + embed snippet: skill
+`twin-bind-data` → "Serving to the browser / Grafana embed".
+
 ## Referenced (NOT bundled) — base xenodot capabilities
 
 Twin sessions load both plugins; these resolve from the base plugin / the merged project
