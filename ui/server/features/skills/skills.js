@@ -156,7 +156,13 @@ export function getPluginOrchestratorSkills(pluginDir) {
  *   config read, so existing no-arg callers keep game semantics on a game project)
  * @returns {string[]} */
 export function resolveSessionSkills(projectType = getProjectType()) {
-  const twinFloor = projectType === "viewer" ? getPluginOrchestratorSkills(TWIN_PLUGIN_DIR) : [];
+  // The twin skills folded into the base plugin; a viewer floor still picks up their
+  // orchestrator-audience members (e.g. twin-analyze) WITHOUT re-listing the base orchestrator
+  // skills already in ORCHESTRATOR_FRAMEWORK_SKILLS — filter to the twin-* names.
+  const twinFloor =
+    projectType === "viewer"
+      ? getPluginOrchestratorSkills(TWIN_PLUGIN_DIR).filter((s) => s.startsWith("twin-"))
+      : [];
   return computeSessionSkills({
     floor: [...ORCHESTRATOR_FRAMEWORK_SKILLS, ...REQUIRED_ORCHESTRATOR_BUILTINS, ...twinFloor],
     candidates: [...BUILTIN_SKILLS, ...getWorkspaceSkills().map((s) => s.name)],

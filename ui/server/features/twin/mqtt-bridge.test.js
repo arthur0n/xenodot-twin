@@ -19,14 +19,14 @@ import {
   encodePublish,
   encodePingresp,
   decodePackets,
-} from "../../../../plugin-twin/tools/bridge/mqtt_protocol.js";
-import { parseMap } from "../../../../plugin-twin/tools/bridge/map.js";
-import { startBridge } from "../../../../plugin-twin/tools/bridge/mqtt_ws.js";
+} from "../../../../plugin/tools/bridge/mqtt_protocol.js";
+import { parseMap } from "../../../../plugin/tools/bridge/map.js";
+import { startBridge } from "../../../../plugin/tools/bridge/mqtt_ws.js";
 import {
   RECORDING_KIND,
   RECORDING_VERSION,
   SEED_RECORDED,
-} from "../../../../plugin-twin/tools/sim/recording.js";
+} from "../../../../plugin/tools/sim/recording.js";
 
 /** Parse JSON, laundering `JSON.parse`'s `any` through `unknown` so the caller narrows explicitly
  * (same pattern as the tools' own parsers). @param {string} text @returns {unknown} */
@@ -221,7 +221,7 @@ test("--record: forwarded frames serialize as a valid twin-recording (live→hos
     .slice(1)
     .map(
       (l) =>
-        /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame} */ (
+        /** @type {import("../../../../plugin/tools/sim/recording.js").RecordingFrame} */ (
           parseJson(l)
         ),
     );
@@ -235,14 +235,12 @@ test("--record: forwarded frames serialize as a valid twin-recording (live→hos
     ],
   );
   for (let i = 1; i < recFrames.length; i++) {
-    const prev =
-      /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame} */ (
-        recFrames[i - 1]
-      );
-    const cur =
-      /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame} */ (
-        recFrames[i]
-      );
+    const prev = /** @type {import("../../../../plugin/tools/sim/recording.js").RecordingFrame} */ (
+      recFrames[i - 1]
+    );
+    const cur = /** @type {import("../../../../plugin/tools/sim/recording.js").RecordingFrame} */ (
+      recFrames[i]
+    );
     assert.ok(cur.t_ms >= prev.t_ms, "t_ms must be ascending (recording contract)");
   }
 

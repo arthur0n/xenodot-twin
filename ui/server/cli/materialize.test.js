@@ -1,5 +1,5 @@
 // node:test coverage for materialize.js's exported twin-merge seam — the add-not-overwrite
-// merge of plugin-twin/tools over the base plugin tools (copyTreeAddOnly / materializeTwinTools):
+// merge of plugin/tools over the base plugin tools (copyTreeAddOnly / materializeTwinTools):
 // twin files may ADD, never overwrite; on a name collision the twin file loses. Temp fixtures
 // stand in for plugin-twin/ (it may not exist while the framework is being built) and the
 // project dir, so nothing depends on the real dirs. GAME_DIR points at a temp dir before import

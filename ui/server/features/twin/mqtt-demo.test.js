@@ -6,11 +6,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { parseMap, translate } from "../../../../plugin-twin/tools/bridge/map.js";
-import { DEMO_TOPICS, demoSample } from "../../../../plugin-twin/tools/bridge/demo_publish.js";
+import { parseMap, translate } from "../../../../plugin/tools/bridge/map.js";
+import { DEMO_TOPICS, demoSample } from "../../../../plugin/tools/bridge/demo_publish.js";
 
 const mapPath = fileURLToPath(
-  new URL("../../../../plugin-twin/examples/mqtt_map.example.json", import.meta.url),
+  new URL("../../../../plugin/examples/mqtt_map.example.json", import.meta.url),
 );
 const map = parseMap(readFileSync(mapPath, "utf8"));
 

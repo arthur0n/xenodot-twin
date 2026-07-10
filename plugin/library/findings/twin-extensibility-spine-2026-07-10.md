@@ -142,7 +142,7 @@ predictions is just a third thing behind the same door.
 Honest boundary (per the plan, not glossed): the HUD labels the connection **`DataBus: LIVE`** and has
 no notion of "forecast" vs "live" — it shows `facade_roof.temp=23.049` the same whether that number is
 a sensor reading, a replayed frame, or a projection. That is not a gap to hide; it is the mechanism.
-The seam is origin-agnostic *because* the viewer does not care where the number came from. Labelling a
+The seam is origin-agnostic _because_ the viewer does not care where the number came from. Labelling a
 value as predicted vs measured would be a producer-metadata concern layered ON TOP, not a core change.
 Copy discipline: the forecast is visualization of externally-produced predictions — the framework does
 not simulate or forecast; the producer does.

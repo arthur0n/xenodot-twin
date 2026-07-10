@@ -60,11 +60,15 @@ Five twin skills: `twin-import` (IFC → GLB + property sidecar), `twin-optimize
 that layers the base `xenodot:godot-verify` render floor under three twin-specific
 gates (frame budget, data-binding smoke, GlobalId join coverage).
 
-## Agents (10)
+## Agents (13)
 
-Engine-generic base agents, namespaced `xenodot:<name>`. The twin agents above
-compose these. Grouped by role:
+The framework's agents, all namespaced `xenodot:<name>` (one plugin — the
+engine-generic base and the digital-twin domain ship together). Grouped by role:
 
+- **Digital-twin domain** — `twin-architect` (the design gate — see above),
+  `scene-optimizer` (heavy converted geometry: LOD, MultiMesh, chunking,
+  occlusion, every change measured against a frame budget), `data-binder`
+  (master data + time-series joined by IFC GlobalId, live overlays, playback).
 - **Builders** — `godot-dev` (the default builder: scaffolding, main scene,
   camera/navigation rig, UI panels, exports, generic Godot glue), `godot-visuals`
   (the rendered look: lighting, environment, post-process), `godot-assets`
@@ -77,7 +81,7 @@ compose these. Grouped by role:
   `godot-docs-evangelist` (authoritative Godot API verification; needs the docs MCP).
 - **Support** — `handoff-summarizer` (the ≤5-line builder-report digest).
 
-## Skills (16)
+## Skills (25)
 
 Procedures (one canonical path, observable outcome), not references. Loaded by
 the implementers that own them, not invoked directly. Across these domains:

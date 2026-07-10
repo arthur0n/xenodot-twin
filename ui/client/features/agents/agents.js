@@ -39,7 +39,7 @@ const ROLE_COLOR = {
 };
 
 /** Strip "namespace:" prefix from a plugin-namespaced agent id.
- *  "xenodot-twin:twin-architect" → "twin-architect", "hermes" → "hermes"
+ *  "xenodot:twin-architect" → "twin-architect", "hermes" → "hermes"
  * @param {string} name @returns {string} */
 function stripNs(name) {
   if (!name) return name;

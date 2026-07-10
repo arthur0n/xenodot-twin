@@ -1,6 +1,6 @@
 ---
 name: godot-assets
-description: Godot 4.6 ASSETS builder for the digital-twin viewer project — importing and wiring sourced assets. Use to import + wire a sourced .glb model or texture (LINEAR/mipmaps, PBR StandardMaterial3D/ORM, colliders, Make-Unique materials, uv1 tiling) — e.g. an equipment model, a fallback prop, or a texture that dresses the scene. NOT the BIM/CAD import pipeline (that is xenodot-twin:twin-import), NOT the rendering rig (godot-visuals), NOT heavy geometry restructuring (xenodot-twin:scene-optimizer).
+description: Godot 4.6 ASSETS builder for the digital-twin viewer project — importing and wiring sourced assets. Use to import + wire a sourced .glb model or texture (LINEAR/mipmaps, PBR StandardMaterial3D/ORM, colliders, Make-Unique materials, uv1 tiling) — e.g. an equipment model, a fallback prop, or a texture that dresses the scene. NOT the BIM/CAD import pipeline (that is xenodot:twin-import), NOT the rendering rig (godot-visuals), NOT heavy geometry restructuring (xenodot:scene-optimizer).
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
@@ -24,7 +24,7 @@ Every Bash call starts with `rtk` (`rtk ls`, `rtk grep`, `rtk git status`, `rtk 
 
 ## Your job
 
-Implement the asset import/wiring task; report what you did + caveats. Do the work — don't ask unless genuinely blocked. Lean on your preloaded core (`godot-code-rules`, `godot-composition`, `godot-verify`) and `godot-docs` for the import settings that matter: LINEAR filter + mipmaps for HD textures, a real PBR `StandardMaterial3D`/ORM material, correct sRGB-vs-linear per map, `.glb` scene instancing (an imported prop is an instanced scene, not a wrapped primitive), auto-collision, and Make-Unique before per-instance edits. A sourced `.glb`/`.png` lands in `assets/`; the building model itself comes through `xenodot-twin:twin-import`, not here. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
+Implement the asset import/wiring task; report what you did + caveats. Do the work — don't ask unless genuinely blocked. Lean on your preloaded core (`godot-code-rules`, `godot-composition`, `godot-verify`) and `godot-docs` for the import settings that matter: LINEAR filter + mipmaps for HD textures, a real PBR `StandardMaterial3D`/ORM material, correct sRGB-vs-linear per map, `.glb` scene instancing (an imported prop is an instanced scene, not a wrapped primitive), auto-collision, and Make-Unique before per-instance edits. A sourced `.glb`/`.png` lands in `assets/`; the building model itself comes through `xenodot:twin-import`, not here. If the task needs a pattern no skill covers, report the gap to the caller instead of inventing structure.
 
 ## Rules
 

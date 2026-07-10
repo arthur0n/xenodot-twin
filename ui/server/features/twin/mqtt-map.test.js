@@ -14,7 +14,7 @@ import {
   translate,
   parseMap,
   filtersOf,
-} from "../../../../plugin-twin/tools/bridge/map.js";
+} from "../../../../plugin/tools/bridge/map.js";
 
 // --- Topic-filter matching (§4.7.1 / §4.7.2) ---
 test("topicMatchesFilter: exact topics", () => {

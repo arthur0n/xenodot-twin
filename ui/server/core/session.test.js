@@ -257,73 +257,41 @@ test("trackMessage: assistant tool_use records the raising agent for approval la
   assert.ok(deps.bgSpawns.has("tu-9"));
 });
 
-// ---- resolveSessionPlugins: the plugin-array gating seam (twin iff viewer, codex iff enabled).
-// Temp fixture dirs stand in for plugin-twin/ and the vendored codex plugin — the real dirs may
-// not exist while this framework is being built, and the seam must existsSync-guard regardless.
+// ---- resolveSessionPlugins: the plugin-array gating seam. ONE plugin (the xenodot spine, with the
+// twin domain folded in) always loads; the OPTIONAL codex reviewer is appended iff enabled AND
+// vendored. Temp fixture dirs stand in for the plugin roots — the real dirs may not exist while this
+// framework is being built, and the seam must existsSync-guard the codex dir regardless.
 const pluginScratch = mkdtempSync(path.join(tmpdir(), "xeno-plugins-"));
 const baseDir = path.join(pluginScratch, "plugin");
-const twinDir = path.join(pluginScratch, "plugin-twin");
 const codexDir = path.join(pluginScratch, "codex");
 mkdirSync(baseDir);
-mkdirSync(twinDir);
 mkdirSync(codexDir);
 const missingDir = path.join(pluginScratch, "not-there");
 
-test("resolveSessionPlugins: viewer project + twin on disk → twin entry appended after the spine", () => {
+test("resolveSessionPlugins: the xenodot spine always loads (codex off) → base only", () => {
   const plugins = resolveSessionPlugins({
     baseDir,
-    projectType: "viewer",
-    twinDir,
-    codexEnabled: false,
-    codexDir: missingDir,
-  });
-  assert.deepEqual(plugins, [
-    { type: "local", path: baseDir, skipMcpDiscovery: true },
-    { type: "local", path: twinDir, skipMcpDiscovery: true },
-  ]);
-});
-
-test("resolveSessionPlugins: non-viewer projectType → base only, even with twin on disk", () => {
-  const plugins = resolveSessionPlugins({
-    baseDir,
-    projectType: "game", // any non-"viewer" token — xenodot-twin only ever passes "viewer"
-    twinDir,
     codexEnabled: false,
     codexDir: missingDir,
   });
   assert.deepEqual(plugins, [{ type: "local", path: baseDir, skipMcpDiscovery: true }]);
 });
 
-test("resolveSessionPlugins: viewer project but twin dir absent → base only (existsSync guard)", () => {
-  const plugins = resolveSessionPlugins({
-    baseDir,
-    projectType: "viewer",
-    twinDir: missingDir,
-    codexEnabled: false,
-    codexDir: missingDir,
-  });
-  assert.deepEqual(plugins, [{ type: "local", path: baseDir, skipMcpDiscovery: true }]);
-});
-
-test("resolveSessionPlugins: codex gates on enabled AND vendored; order is spine, codex, twin", () => {
+test("resolveSessionPlugins: codex gates on enabled AND vendored; order is spine, codex", () => {
   const off = resolveSessionPlugins({
     baseDir,
-    projectType: "game",
-    twinDir,
     codexEnabled: true,
     codexDir: missingDir, // enabled but not vendored → nothing
   });
   assert.deepEqual(off, [{ type: "local", path: baseDir, skipMcpDiscovery: true }]);
   const all = resolveSessionPlugins({
     baseDir,
-    projectType: "viewer",
-    twinDir,
     codexEnabled: true,
     codexDir,
   });
   assert.deepEqual(
     all.map((p) => p.path),
-    [baseDir, codexDir, twinDir],
+    [baseDir, codexDir],
   );
 });
 

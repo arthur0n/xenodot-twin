@@ -1,5 +1,5 @@
 // analyze-bundle.test.js — integration tests for the analysis-seam packager
-// (plugin-twin/tools/analyze/bundle.js): golden byte-stable output, provenance hashes, the curated
+// (plugin/tools/analyze/bundle.js): golden byte-stable output, provenance hashes, the curated
 // binding context, determinism under --tags/window, and the ENFORCED size budget (CLI path). The
 // module is dependency-free and materialized into viewer projects (bare node); this test imports
 // its pure core directly and spawns its CLI for the exit-code behaviours. Placed under ui/ so the
@@ -12,7 +12,7 @@ import { mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { headerLine, frameLine } from "../../../../plugin-twin/tools/sim/recording.js";
+import { headerLine, frameLine } from "../../../../plugin/tools/sim/recording.js";
 import {
   buildBundle,
   serializeBundle,
@@ -21,10 +21,10 @@ import {
   BUNDLE_KIND,
   DEFAULT_POINTS_PER_TAG,
   SIZE_BUDGET_BYTES,
-} from "../../../../plugin-twin/tools/analyze/bundle.js";
+} from "../../../../plugin/tools/analyze/bundle.js";
 
 const BUNDLE_CLI = fileURLToPath(
-  new URL("../../../../plugin-twin/tools/analyze/bundle.js", import.meta.url),
+  new URL("../../../../plugin/tools/analyze/bundle.js", import.meta.url),
 );
 
 /** sha256 of a UTF-8 string. @param {string} s @returns {string} */
@@ -40,7 +40,7 @@ function fixture() {
   ];
   const pump = [20, 40, 60, 80];
   const tank = [10, 10, 90, 90];
-  /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame[]} */
+  /** @type {import("../../../../plugin/tools/sim/recording.js").RecordingFrame[]} */
   const frames = [];
   for (let tick = 0; tick < 4; tick++) {
     frames.push({ t_ms: tick * 100, tag: "pump.temp", value: pump[tick] ?? 0, seq: tick });

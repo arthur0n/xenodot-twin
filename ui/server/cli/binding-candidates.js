@@ -17,7 +17,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { FRAMEWORK_DIR, CONFIG_FILE } from "../core/config.js";
 import { parseJSON } from "../../lib/json.js";
-import { parseArgs } from "../../../plugin-twin/tools/sim/stream.js";
+import { parseArgs } from "../../../plugin/tools/sim/stream.js";
 import {
   SidecarError,
   resolveSidecarPath,

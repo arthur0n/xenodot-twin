@@ -1,5 +1,5 @@
 // analyze-stats.test.js — unit tests for the pure statistics/decimation/windowing core of the
-// analysis seam (plugin-twin/tools/analyze/stats.js). The module is dependency-free and lives in
+// analysis seam (plugin/tools/analyze/stats.js). The module is dependency-free and lives in
 // the twin plugin's tools tree (materialized into viewer projects, runs under bare node); this
 // test imports it directly, the way mqtt-codec.test.js reaches into the plugin. Placed under ui/
 // so the root `npm test` glob (find ui -name '*.test.js') runs it.
@@ -17,12 +17,12 @@ import {
   seriesOf,
   tagStats,
   decimate,
-} from "../../../../plugin-twin/tools/analyze/stats.js";
-import { tagValue, DEMO_TAGS } from "../../../../plugin-twin/tools/sim/stream.js";
+} from "../../../../plugin/tools/analyze/stats.js";
+import { tagValue, DEMO_TAGS } from "../../../../plugin/tools/sim/stream.js";
 
 /** Build a frame list for one tag from parallel value/seq arrays (t_ms = index·100 unless given).
  * @param {string} tag @param {number[]} values @param {number[]} [seqs] @param {number[]} [tms]
- * @returns {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame[]} */
+ * @returns {import("../../../../plugin/tools/sim/recording.js").RecordingFrame[]} */
 function framesOf(tag, values, seqs, tms) {
   return values.map((value, i) => ({
     t_ms: tms ? Number(tms[i]) : i * 100,
@@ -161,7 +161,7 @@ test("tagStats: matches an independent tagValue oracle over a seeded synth windo
   const i = 2; // tank_1.level
   const row = DEMO_TAGS[i];
   assert.ok(row);
-  /** @type {import("../../../../plugin-twin/tools/sim/recording.js").RecordingFrame[]} */
+  /** @type {import("../../../../plugin/tools/sim/recording.js").RecordingFrame[]} */
   const frames = [];
   /** @type {number[]} */
   const oracle = [];

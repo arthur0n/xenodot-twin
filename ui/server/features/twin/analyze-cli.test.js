@@ -12,8 +12,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseJSON } from "../../../lib/json.js";
-import { headerLine, frameLine } from "../../../../plugin-twin/tools/sim/recording.js";
-import { buildBundle } from "../../../../plugin-twin/tools/analyze/bundle.js";
+import { headerLine, frameLine } from "../../../../plugin/tools/sim/recording.js";
+import { buildBundle } from "../../../../plugin/tools/analyze/bundle.js";
 
 const CLI = fileURLToPath(new URL("./analyze-cli.js", import.meta.url));
 const FRAMEWORK_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));

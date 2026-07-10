@@ -14,7 +14,7 @@
 // copies it into <place>/textures/ (PNG) or <place>/models/ (GLB), routed by file type. The panel
 // stays open so several requests can be filled in one session; each then asks the
 // orchestrator to import + wire it via godot-assets (a plant prop that should join
-// the data layer goes through the xenodot-twin:twin-asset-import skill), then verify.
+// the data layer goes through the xenodot:twin-asset-import skill), then verify.
 // CANDIDATE — NOT IMPLEMENTED (honest scope, do not wire without a plan). A natural future home for a
 // "shipped deliverables" row: a downloadable card per `tools/twin_ship.sh` artifact (name, model,
 // size, platform, the retarget.json manifest of what a receiver may swap — see
@@ -146,7 +146,7 @@ function wirePrompt(ask, savedPath) {
     return (
       `I sourced the "${ask.name}" model and saved it to ${savedPath}${task}. ` +
       `Import and wire it into the viewer scene: if it's plant equipment / a prop that should join the ` +
-      `data layer, use the xenodot-twin:twin-asset-import skill (it mints a synthetic IFC GlobalId so the ` +
+      `data layer, use the xenodot:twin-asset-import skill (it mints a synthetic IFC GlobalId so the ` +
       `prop binds to master data); otherwise dispatch godot-assets to bring it in as ad-hoc scene dressing ` +
       `— import, verify the .glb format + scale/units, scale it to the prop's real footprint, and instance ` +
       `it in place of the matching placeholder node (keep its name + position). Then verify with godot-verify ` +

@@ -4,7 +4,19 @@ title: "twin-bim-import — the pipeline holds on a real building (Schependomlaa
 description: "First seat run of the shipped IFC→twin pipeline on a REAL building, not the toy Duplex: the 62 MB Schependomlaan model (IFC2X3, CC BY 4.0) imports to a GLB+sidecar in ~16.5 s, joins 3505/3505 GlobalIds (100%), and reaches every twin_build gate green (BIND-SMOKE 5/5) in ~42 s wall — ~12x the Duplex's shapes for ~2.2x the wall. Frames the twin as a Bonsai complement (author openBIM in Bonsai → play it live in the twin) and records the LGPL/GPL license wall."
 timestamp: 2026-07-10T16:00:00+01:00
 tags:
-  [twin-import, bim, ifc, real-building, schependomlaan, join, twin-build, bonsai, license, cc-by, one-machine]
+  [
+    twin-import,
+    bim,
+    ifc,
+    real-building,
+    schependomlaan,
+    join,
+    twin-build,
+    bonsai,
+    license,
+    cc-by,
+    one-machine,
+  ]
 ---
 
 # twin-bim-import — the pipeline holds on a real building, not just the toy Duplex
@@ -30,23 +42,23 @@ all-gates-green → a painted, live-bound viewer proven in a real window AND a r
 
 ## The numbers (one machine, single run — read honestly)
 
-| Metric | Duplex (prior finding) | **Schependomlaan (this run)** |
-| --- | --- | --- |
-| IFC size | 2.3 MB | **62 MB** (~27x) |
-| Shapes (GLB nodes) | 286 | **3505** (~12.3x) |
-| Sidecar elements | 295 | **3508** |
-| **GlobalId join** | 286/286 (100%) | **3505/3505 (100.0%)** |
-| Import wall (`ifc_convert.py`, standalone) | ~2.2 s | **~16.5 s** (15.0 s geometry + 1.5 s sidecar) |
-| GLB / sidecar out | — | **7.3 MB GLB / 23.6 MB sidecar** |
-| BIND-SMOKE | 6/6 | **5/5 resolved** (seed 42) |
-| **`twin_build` total wall** | ~19.5 s | **~42.4 s** (single run, cold) |
+| Metric                                     | Duplex (prior finding) | **Schependomlaan (this run)**                 |
+| ------------------------------------------ | ---------------------- | --------------------------------------------- |
+| IFC size                                   | 2.3 MB                 | **62 MB** (~27x)                              |
+| Shapes (GLB nodes)                         | 286                    | **3505** (~12.3x)                             |
+| Sidecar elements                           | 295                    | **3508**                                      |
+| **GlobalId join**                          | 286/286 (100%)         | **3505/3505 (100.0%)**                        |
+| Import wall (`ifc_convert.py`, standalone) | ~2.2 s                 | **~16.5 s** (15.0 s geometry + 1.5 s sidecar) |
+| GLB / sidecar out                          | —                      | **7.3 MB GLB / 23.6 MB sidecar**              |
+| BIND-SMOKE                                 | 6/6                    | **5/5 resolved** (seed 42)                    |
+| **`twin_build` total wall**                | ~19.5 s                | **~42.4 s** (single run, cold)                |
 
 The headline: **join fidelity is size-independent — 100% on a real building, same as the toy.**
 Wall time scales roughly with geometry but sub-linearly with file size (~12x the shapes for
 ~2.2x the total wall; import dominates the growth, the verify gates are largely fixed cost).
 
 Optimize is honest about a real building: **0 MultiMesh groups instanced** (3505 meshes, 3505
-groups) — a residential model's geometry is mostly *unique* elements, so there is little to batch,
+groups) — a residential model's geometry is mostly _unique_ elements, so there is little to batch,
 unlike a repeated-asset plant. The optimizer correctly finds nothing to instance rather than
 inventing savings.
 
@@ -65,8 +77,8 @@ inventing savings.
 
 ## The Bonsai-complement scenario
 
-Position the twin as a **complement to Bonsai**, not a competitor: *author openBIM in Bonsai →
-export IFC → play it live in xenodot-twin.* The differentiator is **speed + join fidelity +
+Position the twin as a **complement to Bonsai**, not a competitor: _author openBIM in Bonsai →
+export IFC → play it live in xenodot-twin._ The differentiator is **speed + join fidelity +
 hosted playback**, never being first (GDIFC exists — alpha, MPL-2.0, ships no macOS binary) and
 never authoring or simulation. Bonsai itself advertises "Live building sensors", so the twin
 scopes to **hosted digital-twin visualization + live-data binding** and acknowledges the partial

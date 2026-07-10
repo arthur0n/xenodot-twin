@@ -85,9 +85,9 @@ export default [
       "ui/lib/**/*.js",
       "ui/smoke-test.js",
       "ui/*.check.js",
-      // The twin plugin's Node tools (e.g. the seeded data sim materialized into viewer
-      // projects at tools/sim/) are held to the SAME strict node bar as framework JS.
-      "plugin-twin/tools/**/*.js",
+      // The plugin's Node tools (e.g. the twin domain's seeded data sim materialized into
+      // viewer projects at tools/sim/) are held to the SAME strict node bar as framework JS.
+      "plugin/tools/**/*.js",
     ],
     languageOptions: {
       parser: tsPlugin.parser,

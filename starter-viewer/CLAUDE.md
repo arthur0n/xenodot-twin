@@ -75,7 +75,7 @@ exists. Keys: **Space** = play/pause (only while the bar is visible).
 ## Verify
 
 `xenodot:godot-verify` is the deterministic gate (format → lint → strict parse → scenes →
-smoke), and `xenodot-twin:twin-verify` layers the twin checks (model join, DataBus liveness)
+smoke), and `xenodot:twin-verify` layers the twin checks (model join, DataBus liveness)
 on top. The strict warnings-as-errors block in `project.godot` is the contract — never
 weaken it.
 

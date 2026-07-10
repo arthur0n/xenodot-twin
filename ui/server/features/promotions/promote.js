@@ -23,7 +23,7 @@ const force = argv.includes("--force");
 const positional = argv.filter((a) => !a.startsWith("--"));
 
 // Where promotions land: the base plugin (`xenodot:`) for a game project, the twin plugin
-// (`xenodot-twin:`) for a viewer project — resolved once here, at the entry.
+// (`xenodot:`) for a viewer project — resolved once here, at the entry.
 const { pluginDir, namespace } = promotionTarget();
 
 if (pending) {
@@ -70,8 +70,6 @@ if (!result.ok) {
 const label = name.replace(/\.md$/, "");
 console.log(`promote: ${result.msg}`);
 console.log(
-  namespace === "xenodot-twin"
-    ? `Now available to every viewer project as xenodot-twin:${label} — restart the session to load it.`
-    : `Now available to every game as xenodot:${label} — restart the session to load it.`,
+  `Now available to every project as ${namespace}:${label} — restart the session to load it.`,
 );
 if (kind !== "tools") console.log("Tip: run `npm run badges` to refresh the README counts.");

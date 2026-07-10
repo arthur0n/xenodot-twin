@@ -28,7 +28,7 @@ import {
   encodePublish,
   encodePingresp,
   decodePackets,
-} from "../../../../plugin-twin/tools/bridge/mqtt_protocol.js";
+} from "../../../../plugin/tools/bridge/mqtt_protocol.js";
 
 // --- Remaining Length varint (§2.2.3) ---
 // The four size boundaries the spec table calls out: 1 byte < 128, 2 bytes < 16384,
@@ -67,7 +67,7 @@ test("remaining-length varint: over-long (>4 bytes) throws (§2.2.3)", () => {
 
 // --- Packet round-trips: encode one packet, decode it back, assert the fields ---
 /** Decode a buffer expected to hold exactly one whole packet, and return it.
- * @param {Buffer} buf @returns {import("../../../../plugin-twin/tools/bridge/mqtt_protocol.js").MqttPacket} */
+ * @param {Buffer} buf @returns {import("../../../../plugin/tools/bridge/mqtt_protocol.js").MqttPacket} */
 function only(buf) {
   const { packets, rest } = decodePackets(buf);
   assert.equal(packets.length, 1, "exactly one packet");

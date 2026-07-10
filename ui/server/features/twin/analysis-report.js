@@ -1,7 +1,7 @@
 // Analysis report writer — Contract 2 (report-out). The FRAMEWORK writes the report, never the
 // worker: a worker returns only a body string; this module wraps it in provenance frontmatter and
 // drops it under `reports/analysis/` in the project, and nowhere else (guardrails 1 + 4). See
-// plugin-twin/skills/twin-analyze/references/report-format.md — this implements that contract.
+// plugin/skills/twin-analyze/references/report-format.md — this implements that contract.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";

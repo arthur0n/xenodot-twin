@@ -14,7 +14,7 @@
 //   node ui/server/cli/gen-contamination.js     # exits 1 on any contamination
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { FRAMEWORK_DIR, FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR } from "../core/config.js";
+import { FRAMEWORK_DIR, FRAMEWORK_PLUGIN_DIR } from "../core/config.js";
 import { scanPath } from "../features/promotions/contamination.js";
 
 // res:// is checked for TOOLS only — a tool with a hardcoded game scene breaks other games' gates,
@@ -27,11 +27,11 @@ const DIRS = [
   { dir: "tools", checkRes: true },
 ];
 
-// BOTH plugin roots get the same gate: plugin-twin/ ships to every VIEWER project, so its
-// content must be viewer-domain-generic by the exact same signals (codenames, absolute paths,
-// sibling-game refs, provenance) — one scanner, no twin-specific vocabulary. A missing
-// plugin-twin (a plain fork) is skipped.
-const ROOTS = [FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR].filter((r) => existsSync(r));
+// The ONE plugin root gets the gate: everything it ships (engine-generic + the folded-in twin
+// domain) must be domain-generic by the same signals (codenames, absolute paths, sibling-game
+// refs, provenance) — one scanner, no twin-specific vocabulary. A missing plugin (a plain fork)
+// is skipped.
+const ROOTS = [FRAMEWORK_PLUGIN_DIR].filter((r) => existsSync(r));
 
 /** @type {Array<{ file: string, signal: string, match: string, hint: string }>} */
 const hits = [];

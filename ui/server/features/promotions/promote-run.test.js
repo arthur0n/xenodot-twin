@@ -1,9 +1,9 @@
-// node:test coverage for the promotion destination seam — promotionTarget flips the
-// destination plugin with the project type (game → plugin/, viewer → plugin-twin/), and
-// locate/promoteOne honor an explicit pluginDir while defaulting to the base plugin so the
-// game path stays byte-identical. Temp fixtures stand in for the game and the destination
-// plugin; GAME_DIR points at a temp dir before import so config.js's load-time project
-// resolution stays isolated (same pattern as materialize.test.js).
+// node:test coverage for the promotion destination seam — promotionTarget now resolves to the ONE
+// xenodot plugin (plugin/, namespace xenodot:) for every project type (the twin domain was folded
+// in), and locate/promoteOne honor an explicit pluginDir while defaulting to the base plugin so the
+// game path stays byte-identical. Temp fixtures stand in for the game and the destination plugin;
+// GAME_DIR points at a temp dir before import so config.js's load-time project resolution stays
+// isolated (same pattern as materialize.test.js).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
@@ -13,31 +13,27 @@ import path from "node:path";
 const scratch = mkdtempSync(path.join(tmpdir(), "xeno-promote-"));
 process.env.GAME_DIR = scratch;
 const { promotionTarget, locate, promoteOne } = await import("./promote-run.js");
-const { FRAMEWORK_PLUGIN_DIR, TWIN_PLUGIN_DIR } = await import("../../core/config.js");
+const { FRAMEWORK_PLUGIN_DIR } = await import("../../core/config.js");
 
-test("promotionTarget: game → base plugin (xenodot), viewer → twin plugin (xenodot-twin)", () => {
-  assert.deepEqual(promotionTarget("game"), {
-    pluginDir: FRAMEWORK_PLUGIN_DIR,
-    namespace: "xenodot",
-  });
-  assert.deepEqual(promotionTarget("viewer"), {
-    pluginDir: TWIN_PLUGIN_DIR,
-    namespace: "xenodot-twin",
-  });
+test("promotionTarget: the ONE xenodot plugin for every project type (twin folded in)", () => {
+  const target = { pluginDir: FRAMEWORK_PLUGIN_DIR, namespace: "xenodot" };
+  assert.deepEqual(promotionTarget("game"), target);
+  assert.deepEqual(promotionTarget("viewer"), target);
 });
 
 test("locate: dst defaults to the base plugin and flips with an explicit pluginDir", () => {
   const game = path.join(scratch, "some-game");
   const base = locate("skills", "my-skill", game);
   assert.equal(base.dst, path.join(FRAMEWORK_PLUGIN_DIR, "skills", "my-skill"));
-  const twin = locate("skills", "my-skill", game, TWIN_PLUGIN_DIR);
-  assert.equal(twin.dst, path.join(TWIN_PLUGIN_DIR, "skills", "my-skill"));
+  const other = path.join(scratch, "other-plugin");
+  const flipped = locate("skills", "my-skill", game, other);
+  assert.equal(flipped.dst, path.join(other, "skills", "my-skill"));
   // src never depends on the plugin dir — same game-local source either way.
-  assert.equal(base.src, twin.src);
-  // Agents get the .md suffix in both worlds.
+  assert.equal(base.src, flipped.src);
+  // Agents get the .md suffix.
   assert.equal(
-    locate("agents", "helper", game, TWIN_PLUGIN_DIR).dst,
-    path.join(TWIN_PLUGIN_DIR, "agents", "helper.md"),
+    locate("agents", "helper", game, other).dst,
+    path.join(other, "agents", "helper.md"),
   );
 });
 

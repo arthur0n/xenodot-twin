@@ -19,12 +19,12 @@ export const FRAMEWORK_DIR = path.join(UI_DIR, "..");
  * SDK `plugins` option (see session.js), so a game project needs no copied agents or
  * skills; it stays pure game and the plugin provides the framework regardless of cwd. */
 export const FRAMEWORK_PLUGIN_DIR = path.join(FRAMEWORK_DIR, "plugin");
-/** The digital-twin viewer capabilities (twin agents, skills, tools) packaged as a THIRD local
- * plugin, `xenodot-twin`. Repo boundary ≠ load boundary: it lives in the framework repo but
- * session.js appends it ONLY when the project is a viewer (`getProjectType() === "viewer"`) AND
- * this path exists — a game session must never load twin capabilities, and a missing/ungated
- * twin changes nothing. */
-export const TWIN_PLUGIN_DIR = path.join(FRAMEWORK_DIR, "plugin-twin");
+/** The digital-twin viewer capabilities (twin agents, skills, tools). These were folded INTO the
+ * base plugin (one plugin, one `xenodot:` namespace — see plugin/.claude-plugin/plugin.json), so
+ * this now ALIASES FRAMEWORK_PLUGIN_DIR. Retained as a distinct name only so the promotion /
+ * materialize / analyze consumers that resolve twin subpaths (skills/twin-analyze/tasks,
+ * library, tools) keep reading the right place until the twin seam is collapsed in those files. */
+export const TWIN_PLUGIN_DIR = FRAMEWORK_PLUGIN_DIR;
 /** Saved-path config written by `npm run setup` — gitignored, so each fork
  * remembers its own game project without committing it. */
 export const CONFIG_FILE = path.join(FRAMEWORK_DIR, ".xenodot.json");

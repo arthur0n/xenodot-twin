@@ -10,7 +10,7 @@
 //   • library/ — SYMLINKED to plugin/library. Researcher agents READ sources and WRITE
 //                verdicts/digests here; a symlink keeps the framework the single source
 //                so that knowledge persists in the plugin, not a throwaway game copy.
-//   • library-twin/ — VIEWER projects only: SYMLINKED to plugin-twin/library (same semantics
+//   • library-twin/ — VIEWER projects only: SYMLINKED to plugin/library (same semantics
 //                as library/ — .gdignored source, real dir preserved), so twin agents reach
 //                the viewer knowledge base through a project path too.
 //   • x-shared-assets/ — SYMLINKED to the external asset library (config.js ASSET_LIBRARY):
@@ -178,7 +178,7 @@ export function ensureLibraryLink(projectDir) {
 }
 
 /** Ensure <projectDir>/library-twin is a symlink to the TWIN plugin's library — the viewer
- * sibling of ensureLibraryLink, so twin agents read/write viewer knowledge (plugin-twin/library,
+ * sibling of ensureLibraryLink, so twin agents read/write viewer knowledge (plugin/library,
  * the canonical home) through a project path just like the base library/. Called for VIEWER
  * projects only (see prepareGame); the source carries a .gdignore so the engine never scans it.
  * Guarded: a missing plugin-twin (not yet built, plain game install) is a no-op.

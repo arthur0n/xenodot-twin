@@ -179,7 +179,7 @@ distinct; if a slug is long enough that the prefix truncation would alias two pr
 namespace it before minting. Vendor display names inside the GLB are safe — they are not 22-char
 base64, so `_globalid_from_name` rejects them; only the one node you rename carries a key.
 
-## Step 5 — verify via `xenodot-twin:twin-verify`
+## Step 5 — verify via `xenodot:twin-verify`
 
 After importing a prop, run `tools/verify_twin.sh` (skill `twin-verify`) — the prop rides the same
 gates as a BIM import:

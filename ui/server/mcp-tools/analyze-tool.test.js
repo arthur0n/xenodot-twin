@@ -21,8 +21,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseJSON } from "../../lib/json.js";
-import { headerLine, frameLine } from "../../../plugin-twin/tools/sim/recording.js";
-import { buildBundle } from "../../../plugin-twin/tools/analyze/bundle.js";
+import { headerLine, frameLine } from "../../../plugin/tools/sim/recording.js";
+import { buildBundle } from "../../../plugin/tools/analyze/bundle.js";
 
 process.env.GAME_DIR = mkdtempSync(path.join(tmpdir(), "xeno-analyze-tool-"));
 const { makeAnalyzeTool } = await import("./analyze-tool.js");
@@ -31,7 +31,7 @@ const { ANALYZE_TOOL } = await import("../core/config.js");
 
 /** The real task-template dir (the tool composes the reviewed template + bundle). */
 const TASKS_DIR = fileURLToPath(
-  new URL("../../../plugin-twin/skills/twin-analyze/tasks/", import.meta.url),
+  new URL("../../../plugin/skills/twin-analyze/tasks/", import.meta.url),
 );
 
 /** First text block of a tool result. @param {unknown} r @returns {string} */

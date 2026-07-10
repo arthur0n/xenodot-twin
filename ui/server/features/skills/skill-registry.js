@@ -11,12 +11,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url)); // ui/server/features
 const PLUGIN = path.join(HERE, "..", "..", "..", "..", "plugin");
 export const SKILLS_DIR = path.join(PLUGIN, "skills");
 export const AGENTS_DIR = path.join(PLUGIN, "agents");
-/** The base plugin root, exported so the CLI validator can iterate BOTH plugin roots
- * (base + the sibling xenodot-twin) without pulling in config.js. */
+/** The plugin root, exported so the CLI validator can locate it without pulling in config.js. */
 export const PLUGIN_DIR = PLUGIN;
-/** The twin plugin root — same value as config.js TWIN_PLUGIN_DIR, duplicated here because
- * this module deliberately stays config-free (no load-time side effects). */
-export const TWIN_DIR = path.join(PLUGIN, "..", "plugin-twin");
 
 /** Sentinel for the main session (the hive) in audience sets — NOT an agent file. Its tag token is
  * `orchestrator`; its skill set is ORCHESTRATOR_FRAMEWORK_SKILLS (in skill-catalog.js). */
@@ -129,8 +125,9 @@ export function expectedByAudience(skills, agentNames, workers, errors) {
 }
 
 /** Read everything + compute the projection in one call. Workers = agents with the board tool.
- * @param {string} [root] plugin root to read (defaults to the base plugin) — pass TWIN_DIR to
- *   load the xenodot-twin registry.
+ * The one plugin carries both the base and the folded-in twin domain; partitionRegistry splits the
+ * result when a pass needs the halves separately.
+ * @param {string} [root] plugin root to read (defaults to the plugin)
  * @returns {{ skills: Map<string,string[]>, agents: ReturnType<typeof readAgents>,
  *   agentNames: string[], workers: string[], expected: Map<string,Set<string>>, errors: string[] }} */
 export function loadRegistry(root = PLUGIN) {
@@ -142,4 +139,44 @@ export function loadRegistry(root = PLUGIN) {
   const errors = [];
   const expected = expectedByAudience(skills, agentNames, workers, errors);
   return { skills, agents, agentNames, workers, expected, errors };
+}
+
+/** @typedef {ReturnType<typeof loadRegistry>} Registry */
+
+/** Recompute the per-audience projection for a SUBSET of the registry (a slice of skills + agents).
+ * Same shape as loadRegistry, but the projection is confined to the subset — so a base skill tagged
+ * `all` does not sweep in twin agents, and a twin skill's audience resolves only against twin agents.
+ * @param {Map<string,string[]>} skills @param {Registry["agents"]} agents @returns {Registry} */
+function scopeOf(skills, agents) {
+  const agentNames = [...agents.keys()].sort();
+  const workers = agentNames.filter((n) => agents.get(n)?.tools.includes("mcp__ui__tasks"));
+  /** @type {string[]} */
+  const errors = [];
+  const expected = expectedByAudience(skills, agentNames, workers, errors);
+  return { skills, agents, agentNames, workers, expected, errors };
+}
+
+/** Split the ONE merged plugin registry into its base and twin (digital-twin domain) halves, so the
+ * scope gate keeps enforcing each half by its own rules after the two plugins were folded into one:
+ *   - twin AGENTS are the ones whose frontmatter composes base capabilities cross-domain via the
+ *     `xenodot:` self-namespace prefix (base agents list everything bare);
+ *   - twin SKILLS are the `twin-` prefixed ones.
+ * The twin half's `xenodot:<base-skill>` refs are then existence-checked against the base half and
+ * exempt from audience projection (see gen-skill-scope.js), exactly as the old two-plugin pass did.
+ * @param {Registry} [reg] @returns {{ base: Registry, twin: Registry | null }} */
+export function partitionRegistry(reg = loadRegistry()) {
+  const twinAgents = new Set(
+    [...reg.agents]
+      .filter(([, a]) => a.skills.some((s) => s.startsWith("xenodot:")))
+      .map(([n]) => n),
+  );
+  const isTwinSkill = (/** @type {string} */ n) => n.startsWith("twin-");
+  const base = scopeOf(
+    new Map([...reg.skills].filter(([n]) => !isTwinSkill(n))),
+    new Map([...reg.agents].filter(([n]) => !twinAgents.has(n))),
+  );
+  const twinSkills = new Map([...reg.skills].filter(([n]) => isTwinSkill(n)));
+  const twinAgentMap = new Map([...reg.agents].filter(([n]) => twinAgents.has(n)));
+  const twin = twinAgentMap.size ? scopeOf(twinSkills, twinAgentMap) : null;
+  return { base, twin };
 }

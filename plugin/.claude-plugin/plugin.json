@@ -1,6 +1,6 @@
 {
   "name": "xenodot",
-  "description": "Xenodot base — engine-generic agents, godot-* skills, tools and hooks for AI-assisted Godot-family (Godot / Redot / Blazium) work with Claude Code. The xenodot-twin plugin composes these via the xenodot: namespace",
-  "version": "0.2.1",
+  "description": "Xenodot — engine-generic agents, godot-* skills, tools and hooks PLUS the digital-twin domain (twin-architect / scene-optimizer / data-binder agents and twin-* skills for IFC/BIM → Godot viewers) for AI-assisted Godot-family (Godot / Redot / Blazium) work with Claude Code. One plugin, xenodot: namespace",
+  "version": "0.3.0",
   "author": { "name": "Xenodot Forge" }
 }

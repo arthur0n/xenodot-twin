@@ -1,6 +1,0 @@
-{
-  "name": "xenodot-twin",
-  "description": "Xenodot Twin — agents, skills and tools for AI-assisted digital-twin viewers (IFC/BIM → Godot) with Claude Code. Loads alongside the base xenodot plugin and references its capabilities (godot-verify, godot-export-builds, …) instead of bundling them",
-  "version": "0.1.3",
-  "author": { "name": "Xenodot Forge" }
-}

@@ -56,7 +56,6 @@ import {
   PROJECT_DIR,
   FRAMEWORK_PLUGIN_DIR,
   CODEX_PLUGIN_DIR,
-  TWIN_PLUGIN_DIR,
   getCodexConfig,
   getProjectType,
   getDocsConfig,
@@ -258,16 +257,13 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
   // picks the orchestrator prompt, extends the skill floor, and gates the twin plugin below.
   const projectType = getProjectType();
   const viewer = projectType === "viewer";
-  // The local-plugin list: the xenodot spine always; the OPTIONAL Codex reviewer (a SECOND
+  // The local-plugin list: the xenodot spine always (ONE plugin carrying both the engine-generic
+  // capabilities and the folded-in digital-twin domain); the OPTIONAL Codex reviewer (a SECOND
   // local plugin — OpenAI's `codex-plugin-cc`, vendored on disk) only when the user enabled it
-  // AND it's actually been cloned; the OPTIONAL xenodot-twin viewer plugin (a THIRD local
-  // plugin) only for viewer projects AND when it exists on disk. A disabled/absent optional
-  // plugin changes nothing. Extracted to resolveSessionPlugins (pure, tested) so the options
-  // object below stays readable.
+  // AND it's actually been cloned. A disabled/absent optional plugin changes nothing. Extracted to
+  // resolveSessionPlugins (pure, tested) so the options object below stays readable.
   const plugins = resolveSessionPlugins({
     baseDir: FRAMEWORK_PLUGIN_DIR,
-    projectType,
-    twinDir: TWIN_PLUGIN_DIR,
     codexEnabled: getCodexConfig().enabled,
     codexDir: CODEX_PLUGIN_DIR,
   });
@@ -286,8 +282,8 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
         cwd: PROJECT_DIR,
         // The framework's agents/skills/hooks come from the plugin (single source of truth), not
         // from copies in the game — so the game folder stays pure. Plugins load regardless of cwd.
-        // The xenodot spine is always loaded; the Codex reviewer and the xenodot-twin viewer
-        // plugin are appended only when their gates pass (see resolveSessionPlugins above).
+        // The xenodot spine is always loaded (one plugin, twin domain folded in); the Codex
+        // reviewer is appended only when its gate passes (see resolveSessionPlugins above).
         // skipMcpDiscovery: the UI owns its MCP tools (below). Its slash commands
         // (`/codex:review`) expand from the user's prompt; `codex:codex-rescue` becomes delegable.
         plugins,
@@ -470,8 +466,8 @@ function runPromotion(id, send) {
     send({ type: "promotions", items: readPromotions() });
     return;
   }
-  // Game project → base plugin (xenodot:), viewer project → twin plugin (xenodot-twin:) —
-  // resolved at this entry so the move core stays pure (see promotionTarget).
+  // Promotions land in the one xenodot plugin (xenodot: namespace) — resolved at this entry so
+  // the move core stays pure (see promotionTarget).
   const { pluginDir, namespace } = promotionTarget();
   const result = promoteOne(entry.kind, entry.name, PROJECT_DIR, { pluginDir });
   const items = result.ok ? markPromoted(id, new Date().toISOString()) : readPromotions();
@@ -479,7 +475,7 @@ function runPromotion(id, send) {
   send({
     type: "status",
     text: result.ok
-      ? `Promoted ${entry.kind.replace(/s$/, "")} "${entry.name}" → ${namespace === "xenodot-twin" ? "twin plugin" : "framework plugin"}. Start a new session to load it as ${namespace}:${entry.name.replace(/\.md$/, "")}.`
+      ? `Promoted ${entry.kind.replace(/s$/, "")} "${entry.name}" → framework plugin. Start a new session to load it as ${namespace}:${entry.name.replace(/\.md$/, "")}.`
       : `Couldn't promote "${entry.name}": ${result.msg}`,
   });
 }

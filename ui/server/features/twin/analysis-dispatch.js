@@ -22,7 +22,7 @@ import {
   buildBundle,
   unmatchedTags,
   SIZE_BUDGET_BYTES,
-} from "../../../../plugin-twin/tools/analyze/bundle.js";
+} from "../../../../plugin/tools/analyze/bundle.js";
 import { selectWorker } from "./analysis.js";
 import {
   isValidTask,
