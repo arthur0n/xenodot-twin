@@ -78,7 +78,8 @@ $GODOT --headless --path . --script tools/optimize_scene.gd -- \
     --in=<model.glb|scene.tscn> --out=<optimized.scn> --report=<report.json> \
     [--chunks=auto|N] [--target-per-chunk=32] [--min-instances=8] \
     [--hints=<hints.json>] [--occluders] [--occluder-min-volume=10.0] [--vis-ranges] \
-    [--vis-small-diag=0.5] [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120]
+    [--vis-small-diag=0.5] [--vis-medium-diag=2.0] [--vis-small-end=40] [--vis-medium-end=120] \
+    [--vis-fade-margin=<m>] [--vis-fade-mode=self|deps]
 ```
 
 Groups repeated meshes into region-chunked MultiMesh fields (auto-sized per group by
@@ -90,14 +91,39 @@ The four `--vis-*` flags override the visibility-range size-class thresholds/dis
 effective values so every run is self-describing. `--vis-ranges` is now benched — a
 **scoped win** (big on many-unique-mesh scenes, no-op on single buildings / instanced
 scenes; defaults kept, still opt-in): `plugin-twin/library/findings/twin-vis-range-recipe-2026-07-09.md`.
+`--vis-fade-margin=<m>` (metres > 0) + `--vis-fade-mode=self|deps` add a fade band `[end, end+margin]`
+so a ranged object fades out instead of hard-popping (a mode needs a margin; a margin alone defaults
+to `self`; > 0 or FAILs loud; the report echoes `vis_fade_margin`/`vis_fade_mode`). MEASURED (item #6):
+the aggressive tier becomes adoptable with `--vis-fade-margin=5 --vis-fade-mode=self` — keeps 97% of
+its cpu win (cost within noise), Forward+ ONLY (web export keeps the pop), pending a human fly-through:
+`plugin-twin/library/findings/twin-vis-fade-2026-07-10.md`.
 `--occluders` is likewise benched — a **scoped win** at street level on many-unique-mesh
 scenes (unique-city street cpu −0.15 ms / −9%, objects −55..−73%, lossless; interior expected
 by the same mechanism, unmeasured) but net-negative on
 single buildings and a no-op on instanced/aerial scenes; `--occluder-min-volume=` overrides the
 10 m³ gate (> 0, else FAILs loud) — the measured sweet spot, kept, still opt-in:
 `plugin-twin/library/findings/twin-occluder-recipe-2026-07-10.md`.
-Helpers live in `tools/lib/twin_chunks.gd` (grid + emission) and `tools/lib/twin_hints.gd`
-(hint contract). Recipe, measured numbers and knob guidance: skill `twin-optimize`.
+Helpers live in `tools/lib/twin_chunks.gd` (grid + emission), `tools/lib/twin_hints.gd`
+(hint contract) and `tools/lib/twin_vis_range.gd` (size classes + fade band). Recipe, measured
+numbers and knob guidance: skill `twin-optimize`.
+
+## `bench_sweep.sh` — declarative optimize→bench→merge recipe sweep
+
+```
+tools/bench_sweep.sh <matrix.json> [optimize|bench|repeat|merge|all]
+```
+
+Reusable deterministic driver for the sweep pattern the `--vis-ranges` / `--occluders` / fade recipes
+were each measured with: a declarative JSON matrix of optimizer `configs` × camera `vantages` +
+a `baseline`, built with `optimize_scene.gd`, benched with `bench_scene.gd`, merged into
+self-describing rows with deltas vs the baseline and a noise-floor flag. Loading the matrix VALIDATES
+it (unknown key / missing baseline / malformed config → FAIL loud). The merge
+(`tools/bench/merge_sweep.py`, dependency-free) **asserts the deterministic per-frame columns
+(objects/draws/primitives) are byte-identical across every repeat** and fails loud on variance, and
+**auto-suggests interleaved repeats** when `frame_ms` pins at the display cap (thermal-drift guard).
+Runs IN a project against its materialized `tools/` — no overlay logic; same loud-stage discipline as
+`twin_build.sh`. Perceptual pop capture is a documented v2 (seat spikes carry the reference gd). Worked
+example: `plugin-twin/examples/bench_sweep.vis-fade.example.json`. Recipe: skill `twin-optimize`.
 
 ## `verify_twin.sh` — the twin builder's gate
 

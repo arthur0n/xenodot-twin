@@ -225,9 +225,27 @@ fully-instanced scenes.
   are **absolute, not scene-relative** — the best cutoffs did NOT track scene bounds between the
   duplex and the city, so there is no AABB-derived grid here. (The sub-0.5 m small class never
   fired at default thresholds in the bench scenes — untested; re-bench for genuinely small clutter.)
-- **Don't reach for coarser/aggressive (1.0/4.0, 20/60) yet.** They win more cpu but **hard-pop
-  distant fixtures in at ~60 m** (the pass has no fade). Adopt only behind a
-  `visibility_range_fade_mode` / begin-margin — and only after benching that margin (see TODO).
+- **Coarser/aggressive (1.0/4.0, 20/60) — now adoptable behind a fade, MEASURED (item #6).** They
+  win more cpu but **hard-pop distant fixtures in at ~60 m** because the pass sets
+  `visibility_range_end` only. The fade band closes that: `--vis-fade-margin=<m> --vis-fade-mode=self`
+  makes a ranged object fade to transparency over `[end, end+margin]` instead of popping. Swept on the
+  unique-mesh city at street (full record:
+  `library-twin/findings/twin-vis-fade-2026-07-10.md`, seat sweep `8118350`):
+  - **Reach for the aggressive tier with `--vis-fade-margin=5 --vis-fade-mode=self`** — it retains
+    **97%** of the aggressive cpu win (fade cost +0.025 ms, at/below the 0.03 ms noise floor —
+    effectively free; only +162 distant fixtures / +3.3% re-enter the band) and replaces the hard pop
+    with an alpha ramp. Recommended-with-caveat, **pending a human fly-through** (the standing
+    convention — an agent frame-reviewed the ramp + matched-position diff, not live motion).
+  - **Fallback `--vis-fade-margin=12`** is the _pop-optimal_ band (widest, smoothest ramp) but eats
+    ~⅓ of the win (**69% median / 81% min retention**, +0.235 ms) — it **misses the 80% retention
+    bar**. Use it only if a human judges the 5 m ramp too quick, and ship it as "aggressive-tier fade
+    costs ~⅓ of the win."
+  - **When NOT:** the **coarser** tier (40/120) fails retention at **both** margins (65% / 39%) — its
+    wider cull radius drops far more geometry into the band; don't fade it. And **web export**: the
+    fade renders under **Forward+ ONLY** — the Compatibility renderer the browser build uses treats it
+    as DISABLED and **the pop returns**, so a web-bound twin can't lean on the fade to justify the
+    aggressive cutoffs. Aerial fade is free (band empty from overhead). `--vis-fade-mode=deps` (fade a
+    `visibility_parent` LOD chain) is unmeasured — `self` only so far.
 - Same discipline as chunking: `cpu_ms` leads (cap-immune), sub-cap fps second, then
   `objects_rendered` delta; measure **both vantages** (street + aerial) — a street-only look misses
   the −32% aerial win, an aerial-only look misses that `dist_double` no-ops at street.
@@ -289,15 +307,49 @@ buildings, no-op on instanced/aerial scenes.
 - Not headless — rendering benchmarks need a display by nature. Headless runs must SKIP loudly,
   never fabricate.
 
+## Benching a recipe — `tools/bench_sweep.sh` (the reusable sweep)
+
+Every `--vis-ranges` / `--occluders` / fade recipe above came from the SAME loop — a matrix of
+optimizer configs × camera vantages, built then benched then merged into delta rows. That loop is now
+one deterministic framework tool instead of a per-spike hand-rolled driver:
+
+```sh
+tools/bench_sweep.sh <matrix.json> [optimize|bench|repeat|merge|all]
+```
+
+- **Declarative matrix (JSON).** Names the `scene_in`, the `configs` (each a name → optimizer
+  `flags`), the `vantages`, a `baseline` config for deltas, and an optional `repeat` block. Loading it
+  VALIDATES it — an unknown key / missing baseline / malformed config **fails loud** at the first
+  stage. Worked example (recreates the fade sweep):
+  `plugin-twin/examples/bench_sweep.vis-fade.example.json`.
+- **Deterministic build, asserted.** Each config is built once with `optimize_scene.gd` (same flags
+  in → same scene out); the merge ASSERTS the deterministic per-frame columns
+  (`objects_rendered` / `draw_calls` / `primitives`) are byte-identical across every repeat and
+  **fails loud on any variance** (a rendered scene can't change its object count run to run).
+- **Interleaved repeats when the cap bites.** When `frame_ms` is pinned at the display cap (median
+  ≈ 1000/refresh), `cpu_ms` is noisy and a single sequential pass can alias thermal drift onto the
+  config axis (the fade sweep hit exactly this). The tool **auto-suggests** adding a `repeat` block;
+  with one, it re-benches the configs in INTERLEAVED cycles at one vantage and takes the drift-cancelled
+  MEDIAN as the authoritative cpu. Timings stay honestly session-bound (one machine, one thermal
+  block) — say so in any report; everything else is deterministic.
+- **Runs IN a project against its materialized `tools/`** — no framework-overlay logic (that was a
+  spike-only need to test an unmerged branch). Same loud-stage discipline as `twin_build.sh` /
+  `verify_twin.sh`; a SKIP is never a pass. The merge (`tools/bench/merge_sweep.py`) writes
+  `summary.json` + prints the delta tables, flagging any `|Δcpu|` within the noise floor.
+- **Perceptual pop capture is NOT in the core tool** (a documented v2). The three seat sweeps carry
+  the reference `pop_series.gd` + `pop_analyze.py` (SSIM / matched-position diff, needs ffmpeg) — see
+  the fade finding's Reproduce block; promote them into `bench_sweep` if a perceptual sub-mode is ever
+  needed framework-side.
+
 ## Phase 2 TODO — honest boundaries
 
 The following are NOT yet proven recipes; treat them as open work, not folklore:
 
-- **Fade margin / hysteresis for `--vis-ranges`** — the pass is now benched (scoped win, recipe
-  above) but sets `visibility_range_end` only: a hard pop at the cutoff. The coarser/aggressive
-  cutoffs win more cpu yet visibly hard-pop at ~60 m, so they are NOT adopted until a
-  `visibility_range_fade_mode` / `visibility_range_begin` margin is added AND benched. The
-  sub-0.5 m small class also never fired at default thresholds in the bench scenes — untested.
+- **Fade margin for `--vis-ranges` — DONE** (item #6, recipe in the vis-ranges section above):
+  `--vis-fade-margin` / `--vis-fade-mode` benched; the aggressive tier is adoptable with margin 5
+  (self) — 97% retention, Forward+ only — pending a human fly-through. Still open under it:
+  `--vis-fade-mode=deps` is unmeasured (`self` only), and the sub-0.5 m small class still never fired
+  at default thresholds in the bench scenes — untested; re-bench for genuinely small clutter.
 - **Auto-LOD generation** (simplified proxy meshes for far ranges, procedural or via
   `ImporterMesh` LODs) — not built; `--vis-ranges` only hides, it never swaps.
 - **`--target-per-chunk` sweep across scene shapes** — auto-chunk (count-driven per group) ships

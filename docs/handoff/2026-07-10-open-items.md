@@ -13,7 +13,12 @@ the loose ends. Each entry names its source log.
    screenshot series, not live motion. Confirm by flying the street vantage on
    the unique-mesh city at the default config (and, if curious, `coarser`).
    Findings file to update: `twin-vis-range-recipe-2026-07-09.md`. Does not
-   block anything — the shipped default is frame-clean.
+   block anything — the shipped default is frame-clean. **Also now (item #6):**
+   fly the aggressive cutoff with `--vis-fade-margin=5 --vis-fade-mode=self` and
+   confirm the 5 m alpha ramp perceptually kills the ~60 m pop (frame-reviewed +
+   matched-diff only so far); if 5 m reads too quick, margin 12 is the pop-optimal
+   fallback (but costs ~⅓ of the win). Findings file:
+   `twin-vis-fade-2026-07-10.md`. Forward+ only — irrelevant to the web build.
 2. **Marketing shots** (item #8 log). Shot-list lives in
    `twin-plant-asset-2026-07-10.md` (aerial tank farm by level, pump-skid temp
    ramp close-up, valve labels). Agents do not publish marketing material —
@@ -44,10 +49,21 @@ the loose ends. Each entry names its source log.
    noted: the "win at BOTH vantages" bar is structurally unreachable by occlusion
    (aerial no-op), verdict unaffected. Finding:
    `plugin-twin/library/findings/twin-occluder-recipe-2026-07-10.md`.
-6. **Fade margin for aggressive vis classes** (item #4 findings). `coarser`/
-   `aggressive` win up to −71% cpu but hard-pop at ~60 m; adoption is blocked on
-   a measured `visibility_range_fade_mode`/begin-margin evaluation — measured
-   before adopted, per the standing rule.
+6. **Fade margin for aggressive vis classes** — **DONE** (`feat/vis-fade-margin`).
+   Added `--vis-fade-margin` / `--vis-fade-mode` and swept the fade band on the
+   unique-mesh city at street: the **aggressive tier is adoptable with
+   `--vis-fade-margin=5 --vis-fade-mode=self`** — 97% median retention of its cpu
+   win (fade cost within the 0.03 ms noise floor), the hard pop replaced by an
+   alpha ramp. Margin 12 is pop-optimal but fails the 80% bar (69% median); the
+   coarser tier fails at both margins; aerial fade is free. **Forward+ ONLY** —
+   the Compatibility renderer (web export) treats the fade as DISABLED, so the pop
+   returns there. Ships as recommended-with-caveat, **still gated on the human
+   fly-through below (see item 1 — same convention)** before it's more than
+   opt-in guidance; no optimizer constant changed. Finding:
+   `plugin-twin/library/findings/twin-vis-fade-2026-07-10.md`. PLUS: the sweep
+   driver was promoted into a reusable framework tool `plugin-twin/tools/bench_sweep.sh`
+   (+ `tools/bench/merge_sweep.py`, example matrix) — the third spike to hand-roll
+   the optimize→bench→merge loop earned it.
 7. **Web UI chrome de-branding** (item #3 review, LOW-2). `ui/index.html`
    wordmark is still XenodotForge, help/placeholder text is game-flavored,
    `agent-ui.css` is the Forge Temple theme. Out of item #3's scope (model-read
