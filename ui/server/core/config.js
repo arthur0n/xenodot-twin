@@ -255,9 +255,12 @@ export const HERMES_TOOL = "mcp__ui__hermes";
 
 // In-process MCP tool that dispatches the multi-model analysis seam from a Hive session (see
 // mcp-tools/analyze-tool.js). Like HERMES_TOOL it is a REAL side effect (a billable model call + a
-// report written to reports/analysis/), so it deliberately has NO auto-allow branch in canUseTool —
-// it is absent from uiControlAllow, so every dispatch hits the per-call permission gate (allow/deny
-// in the web UI). `npm run analyze` stays the canonical CLI path; this is the same seam, gated.
+// report written to reports/analysis/), so it is absent from uiControlAllow — an INTERACTIVE
+// session gates each dispatch per call (allow/deny in the web UI). NOT total: autonomous and
+// policy=all sessions auto-allow every tool, which is WHY the tool confines its model-supplied
+// file reads (bundle/recording/map/sidecar) to the project root (realpath-checked, symlink-safe) —
+// the confinement is the load-bearing control, the gate is defense-in-depth. `npm run analyze`
+// stays the canonical (operator-run, unconfined) CLI path.
 export const ANALYZE_TOOL = "mcp__ui__analyze";
 
 /** Hermes model ids for the settings dropdown; the user can also enter a custom id. The Nous

@@ -4,10 +4,18 @@
 // it calls the SAME shared core (features/twin/analysis-dispatch.js) the CLI does, so the two can
 // never drift. The CLI stays canonical.
 //
-// GATING: like the Hermes tool, this is a REAL side effect (a billable model call + a report file),
-// so it has NO auto-allow branch in canUseTool (it is absent from uiControlAllow) — every dispatch
-// hits the per-call permission gate (allow/deny in the web UI). Registration is unconditional, like
-// the siblings; the gate, not the registry, is the consent surface.
+// GATING (accurate statement): like the Hermes tool this is a REAL side effect (a billable model
+// call + a report file), so it has NO auto-allow branch in uiControlAllow — an INTERACTIVE session
+// gates every dispatch per call (allow/deny in the web UI). That gate is NOT total: autonomous
+// sessions and policy=all sessions AUTO-ALLOW all tools (session.js canUseTool), so a self-driving
+// Hive can call this unattended. The LOAD-BEARING control is therefore CONFINEMENT, not the gate:
+// every model-supplied file path (bundle/recording/map/sidecar) must resolve inside the project
+// root — the same root the report writer uses — checked realpath-first (symlink-safe), so this tool
+// can never read (and thus never send to the configured third-party endpoint) anything outside the
+// project. The per-call gate is defense-in-depth on top. Residual, stated honestly: in an unattended
+// session the worst case is dispatching IN-PROJECT files the session could already read. The
+// operator-run CLI keeps absolute paths (a human typed them); only this model-callable surface is
+// confined. Registration is unconditional, like the siblings.
 //
 // The five seam guardrails hold on this surface exactly as on the CLI, because the enforcement lives
 // in the shared core + the report writer, not here: (1) the worker returns only a string — the
@@ -20,6 +28,7 @@
 import { tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import path from "node:path";
+import { realpathSync } from "node:fs";
 import { PROJECT_DIR, TWIN_PLUGIN_DIR } from "../core/config.js";
 import { TASK_TYPES } from "../features/twin/analysis-report.js";
 import {
@@ -30,6 +39,49 @@ import {
 
 /** A tool text result, in the shape the agent SDK expects. @param {string} text */
 const ok = (text) => ({ content: [{ type: /** @type {const} */ ("text"), text }] });
+
+/** Confine a model-supplied file path to the project root — the LOAD-BEARING control on this
+ * surface (see the GATING header: autonomous/all-policy sessions auto-allow the tool, so the gate
+ * alone cannot stop an unattended arbitrary-file read → third-party exfil). Relative paths resolve
+ * against the project root; the result must be the root or inside it, compared REALPATH-first so an
+ * in-project symlink pointing outside is caught (a nonexistent path can't be realpath'd — it is
+ * checked lexically, and the later read fails gracefully; nothing exists to exfiltrate). Returns
+ * the resolved path to read, or throws AnalyzeInputError naming the confinement rule.
+ * @param {string} realRoot the realpath of the project root @param {string | undefined} p
+ * @param {string} name the arg name (for the message) @returns {string | undefined} */
+function confinePath(realRoot, p, name) {
+  if (!p) return undefined;
+  const resolved = path.resolve(realRoot, p);
+  // Symlink-safe: compare where the path ACTUALLY points. A nonexistent leaf can't be realpath'd,
+  // so realpath the deepest EXISTING ancestor and rejoin the tail — an in-project missing file
+  // stays in-project (its read then fails gracefully; nothing exists to exfiltrate), while a
+  // symlinked ancestor escaping the root is still caught.
+  let head = resolved;
+  let tail = "";
+  /** @type {string} */
+  let effective;
+  for (;;) {
+    try {
+      effective = path.join(realpathSync(head), tail);
+      break;
+    } catch {
+      const parent = path.dirname(head);
+      if (parent === head) {
+        effective = resolved; // nothing on the path exists — lexical check
+        break;
+      }
+      tail = path.join(path.basename(head), tail);
+      head = parent;
+    }
+  }
+  if (effective !== realRoot && !effective.startsWith(realRoot + path.sep))
+    throw new AnalyzeInputError(
+      `${name} '${p}' resolves outside the project root (${realRoot}) — this tool only reads files ` +
+        "inside the project (confinement rule: model-supplied paths never leave the project root; " +
+        "use the operator-run `npm run analyze` CLI for out-of-tree files)",
+    );
+  return resolved;
+}
 
 /** Render the successful outcome as an ADVISORY summary + the report path (never the raw worker
  * body). @param {Extract<import("../features/twin/analysis-dispatch.js").DispatchOutcome, { ok: true }>}
@@ -108,8 +160,9 @@ const DESCRIPTION =
   "(+ optional map/sidecar/window/tags to inline-build it, same packager as the CLI). The worker " +
   "is configured in .xenodot.json `analysis` (or the `hermes` block); if it is unconfigured this " +
   "returns a graceful message — nothing is written. `npm run analyze` is the canonical CLI; this " +
-  "is the same seam from the session. Gated (allow/deny) per call — it is a real model call + a " +
-  "file write.";
+  "is the same seam from the session. Interactive sessions gate it (allow/deny) per call — it is a " +
+  "real model call + a file write; autonomous sessions auto-allow it, so every file path you pass " +
+  "MUST be inside the project root (out-of-tree paths are refused — use the CLI for those).";
 
 /** Render a non-ok dispatch outcome as a graceful advisory (never throws). @param {Exclude<
  * import("../features/twin/analysis-dispatch.js").DispatchOutcome, { ok: true }>} o @returns {string} */
@@ -141,16 +194,19 @@ export function makeAnalyzeTool(deps = {}) {
   const tasksDir = deps.tasksDir ?? path.join(TWIN_PLUGIN_DIR, "skills", "twin-analyze", "tasks");
   const now = deps.now ?? (() => new Date().toISOString());
   return tool("analyze", DESCRIPTION, ANALYZE_SCHEMA, async (input) => {
-    // 1) Resolve the bundle JSON (read a prebuilt one, or inline-build from a recording). Bad input
-    // is a graceful advisory, never a throw (guardrail 3's spirit at the arg boundary).
+    // 1) CONFINE every model-supplied file path to the project root (the load-bearing control on
+    // this auto-allowable surface — see the header), then resolve the bundle JSON (read a prebuilt
+    // one, or inline-build from a recording). Bad input is a graceful advisory, never a throw
+    // (guardrail 3's spirit at the arg boundary).
     /** @type {{ json: string, warnings: string[] }} */
     let resolved;
     try {
+      const realRoot = realpathSync(projectDir);
       resolved = resolveBundleJson({
-        bundle: input.bundle,
-        recording: input.recording,
-        map: input.map,
-        sidecar: input.sidecar,
+        bundle: confinePath(realRoot, input.bundle, "bundle"),
+        recording: confinePath(realRoot, input.recording, "recording"),
+        map: confinePath(realRoot, input.map, "map"),
+        sidecar: confinePath(realRoot, input.sidecar, "sidecar"),
         fromMs: input.fromMs ?? null,
         toMs: input.toMs ?? null,
         tags: input.tags ?? null,

@@ -9,7 +9,14 @@
 import { test, afterEach, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { mkdtempSync, writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
+import {
+  mkdtempSync,
+  writeFileSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+  symlinkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -121,9 +128,11 @@ test("registration: the factory builds an 'analyze' tool with a handler", () => 
   assert.equal(typeof t.handler, "function");
 });
 
-test("gating: mcp__ui__analyze is NOT auto-allowed — it falls through to the per-call gate", () => {
-  // Absence from uiControlAllow IS the consent model: like the hermes tool, every dispatch hits the
-  // permission gate (a real model call + a report write), never auto-allowed.
+test("gating: mcp__ui__analyze is NOT UI-control auto-allowed — interactive sessions gate it per call", () => {
+  // Accurate statement of the consent model: absence from uiControlAllow means an INTERACTIVE
+  // session's canUseTool falls through to the per-call permission gate. That gate is NOT total —
+  // autonomous and policy=all sessions auto-allow every tool (session.js) — which is exactly why
+  // the tool's own project-root confinement (tests below) is the load-bearing control.
   assert.equal(uiControlAllow(ANALYZE_TOOL, {}, "main"), null);
   assert.equal(ANALYZE_TOOL, "mcp__ui__analyze");
 });
@@ -307,6 +316,130 @@ test("guardrail (adapters fs-unreachable): the worker adapter module this surfac
   assert.doesNotMatch(src, /from\s+["']node:fs["']/);
   assert.doesNotMatch(src, /from\s+["']node:child_process["']/);
   assert.doesNotMatch(src, /require\(["']node:(fs|child_process)["']\)/);
+});
+
+// --- project-root confinement (the load-bearing control on this auto-allowable surface) ---------
+// autonomous/policy=all sessions auto-allow the tool (session.js), so the per-call gate cannot stop
+// an unattended dispatch — these tests prove no model-supplied path can read outside the project.
+
+test("confinement: a traversal path (../../../etc/passwd) is refused — no read, no dispatch, no report", async () => {
+  const srv = await startServer(completion("m", "never called"));
+  const project = mkdtempSync(path.join(tmpdir(), "analyze-tool-trav-"));
+  process.env.ANALYSIS_WORKER = "openai-compatible";
+  process.env.ANALYSIS_API_URL = srv.url;
+  process.env.ANALYSIS_MODEL = "m";
+  try {
+    const t = makeAnalyzeTool({ projectDir: project, tasksDir: TASKS_DIR });
+    const out = await t.handler(
+      args({ task: "summarize-window", bundle: "../../../etc/passwd" }),
+      {},
+    );
+    assert.match(textOf(out), /resolves outside the project root/);
+    assert.match(textOf(out), /confinement rule/);
+    assert.equal(srv.last(), null, "the endpoint must never be contacted");
+    assert.equal(existsSync(path.join(project, "reports", "analysis")), false);
+  } finally {
+    await srv.close();
+  }
+});
+
+test("confinement: an absolute path outside the project root is refused — the secret never leaves", async () => {
+  const srv = await startServer(completion("m", "never called"));
+  const project = mkdtempSync(path.join(tmpdir(), "analyze-tool-abs-"));
+  const outside = mkdtempSync(path.join(tmpdir(), "analyze-tool-outside-"));
+  const secret = path.join(outside, "secret.json");
+  writeFileSync(secret, '{"secret":"EXFIL-ME"}');
+  process.env.ANALYSIS_WORKER = "openai-compatible";
+  process.env.ANALYSIS_API_URL = srv.url;
+  process.env.ANALYSIS_MODEL = "m";
+  try {
+    const t = makeAnalyzeTool({ projectDir: project, tasksDir: TASKS_DIR });
+    const out = await t.handler(args({ task: "summarize-window", bundle: secret }), {});
+    assert.match(textOf(out), /resolves outside the project root/);
+    assert.equal(srv.last(), null, "the endpoint must never be contacted");
+    assert.equal(existsSync(path.join(project, "reports", "analysis")), false);
+  } finally {
+    await srv.close();
+  }
+});
+
+test("confinement: an in-project symlink escaping the root is refused (realpath, symlink-safe)", async () => {
+  const srv = await startServer(completion("m", "never called"));
+  const project = mkdtempSync(path.join(tmpdir(), "analyze-tool-sym-"));
+  const outside = mkdtempSync(path.join(tmpdir(), "analyze-tool-symtarget-"));
+  const secret = path.join(outside, "secret.json");
+  writeFileSync(secret, '{"secret":"EXFIL-VIA-SYMLINK"}');
+  // The path LOOKS in-project; where it points is not.
+  const link = path.join(project, "innocent-bundle.json");
+  symlinkSync(secret, link);
+  process.env.ANALYSIS_WORKER = "openai-compatible";
+  process.env.ANALYSIS_API_URL = srv.url;
+  process.env.ANALYSIS_MODEL = "m";
+  try {
+    const t = makeAnalyzeTool({ projectDir: project, tasksDir: TASKS_DIR });
+    const out = await t.handler(args({ task: "summarize-window", bundle: link }), {});
+    assert.match(textOf(out), /resolves outside the project root/);
+    assert.equal(srv.last(), null, "the endpoint must never be contacted");
+  } finally {
+    await srv.close();
+  }
+});
+
+test("confinement: a legit in-project RELATIVE path resolves against the project root and passes", async () => {
+  const srv = await startServer(completion("m", "relative ok"));
+  const project = mkdtempSync(path.join(tmpdir(), "analyze-tool-rel-"));
+  writeBundle(project); // writes <project>/bundle.json
+  process.env.ANALYSIS_WORKER = "openai-compatible";
+  process.env.ANALYSIS_API_URL = srv.url;
+  process.env.ANALYSIS_MODEL = "m";
+  try {
+    const t = makeAnalyzeTool({
+      projectDir: project,
+      tasksDir: TASKS_DIR,
+      now: () => "2026-07-10T00:00:00.000Z",
+    });
+    // Relative — resolved against the project root, NOT the server's cwd.
+    const out = await t.handler(args({ task: "summarize-window", bundle: "bundle.json" }), {});
+    assert.match(textOf(out), /Analysis complete/);
+    assert.ok(srv.last(), "the in-project bundle dispatched normally");
+    assert.equal(readdirSync(path.join(project, "reports", "analysis")).length, 1);
+  } finally {
+    await srv.close();
+  }
+});
+
+test("residual (autonomous auto-allow): ungated calls can reach ONLY in-project files the session could already read", async () => {
+  // A direct handler call IS the autonomous/policy=all condition — no permission gate runs in front.
+  // With confinement, the worst case in that mode is dispatching an IN-PROJECT file (which the
+  // session could already Read) to the configured endpoint; an out-of-tree secret can never reach it.
+  const srv = await startServer(completion("m", "ok"));
+  const project = mkdtempSync(path.join(tmpdir(), "analyze-tool-resid-"));
+  const outside = mkdtempSync(path.join(tmpdir(), "analyze-tool-resid-out-"));
+  const secret = path.join(outside, "credentials.json");
+  writeFileSync(secret, '{"secret":"NEVER-SENT"}');
+  const inProject = writeBundle(project);
+  process.env.ANALYSIS_WORKER = "openai-compatible";
+  process.env.ANALYSIS_API_URL = srv.url;
+  process.env.ANALYSIS_MODEL = "m";
+  try {
+    const t = makeAnalyzeTool({
+      projectDir: project,
+      tasksDir: TASKS_DIR,
+      now: () => "2026-07-10T00:00:00.000Z",
+    });
+    // Ungated attempt at the out-of-tree secret: refused, endpoint untouched.
+    const denied = await t.handler(args({ task: "summarize-window", bundle: secret }), {});
+    assert.match(textOf(denied), /resolves outside the project root/);
+    assert.equal(srv.last(), null);
+    // Ungated attempt at an in-project file: dispatches — the honest residual.
+    const allowed = await t.handler(args({ task: "summarize-window", bundle: inProject }), {});
+    assert.match(textOf(allowed), /Analysis complete/);
+    const sent = srv.last();
+    assert.ok(sent, "in-project data may be dispatched in autonomous mode (the stated residual)");
+    assert.doesNotMatch(sent.body, /NEVER-SENT/, "the out-of-tree secret never left the machine");
+  } finally {
+    await srv.close();
+  }
 });
 
 test("bad input: both --bundle and --recording is a graceful rejection", async () => {
