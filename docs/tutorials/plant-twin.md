@@ -275,7 +275,7 @@ ffmpeg -y -ss 2.4 -i plant-hero.avi -frames:v 1 poster.png
 The gif at the top of this tutorial was made exactly this way (a ~285 KB, 640-px, 12-fps clip). To
 **publish** a web demo instead — export the WASM build, bake the recording for autoplay, stage it
 into a demos repo and capture the same hero art automatically — use
-[`tools/twin_publish_web.sh --movie`](../../plugin-twin/tools/CAPABILITIES-twin.md) (a separate,
+[`tools/twin_publish_web.sh --movie`](../../plugin/tools/CAPABILITIES.md) (a separate,
 human-gated step, out of scope here — it pushes to a hosting repo).
 
 ---

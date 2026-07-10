@@ -29,7 +29,7 @@ import { tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import path from "node:path";
 import { realpathSync } from "node:fs";
-import { PROJECT_DIR, TWIN_PLUGIN_DIR } from "../core/config.js";
+import { PROJECT_DIR, FRAMEWORK_PLUGIN_DIR } from "../core/config.js";
 import { TASK_TYPES } from "../features/twin/analysis-report.js";
 import {
   AnalyzeInputError,
@@ -191,7 +191,8 @@ function renderFailure(o) {
  * adapterOpts?: object }} [deps] */
 export function makeAnalyzeTool(deps = {}) {
   const projectDir = deps.projectDir ?? PROJECT_DIR;
-  const tasksDir = deps.tasksDir ?? path.join(TWIN_PLUGIN_DIR, "skills", "twin-analyze", "tasks");
+  const tasksDir =
+    deps.tasksDir ?? path.join(FRAMEWORK_PLUGIN_DIR, "skills", "twin-analyze", "tasks");
   const now = deps.now ?? (() => new Date().toISOString());
   return tool("analyze", DESCRIPTION, ANALYZE_SCHEMA, async (input) => {
     // 1) CONFINE every model-supplied file path to the project root (the load-bearing control on

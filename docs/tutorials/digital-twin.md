@@ -101,8 +101,8 @@ per-project files, and health-checks. The output confirms the shape:
 ```
 new: scaffolded starter-viewer → .../your-workspace/house
   projectType: viewer
-materialize: ... tools copied 22/22, twin tools added 15 (0 collision(s)), library created, library-twin created, x-shared-assets created.
-doctor: ... ✓ plugin capabilities (10 agents, 16 skills)  ✓ library-twin/ symlinked
+materialize: ... tools copied 37/37, library created, x-shared-assets created.
+doctor: ... ✓ plugin capabilities (13 agents, 25 skills)  ✓ library/ symlinked
 doctor: OK
 ```
 
@@ -112,16 +112,12 @@ What landed and what stayed put:
   `projectType: viewer`). If you also have the framework checked out elsewhere, that other
   `.xenodot.json` is untouched — each checkout remembers its own project.
 - `house/tools/` (the twin tooling: `ifc_convert.py`, `sim/`, `verify_twin.sh`, …) and
-  `house/library`, `house/library-twin`, `house/x-shared-assets` are **symlinked/copied and
-  gitignored** — framework-generated, never committed into the project.
-- The framework's agents/skills are **not** copied into the project. The web UI loads **both**
-  plugins (`xenodot` + `xenodot-twin`) automatically. For terminal Claude Code, doctor prints the
-  one-time install for both:
-  ```
-  /plugin marketplace add /path/to/your-workspace/xenodot-twin
-  /plugin install xenodot@xenodot-twin
-  /plugin install xenodot-twin@xenodot-twin
-  ```
+  `house/library`, `house/x-shared-assets` are **symlinked/copied and gitignored** —
+  framework-generated, never committed into the project.
+- The framework's agents/skills are **not** copied into the project. The web UI loads the
+  **xenodot** plugin automatically. For terminal Claude Code, run the one-time install that
+  `doctor` prints (the `/plugin marketplace add` + `/plugin install xenodot@xenodot-twin` pair
+  at the end of `npm run doctor`) — the canonical rendering lives there, not restated here.
 
 ---
 

@@ -15,9 +15,9 @@ description: >-
 # Twin optimize (chunking, culling, honest benchmarks)
 
 Every number below is **measured** (Phase 0 spike S3, 1M-instance factory layout, macOS Metal;
-record: `library-twin/findings/twin-spike-verdicts-2026-07-08.md` — twin knowledge reads/writes
-go through the project's `library-twin/` mount, the engine-invisible symlink to its canonical
-home `plugin-twin/library/`; the base plugin's knowledge stays on `library/`). The recipes
+record: `library/findings/twin-spike-verdicts-2026-07-08.md` — twin knowledge is folded into the
+one plugin, so reads/writes go through the project's `library/` mount, the engine-invisible symlink
+to its canonical home `plugin/library/`, beside the base framework knowledge). The recipes
 generalize; the exact percentages are one machine's — re-measure on the target hardware before
 promising a budget.
 
@@ -99,13 +99,13 @@ Passes, in order:
   self-occlusion artifacts, explicit box occluders need no bake. The default gate is now the benched
   **scoped winner** (big on many-unique-mesh scenes at street level; net-negative on single
   buildings, no-op on instanced/aerial) — recipe + numbers below and in
-  `library-twin/findings/twin-occluder-recipe-2026-07-10.md`.
+  `library/findings/twin-occluder-recipe-2026-07-10.md`.
 - **`--vis-ranges` (opt-in, MEASURED — recipe below).** Size classes by world-AABB diagonal:
   small (< 0.5 m) → `visibility_range_end = 40` m; medium (< 2 m) → 120 m; large → untouched
   (structure must never pop out). Un-instanced meshes only — chunked fields already cull per
   chunk. The defaults are now the benched **scoped winner** (big on many-unique-mesh scenes; skip
   it on single buildings / instanced scenes) — recipe + numbers below and in
-  `library-twin/findings/twin-vis-range-recipe-2026-07-09.md`.
+  `library/findings/twin-vis-range-recipe-2026-07-09.md`.
 
 Report JSON: `chunks` (`"auto"` or the fixed int as a string), `target_per_chunk`,
 `meshes_before`, `nodes_before/after`, `groups_total/instanced`, `multimeshes`,
@@ -136,7 +136,7 @@ GlobalIds preserved and unique after round-trip. On unique-geometry architecture
 
 ### Measured on a real composite scene (city block of duplexes, M3 Pro Metal)
 
-Full record: `library-twin/findings/twin-optimizer-benchmark-2026-07-08.md`. duplex.glb
+Full record: `library/findings/twin-optimizer-benchmark-2026-07-08.md`. duplex.glb
 duplicated 20x20 (114,400 meshes) and optimized with `--chunks=2` (optimizer wall-clock 1.3 s):
 
 - **Aerial (all visible): 27.3 → 119.4 fps (+337%, ≥4.4x — the after is still pinned at the
@@ -211,7 +211,7 @@ report, with both vantages measured.
 `--vis-ranges` sets `visibility_range_end` on un-instanced meshes by size class (small < 0.5 m
 diagonal → 40 m, medium < 2 m → 120 m, large untouched) — a hard distance cull with **no fade**.
 Swept 6 configs × 3 real-shaped scenes on M3 Pro Metal (full record:
-`library-twin/findings/twin-vis-range-recipe-2026-07-09.md`, seat sweep `a6c0707`). Verdict:
+`library/findings/twin-vis-range-recipe-2026-07-09.md`, seat sweep `a6c0707`). Verdict:
 **SCOPED WIN** — big on many-unique-mesh scenes, essentially nothing on single buildings, no-op on
 fully-instanced scenes.
 
@@ -236,7 +236,7 @@ fully-instanced scenes.
   `visibility_range_end` only. The fade band closes that: `--vis-fade-margin=<m> --vis-fade-mode=self`
   makes a ranged object fade to transparency over `[end, end+margin]` instead of popping. Swept on the
   unique-mesh city at street (full record:
-  `library-twin/findings/twin-vis-fade-2026-07-10.md`, seat sweep `8118350`):
+  `library/findings/twin-vis-fade-2026-07-10.md`, seat sweep `8118350`):
   - **Reach for the aggressive tier with `--vis-fade-margin=5 --vis-fade-mode=self`** — it retains
     **97%** of the aggressive cpu win (fade cost +0.025 ms, at/below the 0.03 ms noise floor —
     effectively free; only +162 distant fixtures / +3.3% re-enter the band) and replaces the hard pop
@@ -262,7 +262,7 @@ fully-instanced scenes.
 (default 10 m³) a child `OccluderInstance3D` + `BoxOccluder3D` at 90% of its local AABB — a hard
 runtime cull that **costs before it saves** (Godot's occlusion culling is a CPU Embree depth raster
 every frame). Swept 5 volume-gate configs × 3 real-shaped scenes on M3 Pro Metal (full record:
-`library-twin/findings/twin-occluder-recipe-2026-07-10.md`, seat sweep `6146794`). Verdict:
+`library/findings/twin-occluder-recipe-2026-07-10.md`, seat sweep `6146794`). Verdict:
 **SCOPED WIN** — real at street level on many-unique-mesh scenes, net-negative on single
 buildings, no-op on instanced/aerial scenes.
 

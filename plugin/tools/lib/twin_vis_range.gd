@@ -25,13 +25,13 @@ extends RefCounted
 ## MEASURED (scoped win, kept as-is): these defaults (0.5/2 -> 40/120) win big on many-unique-mesh
 ## scenes (unique-city aerial cpu -32%, perceptually clean at street) and no-op on single buildings
 ## / fully-instanced scenes, so the pass stays opt-in. Sweep, tables and machine caveats:
-## library-twin/findings/twin-vis-range-recipe-2026-07-09.md.
+## library/findings/twin-vis-range-recipe-2026-07-09.md.
 ## FADE (item #6, MEASURED): the coarser/aggressive tiers win more cpu but hard-pop at ~60 m without
 ## a fade band. --vis-fade-margin=5 --vis-fade-mode=self makes the aggressive tier adoptable -- it
 ## keeps 97% of the cpu win (fade cost within the noise floor) and replaces the hard pop with an
 ## alpha ramp; margin 12 is pop-optimal but fails the 80%-retention bar, and the coarser tier fails
 ## at both margins. Forward+ ONLY (web export keeps the pop). Pending a human fly-through. Sweep:
-## library-twin/findings/twin-vis-fade-2026-07-10.md.
+## library/findings/twin-vis-fade-2026-07-10.md.
 const VIS_SMALL_DIAGONAL_M := 0.5  # diagonal < 0.5 m -> "small"
 const VIS_MEDIUM_DIAGONAL_M := 2.0  # diagonal < 2 m -> "medium"; larger keeps no range
 const VIS_SMALL_END_M := 40.0  # small meshes fade past 40 m

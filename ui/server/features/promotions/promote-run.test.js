@@ -15,10 +15,8 @@ process.env.GAME_DIR = scratch;
 const { promotionTarget, locate, promoteOne } = await import("./promote-run.js");
 const { FRAMEWORK_PLUGIN_DIR } = await import("../../core/config.js");
 
-test("promotionTarget: the ONE xenodot plugin for every project type (twin folded in)", () => {
-  const target = { pluginDir: FRAMEWORK_PLUGIN_DIR, namespace: "xenodot" };
-  assert.deepEqual(promotionTarget("game"), target);
-  assert.deepEqual(promotionTarget("viewer"), target);
+test("promotionTarget: the ONE xenodot plugin for every project (twin folded in)", () => {
+  assert.deepEqual(promotionTarget(), { pluginDir: FRAMEWORK_PLUGIN_DIR, namespace: "xenodot" });
 });
 
 test("locate: dst defaults to the base plugin and flips with an explicit pluginDir", () => {

@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { FRAMEWORK_DIR, CONFIG_FILE, TWIN_PLUGIN_DIR } from "../../core/config.js";
+import { FRAMEWORK_DIR, CONFIG_FILE, FRAMEWORK_PLUGIN_DIR } from "../../core/config.js";
 import { parseJSON } from "../../../lib/json.js";
 import { parseArgs } from "../../../../plugin/tools/sim/stream.js";
 import { TASK_TYPES, isValidTask } from "./analysis-report.js";
@@ -102,7 +102,8 @@ function resolveBundleJson(args, allowOversize) {
  * string, tasksDir?: string, now?: () => string, adapterOpts?: object }} [deps] @returns {Promise<void>} */
 export async function runAnalyzeCli(argv, deps = {}) {
   const projectDir = deps.projectDir ?? resolveProjectDir();
-  const tasksDir = deps.tasksDir ?? path.join(TWIN_PLUGIN_DIR, "skills", "twin-analyze", "tasks");
+  const tasksDir =
+    deps.tasksDir ?? path.join(FRAMEWORK_PLUGIN_DIR, "skills", "twin-analyze", "tasks");
   const now = deps.now ?? (() => new Date().toISOString());
 
   const allowOversize = argv.includes("--allow-oversize");

@@ -15,7 +15,6 @@ import {
   ENGINE,
   ENGINE_LABEL,
   RES_ASSET_MOUNT,
-  getProjectType,
 } from "../core/config.js";
 import { prepareGame } from "./materialize.js";
 import { readPromotions, approvedPending } from "../features/promotions/promotions-store.js";
@@ -117,22 +116,6 @@ const checks = [
     label: "facts manifest generated (.xenodot/manifest.json)",
   },
   { ok: libraryLinked(), hard: false, label: "library/ symlinked to the plugin" },
-  // Viewer projects also mount the twin plugin's library (see materialize's library-twin link).
-  ...(getProjectType() === "viewer"
-    ? [
-        {
-          ok: (() => {
-            try {
-              return lstatSync(path.join(PROJECT_DIR, "library-twin")).isSymbolicLink();
-            } catch {
-              return false;
-            }
-          })(),
-          hard: false,
-          label: "library-twin/ symlinked to the twin plugin",
-        },
-      ]
-    : []),
   {
     ok: assetLibraryLinked(),
     hard: false,
@@ -172,10 +155,9 @@ if (hardFails > 0) {
 }
 console.log("doctor: OK");
 console.log(
-  "  Terminal use: install both plugins once —\n" +
+  "  Terminal use: install the xenodot plugin once —\n" +
     "    /plugin marketplace add " +
     path.dirname(FRAMEWORK_PLUGIN_DIR) +
     "\n    /plugin install xenodot@xenodot-twin\n" +
-    "    /plugin install xenodot-twin@xenodot-twin\n" +
-    "  (The web UI loads both automatically — no install needed.)",
+    "  (The web UI loads it automatically — no install needed.)",
 );

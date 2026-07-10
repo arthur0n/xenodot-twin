@@ -311,7 +311,7 @@ $GODOT --path . -- --model=models/city_before.scn \
 
 The image at the top of this tutorial was made exactly this way. To **publish** a web demo of a twin
 (the plant/house kits, which do move), use
-[`tools/twin_publish_web.sh`](../../plugin-twin/tools/CAPABILITIES-twin.md) — a separate,
+[`tools/twin_publish_web.sh`](../../plugin/tools/CAPABILITIES.md) — a separate,
 human-gated step, out of scope here.
 
 ---

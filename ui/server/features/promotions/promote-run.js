@@ -4,18 +4,17 @@
 // promotions board) share the exact same move semantics.
 import { existsSync, readFileSync, renameSync, rmSync, mkdirSync, cpSync } from "node:fs";
 import path from "node:path";
-import { FRAMEWORK_PLUGIN_DIR, getProjectType } from "../../core/config.js";
+import { FRAMEWORK_PLUGIN_DIR } from "../../core/config.js";
 import { scanPath } from "./contamination.js";
 
 export const PROMOTE_KINDS = new Set(["skills", "agents", "tools"]);
 
 /** Which plugin a promotion lands in: the ONE xenodot plugin (`plugin/`, namespace `xenodot:`) —
- * the twin domain was folded in, so game and viewer promotions share the same destination. Kept as
- * a seam (callers resolve it once at their entry and pass `pluginDir` down) so the move core stays
+ * the twin domain was folded in, so every promotion shares the same destination. Kept as a seam
+ * (callers resolve it once at their entry and pass `pluginDir` down) so the move core stays
  * testable with temp fixtures, and so a future re-split has a single body to change.
- * @param {"game" | "viewer"} [_projectType] accepted for call-site stability; no longer branches
  * @returns {{ pluginDir: string, namespace: string }} */
-export function promotionTarget(_projectType = getProjectType()) {
+export function promotionTarget() {
   return { pluginDir: FRAMEWORK_PLUGIN_DIR, namespace: "xenodot" };
 }
 

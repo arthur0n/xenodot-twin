@@ -36,7 +36,7 @@ extends SceneTree
 ## net-negative on single buildings and a no-op on instanced/aerial, so it stays opt-in. Smaller
 ## gates only add occluder count for no cpu payoff. --occluder-min-volume= overrides this for a
 ## sweep; must be a number > 0 (fails loud, no silent clamping) and the report echoes the value.
-## Sweep, tables, caveats: library-twin/findings/twin-occluder-recipe-2026-07-10.md.
+## Sweep, tables, caveats: library/findings/twin-occluder-recipe-2026-07-10.md.
 const OCCLUDER_MIN_VOLUME_M3 := 10.0
 
 ## Smallest legal --min-instances: a group of 1 is not a group, so instancing never applies below 2.

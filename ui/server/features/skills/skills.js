@@ -4,7 +4,7 @@
 // The setup wizard writes .xenodot/skill-setup.json; the server applies it on next start.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { PROJECT_DIR, TWIN_PLUGIN_DIR, getProjectType } from "../../core/config.js";
+import { PROJECT_DIR, FRAMEWORK_PLUGIN_DIR, getProjectType } from "../../core/config.js";
 import { parseJSON } from "../../../lib/json.js";
 import { split } from "./skill-registry.js";
 import {
@@ -161,7 +161,7 @@ export function resolveSessionSkills(projectType = getProjectType()) {
   // skills already in ORCHESTRATOR_FRAMEWORK_SKILLS — filter to the twin-* names.
   const twinFloor =
     projectType === "viewer"
-      ? getPluginOrchestratorSkills(TWIN_PLUGIN_DIR).filter((s) => s.startsWith("twin-"))
+      ? getPluginOrchestratorSkills(FRAMEWORK_PLUGIN_DIR).filter((s) => s.startsWith("twin-"))
       : [];
   return computeSessionSkills({
     floor: [...ORCHESTRATOR_FRAMEWORK_SKILLS, ...REQUIRED_ORCHESTRATOR_BUILTINS, ...twinFloor],

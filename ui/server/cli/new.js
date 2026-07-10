@@ -31,7 +31,6 @@ if (argv.includes("--game")) {
 // `--viewer` is the only accepted flag (and it's the default); any other (`--help`/`--project`)
 // must fail loudly, not silently scaffold the default sibling path (or, resolved raw, a literal
 // `--help/` dir).
-const viewer = true; // xenodot-twin is viewer-only
 const flagArg = argv.find((a) => a.startsWith("-") && a !== "--viewer");
 if (flagArg) {
   console.error(`new: ${flagArg} is not a project path. Usage: npm run new -- ../myviewer`);
@@ -52,8 +51,6 @@ function ensureIgnores(dir) {
   const need = [
     "/tools/",
     "/library",
-    // Viewer projects also mount the twin plugin's library (materialize's library-twin symlink).
-    ...(viewer ? ["/library-twin"] : []),
     "/x-shared-assets",
     "/transcripts/",
     ".xenodot/",
@@ -92,8 +89,9 @@ if (!existsSync(path.join(target, "project.godot"))) {
 }
 ensureIgnores(target);
 
-// 2. Remember the path (+ projectType "viewer" — a viewer session loads plugin-twin and the
-//    viewer orchestrator; see config.js getProjectType). Writes .xenodot.json.
+// 2. Remember the path (+ projectType "viewer" — a viewer session loads the viewer orchestrator
+//    and the twin-* skill floor from the one xenodot plugin; see config.js getProjectType).
+//    Writes .xenodot.json.
 node(path.join(here, "setup.js"), target, "--viewer");
 
 // 3. Materialize the plugin's per-game files: tools/ copied, library/ symlinked.

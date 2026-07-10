@@ -19,7 +19,6 @@ assets/
 # Framework working files — generated from the xenodot plugin, not repo content
 /tools/
 /library
-/library-twin
 # External shared-asset library — symlink to free-library example assets kept outside the game
 /x-shared-assets
 /transcripts/
