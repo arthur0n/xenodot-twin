@@ -110,6 +110,10 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
   the synthetic tank-farm / pump-skid kit: the same pipeline, the industrial-flavored **pitch**
   asset, painting eight plant tags (pump/tank/valve/motor) onto real IFC geometry. A data-binding
   showcase, honestly _not_ an optimizer one.
+- **[`docs/tutorials/city-scale-demo.md`](docs/tutorials/city-scale-demo.md)** — the scale sibling:
+  an already-imported Duplex → a generated 10×10 city block (28,600 mesh instances) → optimized and
+  **measured**. Where the plant is the data-binding showcase, this is the **instancing / scale** one
+  — chunked MultiMesh, the join gate's honest duplicate-id caveat, before/after benched by hand.
 - **[`plugin-twin/examples/`](plugin-twin/examples)** — the bundled kit the tutorial uses: a sample
   IFC (`Duplex_A_20110907.ifc`), an example `binding_map`, and an example `viewer.cfg`, so you don't
   have to source any files yourself.

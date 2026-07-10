@@ -170,6 +170,12 @@ optimum**:
   groups** — lower for walkthrough, higher for overview.
 - Emission stays fast: the full 28,600-instance city (load → group → chunk → emit 1,140
   MultiMeshes with 16-float color buffers → save 2.1 MB `.scn`) is **~0.5 s wall-clock**.
+- **Hands-on walkthrough of this exact recipe** (generate the 10×10 city → optimize auto vs the
+  forced `--chunks=8` regression vs hand-tuned `--chunks=2` → join gate → bench both vantages by
+  hand, with the honest duplicate-GlobalId caveat): `docs/tutorials/city-scale-demo.md`. Reproduced
+  this session on a 60 Hz window — fps flat at the cap, the win read off `cpu_ms` (aerial
+  5.17 → 1.20 ms, −77%) and draw calls (5,559 → 1,084), c8 forced worse than unoptimized
+  (7.21 ms) — matching this finding's shape on a different display cap.
 
 ## Recipe — chunked MultiMesh
 
