@@ -19,6 +19,8 @@
     "codex:check": "node ui/server/integrations/codex/codex-check.js",
     "analyze": "node ui/server/features/twin/analyze-cli.js",
     "binding": "node ui/server/cli/binding-candidates.js",
+    "binding:auto": "node ui/server/cli/binding-auto-map.js",
+    "byo": "node ui/server/cli/byo.js",
     "analysis:check": "node ui/server/features/twin/analysis-check.js",
     "new": "node ui/server/cli/new.js",
     "fork": "node ui/server/cli/fork.js",
