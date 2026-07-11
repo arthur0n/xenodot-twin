@@ -37,6 +37,27 @@ _fail() {
 	exit 1
 }
 
+# Refuse to `rm -rf` anything that is not plainly a tool-created venv. --dir can point ANYWHERE — a
+# symlink, or a path outside the tree — and the self-heal below would blindly delete it. Guards:
+#   1. not a symlink (never follow --dir into someone else's tree);
+#   2. resolves UNDER the project root the tool was run from (no deleting outside $PWD);
+#   3. looks like a venv (a pyvenv.cfg or bin/ marker) OR is empty — never an arbitrary populated dir.
+# Any guard failing is fatal (we refuse; the user removes it by hand) — safer than a wrong rm -rf.
+_assert_removable_venv() { # <dir>
+	local d="$1" root parent abs
+	root="$(pwd)"
+	[ -L "$d" ] && _fail "refusing to remove '$d': it is a symlink (twin_venv removes only a real venv dir — delete it yourself if intended)"
+	parent="$(cd "$(dirname "$d")" 2>/dev/null && pwd)" || _fail "refusing to remove '$d': cannot resolve its parent directory"
+	abs="$parent/$(basename "$d")"
+	case "$abs/" in
+	"$root"/*) : ;;
+	*) _fail "refusing to remove '$d' ($abs): outside the project root ($root) — pass a --dir under the project" ;;
+	esac
+	if [ -n "$(ls -A "$d" 2>/dev/null)" ] && [ ! -e "$d/pyvenv.cfg" ] && [ ! -d "$d/bin" ]; then
+		_fail "refusing to remove non-empty '$d': no venv marker (pyvenv.cfg / bin/) — not a tool-created venv"
+	fi
+}
+
 _usage() {
 	cat <<'USAGE'
 usage: tools/twin_venv.sh [options] [--run <script> [args...]]
@@ -108,6 +129,7 @@ else
 		# the reuse/mismatch checks above already handled it.)
 		if [ -e "$VENV_DIR" ]; then
 			_step "removing invalid venv $VENV_DIR (no working bin/python — interrupted provision?) and rebuilding"
+			_assert_removable_venv "$VENV_DIR"
 			rm -rf -- "$VENV_DIR" || _fail "could not remove invalid venv dir $VENV_DIR"
 		fi
 		_step "creating venv $VENV_DIR (python $PY_VERSION)"
