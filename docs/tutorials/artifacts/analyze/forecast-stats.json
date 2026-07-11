@@ -1,0 +1,39 @@
+{
+  "kind": "forecast",
+  "seed": 42,
+  "hz": 10,
+  "window": 20,
+  "horizon": 30,
+  "tags": [
+    {
+      "tag": "living_room.temp",
+      "frames_sent": 54,
+      "last_seq": 53
+    },
+    {
+      "tag": "kitchen.temp",
+      "frames_sent": 54,
+      "last_seq": 53
+    },
+    {
+      "tag": "bedroom_1.temp",
+      "frames_sent": 54,
+      "last_seq": 53
+    },
+    {
+      "tag": "boiler.temp",
+      "frames_sent": 54,
+      "last_seq": 53
+    },
+    {
+      "tag": "solar.output_w",
+      "frames_sent": 54,
+      "last_seq": 53
+    },
+    {
+      "tag": "entrance_door.open",
+      "frames_sent": 54,
+      "last_seq": 53
+    }
+  ]
+}

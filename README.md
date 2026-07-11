@@ -157,6 +157,12 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
   seat, provision the IFC venv, build a data-bound viewer with an **auto-generated** binding map,
   stream a seeded sim, boot it — with **no hand-authored map**. A one-line convenience
   (`npm run byo -- /path/to/your.ifc --project /path/you/choose`) chains the steps once you know them.
+- **[`docs/tutorials/analyze-a-run.md`](docs/tutorials/analyze-a-run.md)** — the **analysis seam**,
+  both directions: pack a recording into a deterministic **analysis bundle** + honest per-tag stats
+  (`tools/analyze/`), see exactly where multi-model **dispatch** plugs in (`npm run analyze`, run to
+  the honest unconfigured-worker boundary), then run the **forecast producer** — model predictions
+  painting through the **unmodified** viewer seam with zero core change. Every command and the two
+  sha256s were actually run; the produced bundle + captures are committed beside it.
 - **[`docs/tutorials/ship-and-retarget.md`](docs/tutorials/ship-and-retarget.md)** — the last step of
   the journey: package a green twin as one export-safe desktop **deployable** (the build plus its data
   staged **beside** the executable, `twin_ship.sh --preset macOS --zip`), verify the deterministic zip
