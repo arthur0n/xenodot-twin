@@ -48,6 +48,31 @@ export function getTwinConfig() {
   return { sourceUrl: env ?? saved.sourceUrl ?? null };
 }
 
+/** Redact `user:pass@` userinfo from a bridge URL so operator credentials embedded in `sourceUrl`
+ * never leave the server. Only the echo is scrubbed — the on-disk config and the live relay still
+ * see the real URL (getTwinConfig, above, is untouched). Non-URL / empty / userinfo-free strings
+ * pass through unchanged so a plain `ws://host/path` reads identically.
+ * @param {string | null} url @returns {string | null} */
+export function redactUrlUserinfo(url) {
+  if (!url) return url;
+  try {
+    const u = new URL(url);
+    if (!u.username && !u.password) return url; // nothing to hide — byte-identical passthrough
+    u.username = "";
+    u.password = "";
+    return u.toString();
+  } catch {
+    return url; // not a parseable URL — leave it as-is (nothing to redact)
+  }
+}
+
+/** Secret-free twin config for the `/api/state` echo: same shape as getTwinConfig but with any
+ * `user:pass@` userinfo redacted out of `sourceUrl`. Mirrors hermes/codex/docs `*PublicConfig()`.
+ * @returns {{ sourceUrl: string | null }} */
+export function twinPublicConfig() {
+  return { sourceUrl: redactUrlUserinfo(getTwinConfig().sourceUrl) };
+}
+
 /** Is this upgrade request for the relay's path? Strips any query string. Exported so the
  * session-WS registration in core/index.js can decline these sockets.
  * @param {{ url?: string }} req */
