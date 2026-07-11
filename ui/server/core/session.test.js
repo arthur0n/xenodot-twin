@@ -11,7 +11,8 @@ import path from "node:path";
 
 const scratch = mkdtempSync(path.join(tmpdir(), "xeno-session-"));
 process.env.GAME_DIR = scratch;
-const { denyIfQuestionOpen, makeCanUseTool, trackMessage } = await import("./session.js");
+const { denyIfQuestionOpen, makeCanUseTool, trackMessage, projectDirMissing } =
+  await import("./session.js");
 const { resolveSessionPlugins } = await import("./session-plugins.js");
 const { docsDedupDecision, isImageRead } = await import("./ui-control.js");
 const store = await import("../features/tasks/tasks-store.js");
@@ -183,6 +184,17 @@ test("AskUserQuestion: otherwise pauses and merges the user's answers into the i
   );
   assert.equal(res.behavior, "allow");
   assert.ok("updatedInput" in res && res.updatedInput);
+});
+
+test("projectDirMissing: null when the dir exists, actionable error when it's gone", () => {
+  // An existing dir (the scratch temp) → no guard; a deleted seat → an actionable message
+  // naming the path, so the UI shows the real cause instead of the SDK's ENOENT spawn lie.
+  assert.equal(projectDirMissing(scratch), null);
+  const gone = path.join(scratch, "no-such-seat");
+  const msg = projectDirMissing(gone);
+  assert.ok(typeof msg === "string" && msg.includes(gone));
+  assert.match(String(msg), /project directory missing/);
+  assert.match(String(msg), /\.xenodot\.json|npm run setup/);
 });
 
 test("denyIfQuestionOpen: null for malformed input and unmatched questions", () => {

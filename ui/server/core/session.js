@@ -371,6 +371,18 @@ function buildMakeQuery({ inbox, canUseTool, abort, waitFor, formAgentQueue, sen
     });
 }
 
+/** Live guard for the cwd we'd spawn the agent session in. Returns an actionable error
+ * string when `dir` (PROJECT_DIR) does NOT exist at this moment, else null. Checked at
+ * session start — not the boot-time PROJECT_FOUND constant — because the seat can be
+ * deleted AFTER boot. Without it the SDK spawn dies at `cwd: dir` with a misleading
+ * ENOENT relabelled "Claude Code native binary … exists but failed to launch"; this
+ * surfaces the real cause instead. Exported (pure, testable), mirroring denyIfQuestionOpen.
+ * @param {string} dir @returns {string | null} */
+export function projectDirMissing(dir) {
+  if (existsSync(dir)) return null;
+  return `project directory missing: ${dir} — repoint .xenodot.json (or run: npm run setup -- /path/to/your/project)`;
+}
+
 /**
  * Drive the Claude Code session and stream its messages to the browser.
  * @param {{ resumeId: string | null, inbox: Inbox, send: (obj: OutMsg) => void, canUseTool: import("@anthropic-ai/claude-agent-sdk").CanUseTool, abort: AbortController, waitFor: WaitFor, agentByTool: Map<string, string>, formAgentQueue: string[], session: SessionState, ls: LiveSession }} deps
@@ -387,6 +399,17 @@ function runSession({
   session,
   ls,
 }) {
+  // Refuse before spawning when the project dir (cwd for every agent) is gone right now —
+  // the earliest common entry that spawns (both fresh-start and disk-resume reach here;
+  // reattach never does). Surface the real, actionable cause and tear down, instead of
+  // firing a session doomed to die at `cwd: PROJECT_DIR` with the SDK's ENOENT lie.
+  const missing = projectDirMissing(PROJECT_DIR);
+  if (missing) {
+    send({ type: "status", text: `session error: ${missing}` });
+    send({ type: "idle" });
+    teardown(ls);
+    return;
+  }
   /** @type {Set<string>} */
   const bgSpawns = new Set(); // tool_use ids spawned with run_in_background
   /** @type {Map<string, string>} */
