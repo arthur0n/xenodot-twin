@@ -390,7 +390,8 @@ _retarget() {
 	if [ "$SMOKE" -eq 0 ]; then
 		echo "$XENO_GATE: SKIP retarget smoke — --no-smoke requested (a SKIP is not a pass)."
 	else
-		RLOG="$("$BIN_PATH" --headless -- --quit-after=20 2>&1)"
+		ret_frames="$(contract_get smoke_frames)" || _rfail smoke "cannot read smoke_frames from the shared tool contract (tools/tool_config.json)"
+		RLOG="$("$BIN_PATH" --headless -- "--quit-after=$ret_frames" 2>&1)"
 		if echo "$RLOG" | grep -qE "^viewer: model loaded from data/"; then
 			echo "$RLOG" | grep -E "^viewer:" | sed 's/^/    /'
 			if ! echo "$RLOG" | grep -qE "^viewer: bindings resolved [1-9][0-9]*/[0-9]+"; then
@@ -632,7 +633,7 @@ SHIP_CFG="$EXEC_DIR/viewer.cfg"
 if [ -f viewer.cfg ]; then
 	cp viewer.cfg "$SHIP_CFG"
 else
-	printf '[viewer]\nurl="ws://localhost:8765"\n' >"$SHIP_CFG"
+	printf '[viewer]\nurl="ws://localhost:%s"\n' "$(contract_get port)" >"$SHIP_CFG"
 fi
 CFG_GD="$WORK/twin_ship_cfg.gd"
 _emit_cfg_gd "$CFG_GD"
@@ -711,7 +712,7 @@ if [ "$SMOKE" -eq 1 ]; then
 elif [ "$SMOKE" -eq -1 ] && [ "$HOST_MATCH" -eq 1 ]; then
 	RUN_SMOKE=1
 fi
-SMOKE_FRAMES=20
+SMOKE_FRAMES="$(contract_get smoke_frames)" || _fail "smoke — cannot read smoke_frames from the shared tool contract (tools/tool_config.json)"
 if [ "$RUN_SMOKE" -ne 1 ]; then
 	if [ "$SMOKE" -eq 0 ]; then
 		echo "$XENO_GATE: SKIP smoke — --no-smoke requested (a SKIP is not a pass)."

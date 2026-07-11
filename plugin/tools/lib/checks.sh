@@ -28,6 +28,31 @@ XENO_BENIGN='ObjectDB instances leaked|resources still in use at exit'
 XENO_BENIGN="$XENO_BENIGN|RID allocations of type .* were leaked at exit"
 XENO_BENIGN="$XENO_BENIGN|Pages in use exist at exit|Leaked instance dependency"
 
+# The tools/ dir that holds this lib — used to locate the shared tool contract regardless of the
+# caller's cwd. This file lives at tools/lib/checks.sh, so tools/ is one directory up.
+XENO_TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Read ONE flat integer key from the shared tool contract (tools/tool_config.json) — the single
+# addressable source the sim (sim/stream.js DEFAULT_*), the bind smoke (smoke_binding.gd STREAM_HZ)
+# and the shell gates share, so a value like the sim Hz / seed / port / boot-smoke frame count can
+# never drift between a JS, GDScript and Bash copy carrying "MUST equal" comments. Dependency-free
+# on purpose (the materialized tools/ ships no jq): the contract keeps these keys flat integers so a
+# grep parses them. Prints the value on stdout; returns 1 with a stderr note when the file or key is
+# missing so a caller fails closed instead of inventing a default (the parallel state we removed).
+contract_get() { # <key>
+	local key="$1" file="$XENO_TOOLS_DIR/tool_config.json" val
+	[ -f "$file" ] || {
+		echo "$XENO_GATE: contract — missing $file" >&2
+		return 1
+	}
+	val="$(grep -oE "\"$key\"[[:space:]]*:[[:space:]]*[0-9]+" "$file" | grep -oE '[0-9]+$' | head -1)"
+	[ -n "$val" ] || {
+		echo "$XENO_GATE: contract — no integer key '$key' in $file" >&2
+		return 1
+	}
+	printf '%s' "$val"
+}
+
 # --- helpers ----------------------------------------------------------------------------------
 
 # Resolve the engine binary into $GODOT and export it. Godot and its compatible forks (Redot,

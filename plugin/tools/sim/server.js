@@ -76,7 +76,10 @@ const args = parseArgs(process.argv.slice(2));
 const seed = Number(args.seed ?? DEFAULT_SEED) | 0;
 const port = Number(args.port ?? DEFAULT_PORT);
 const hz = Number(args.hz ?? DEFAULT_HZ);
-const tags = tagsFromMap(args.map);
+// --demo is a value-less opt-in read straight from argv (parseArgs would swallow the next token).
+// A supplied --map that is unreadable/empty is fatal inside tagsFromMap; --demo only unlocks the
+// no-map built-in tag set.
+const tags = tagsFromMap(args.map, process.argv.includes("--demo"));
 const statsPath = args.stats;
 
 /** @type {Set<import("node:net").Socket>} */

@@ -104,10 +104,10 @@ function writeRecording(out, header, frameLines) {
 
 /** Fixture mode: synthesize the exact stream the sim would send, straight to file. Pure —
  * no clock, no network — so same args ⇒ byte-identical output.
- * @param {{ out: string, seconds: number, seed: number, hz: number, map: string | undefined }} o
+ * @param {{ out: string, seconds: number, seed: number, hz: number, map: string | undefined, demo: boolean }} o
  * @returns {void} */
 function synthesize(o) {
-  const tags = tagsFromMap(o.map);
+  const tags = tagsFromMap(o.map, o.demo);
   const totalTicks = Math.round(o.seconds * o.hz); // ticks the sim would fire in `seconds`
   /** @type {string[]} */
   const lines = [];
@@ -376,5 +376,8 @@ if (args.url) {
     seed: Number(args.seed ?? DEFAULT_SEED) | 0, // same coercion as server.js — same seed space
     hz: Number(args.hz ?? DEFAULT_HZ),
     map: args.map,
+    // --demo is a value-less opt-in; read it straight from argv so parseArgs can't swallow the next
+    // token. A supplied-but-broken --map is fatal regardless; --demo only enables the no-map path.
+    demo: process.argv.includes("--demo"),
   });
 }

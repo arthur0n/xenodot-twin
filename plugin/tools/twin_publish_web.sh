@@ -436,7 +436,7 @@ _stage 2/7 "wire (res:// model/map/recording → autoplay)"
 # url= is BLANKED to "" (the DataBus "live source OFF" contract, data_bus.gd _live_disabled): a Pages
 # demo has no sim, so a non-empty url would spam ws:// ERR_CONNECTION_REFUSED forever. Empty = no
 # connect, no retry; the recording drives every visual (playback also closes the socket as defence).
-[ -f viewer.cfg ] && cp viewer.cfg viewer.cfg.bak || printf '[viewer]\nurl="ws://localhost:8765"\n' >viewer.cfg
+[ -f viewer.cfg ] && cp viewer.cfg viewer.cfg.bak || printf '[viewer]\nurl="ws://localhost:%s"\n' "$(contract_get port)" >viewer.cfg
 WORK="$(mktemp -d)"
 # Invoked via `trap _cleanup EXIT` below; shellcheck can't see the indirect call, so it flags the
 # function as never-invoked (SC2329) and every body command as unreachable (SC2317). Both are the
