@@ -154,7 +154,12 @@ func _run_bind() -> void:
 				% [node_count, mmi_count, bus.frames_received, bus.drops]
 			)
 		)
-		_write_status(true)
+		if not _write_status(true):
+			# The smoke passed but its demanded --json verdict could not be written — fail closed so
+			# no reader inherits a stale-green status file the write never overwrote.
+			print("BIND-SMOKE: FAIL — verdict --json could not be written (see error above)")
+			quit(1)
+			return
 		quit(0)
 
 
@@ -384,9 +389,9 @@ func _fail(reason: String) -> void:
 # empty map), which write an honest zeroed FAIL struct (stage "setup" + the reason). Every bind_*
 # field is overwritten each run, so a previously-green status file can never survive a later
 # setup break and keep a UI badge lying green.
-func _write_status(passed: bool, reason := "") -> void:
+func _write_status(passed: bool, reason := "") -> bool:
 	if json_path == "":
-		return
+		return true
 	# Every bind_* field is set on every terminal path — a stale green can never survive a later
 	# failure. The reason key is present only on FAIL. The merge/corrupt-file/write mechanics live in
 	# tools/lib/gate_report.gd (GateReport.merge_write), shared with the join and playback gates.
@@ -412,4 +417,6 @@ func _write_status(passed: bool, reason := "") -> void:
 	# merge overwrites any prior one (merge_write overwrites the gate's own keys every run).
 	fields["reason"] = "" if passed else reason
 	fields["bind_checked_at"] = GateReport.now_iso()
-	GateReport.merge_write(json_path, fields, "BIND-SMOKE")
+	# false = an explicit --json could not be written; the caller must fail closed (a passing smoke
+	# whose verdict never lands would leave a prior green struct standing — the stale-green class).
+	return GateReport.merge_write(json_path, fields, "BIND-SMOKE")

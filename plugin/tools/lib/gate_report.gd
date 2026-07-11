@@ -36,9 +36,17 @@ static func globalize(p: String) -> String:
 # Merge `fields` into the JSON object at `json_path`, write it back, printing "<GATE>-JSON: <path>".
 # `gate_label` is the gate's short name ("JOIN", "BIND-SMOKE", "PLAYBACK") — it names the log line
 # and, on the corrupt-file path, the sibling ext (.join.json / .bind_smoke.json / .playback.json).
-static func merge_write(json_path: String, fields: Dictionary, gate_label: String) -> void:
+#
+# RETURNS true when the verdict is persisted (or when --json="" so nothing was demanded), false when
+# an EXPLICIT --json path could not be written. A false is FATAL to the caller: a gate that cannot
+# write its demanded verdict must exit non-zero even if its own result was OK, or a prior green
+# struct survives the failed write and keeps a UI badge lying green (the stale-green class). Every
+# caller checks the return and fails closed on false — see check_twin_join.gd / smoke_binding.gd /
+# check_playback.gd. (An unwritable path was previously push_error+return void, which the passing
+# gate ignored — the exact stale-green hole this bool closes.)
+static func merge_write(json_path: String, fields: Dictionary, gate_label: String) -> bool:
 	if json_path == "":
-		return
+		return true
 	var out_path := globalize(json_path)
 	var merged: Dictionary = {}
 	var raw_txt := FileAccess.get_file_as_string(out_path)
@@ -63,14 +71,16 @@ static func merge_write(json_path: String, fields: Dictionary, gate_label: Strin
 	if fh == null:
 		push_error(
 			(
-				"%s: could not write --json=%s (%s)"
-				% [gate_label, out_path, error_string(FileAccess.get_open_error())]
+				"%s: could not write --json=%s (%s) — FAILING the gate: an unwritten verdict must"
+				+ " never leave a prior green struct standing"
 			)
+			% [gate_label, out_path, error_string(FileAccess.get_open_error())]
 		)
-		return
+		return false
 	fh.store_string(JSON.stringify(merged, " "))
 	fh.close()
 	print("%s-JSON: %s" % [gate_label, out_path])
+	return true
 
 
 # ISO-8601 UTC stamp with a trailing Z — the format every gate's <gate>_checked_at field uses.

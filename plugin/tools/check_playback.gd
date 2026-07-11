@@ -381,7 +381,10 @@ func _verdict(ok: bool, reason: String) -> void:
 	print("PLAYBACK-HASH: %s (%s over %d frame(s))" % [digest, HASH_ALGORITHM, _emitted.size()])
 	if out_path != "":
 		_write_out(blob)
-	(
+	# An unwritable --json is fatal (merge_write → false): a PASS whose verdict never lands would
+	# leave a prior green struct standing. Fold the write result into the gate result so an OK run
+	# with an unwritten verdict still exits non-zero.
+	var wrote := (
 		GateReport
 		. merge_write(
 			json_path,
@@ -395,11 +398,14 @@ func _verdict(ok: bool, reason: String) -> void:
 			"PLAYBACK"
 		)
 	)
-	if ok:
+	if ok and wrote:
 		print("PLAYBACK-GATE: OK — ", reason)
 		quit(0)
 	else:
-		print("PLAYBACK-GATE: FAIL — ", reason)
+		if ok and not wrote:
+			print("PLAYBACK-GATE: FAIL — verdict --json could not be written (see error above)")
+		else:
+			print("PLAYBACK-GATE: FAIL — ", reason)
 		quit(1)
 
 
