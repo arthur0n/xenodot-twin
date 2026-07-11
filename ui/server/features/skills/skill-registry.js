@@ -213,14 +213,15 @@ export function loadRegistry(root = PLUGIN) {
 /** Recompute the per-audience projection for a SUBSET of the registry (a slice of skills + agents).
  * Same shape as loadRegistry, but the projection is confined to the subset — so a base skill tagged
  * `all` does not sweep in twin agents, and a twin skill's audience resolves only against twin agents.
- * @param {Map<string,string[]>} skills @param {Registry["agents"]} agents @returns {Registry} */
-function scopeOf(skills, agents) {
+ * @param {Map<string,string[]>} skills @param {Registry["agents"]} agents
+ * @param {Registry["domains"]} domains @returns {Registry} */
+function scopeOf(skills, agents, domains) {
   const agentNames = [...agents.keys()].sort();
   const workers = agentNames.filter((n) => agents.get(n)?.tools.includes("mcp__ui__tasks"));
   /** @type {string[]} */
   const errors = [];
   const expected = expectedByAudience(skills, agentNames, workers, errors);
-  return { skills, agents, agentNames, workers, expected, errors };
+  return { skills, domains, agents, agentNames, workers, expected, errors };
 }
 
 /** Split the ONE merged plugin registry into its base and twin (digital-twin domain) halves, so the
@@ -241,9 +242,11 @@ export function partitionRegistry(reg = loadRegistry()) {
   const base = scopeOf(
     new Map([...reg.skills].filter(([n]) => !isTwinSkill(n))),
     new Map([...reg.agents].filter(([n]) => !twinAgents.has(n))),
+    new Map([...reg.domains].filter(([n]) => !isTwinSkill(n))),
   );
   const twinSkills = new Map([...reg.skills].filter(([n]) => isTwinSkill(n)));
   const twinAgentMap = new Map([...reg.agents].filter(([n]) => twinAgents.has(n)));
-  const twin = twinAgentMap.size ? scopeOf(twinSkills, twinAgentMap) : null;
+  const twinDomains = new Map([...reg.domains].filter(([n]) => isTwinSkill(n)));
+  const twin = twinAgentMap.size ? scopeOf(twinSkills, twinAgentMap, twinDomains) : null;
   return { base, twin };
 }
