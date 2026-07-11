@@ -43,6 +43,7 @@ import { readTasks, reapHandoffs } from "../features/tasks/tasks-store.js";
 import { serveStatic } from "./http/static.js";
 import { reclaimPortIfBusy } from "./http/port.js";
 import { gracefulRestart, RESTART_EXIT_CODE } from "./http/restart.js";
+import { stalenessReport } from "./staleness.js";
 import { handleConnection } from "./session.js";
 import { prepareGame } from "../cli/materialize.js";
 import { computeUsage } from "./http/usage.js";
@@ -407,6 +408,7 @@ function skillsConfig() {
  * @type {Record<string, () => unknown>} */
 const GET_ROUTES = {
   "/api/state": projectState,
+  "/api/staleness": stalenessReport,
   "/api/sessions": recentSessions,
   "/api/tasks": readTasks,
   "/api/usage": computeUsage,

@@ -19,6 +19,7 @@ import {
   sweepStaleAgents,
 } from "./agent-settle.js";
 import { getLive } from "./registry.js";
+import { noteSessionSpawn } from "./staleness.js";
 import {
   createLogger,
   createInbox,
@@ -698,6 +699,10 @@ export function handleConnection(ws, req) {
     reattach(existing, ws);
     return;
   }
+
+  // A fresh SDK session — the SDK re-reads plugin skills/agents at this spawn, so this timestamp is
+  // the baseline the staleness chip compares plugin .md mtimes against (a later edit → session-stale).
+  noteSessionSpawn();
 
   /** @type {Conn} */
   const conn = { socket: ws, buffer: [] };
