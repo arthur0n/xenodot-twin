@@ -157,6 +157,12 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
   seat, provision the IFC venv, build a data-bound viewer with an **auto-generated** binding map,
   stream a seeded sim, boot it — with **no hand-authored map**. A one-line convenience
   (`npm run byo -- /path/to/your.ifc --project /path/you/choose`) chains the steps once you know them.
+- **[`docs/tutorials/ship-and-retarget.md`](docs/tutorials/ship-and-retarget.md)** — the last step of
+  the journey: package a green twin as one export-safe desktop **deployable** (the build plus its data
+  staged **beside** the executable, `twin_ship.sh --preset macOS --zip`), verify the deterministic zip
+  as a clean stranger, then **retarget it by editing one line** — a new `url=` for this site's live
+  source, or `--retarget` to swap the model/map/recording — with the **same binary, no re-export**
+  (mtime proves it). The data-beside-build contract, end to end.
 - **[`plugin/examples/`](plugin/examples)** — the bundled kit the tutorial uses: a sample
   IFC (`Duplex_A_20110907.ifc`), an example `binding_map`, and an example `viewer.cfg`, so you don't
   have to source any files yourself.
