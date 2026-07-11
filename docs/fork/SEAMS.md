@@ -70,7 +70,7 @@ whole-dir surfaces upstream deleted in `e250d11`:
 
 ```
 starter-viewer  ui/orchestrator-viewer.md  ui/server/features/twin
-docs/tutorials  ui/server/cli/materialize.test.js
+docs/tutorials
 ```
 
 > The twin capabilities once enumerated here file-by-file — the `twin-build` / `twin-analyze` /
@@ -171,7 +171,7 @@ Keep the 10 base agents: `godot-dev`, `godot-refactor`, `godot-visuals`, `godot-
 `transcript-researcher`, `handoff-summarizer`. (Roster authority: `ui/orchestrator-viewer.md` — the
 viewer routes to exactly these.)
 
-### 2. Game skills (32) — NOT carried
+### 2. Game skills (34) — NOT carried
 
 Delete `plugin/skills/`:
 
@@ -179,11 +179,12 @@ Delete `plugin/skills/`:
 `godot-data-driven-composition`, `godot-effect-composition`, `godot-enemy-ai`,
 `godot-enemy-ai-headless-smoke`, `godot-enemy-archetype`, `godot-first-person-controller`,
 `godot-foliage`, `godot-greybox`, `godot-greybox-to-asset`, `godot-gridmap-level`,
-`godot-hd-material-import`, `godot-looping-particle-vfx`, `godot-mesh-import-hd`,
-`godot-mesh-import-pixel-art`, `godot-navmesh-pathing-4-6`, `godot-oneshot-vfx`,
+`godot-hd-material-import`, `godot-looping-particle-vfx`, `godot-mesh-import`,
+`godot-mesh-import-hd`, `godot-mesh-import-pixel-art`, `godot-navmesh-pathing-4-6`, `godot-oneshot-vfx`,
 `godot-orthographic-follow-camera`, `godot-pixel-lighting`, `godot-playgrade`,
 `godot-playthrough-bot`, `godot-procedural-model`, `godot-procedural-texture`, `godot-runtime-arena`,
-`godot-shooter-enemy-combat`, `godot-stealth-perception`, `godot-texture-import-pixel-art`,
+`godot-shooter-enemy-combat`, `godot-stealth-perception`, `godot-texture-import`,
+`godot-texture-import-pixel-art`,
 `godot-travelling-projectile-3d`, `level-design-principles`.
 
 > `godot-mesh-import-hd` + `godot-hd-material-import` are dropped too: they are FPS-flavored and
@@ -193,6 +194,14 @@ Delete `plugin/skills/`:
 > in via `xenodot:twin-asset-import` (the twin-native replacement — mints a synthetic GlobalId so
 > a prop joins the data layer), and ad-hoc one-off `.glb`/texture dressing falls to `godot-assets` on
 > its core skills.
+
+> The 2026-07-11 sync added two NEW upstream base skills — `godot-mesh-import` +
+> `godot-texture-import` (the generic, un-suffixed import bases). They are **re-dropped each sync**
+> too (added to the list above): nothing in this fork routes or composes them — they arrived
+> game-framed and the viewer's import path is `xenodot:twin-import` (building) →
+> `xenodot:twin-asset-import` (props) → `godot-assets` (ad-hoc dressing). Reverse only if a twin
+> surface starts routing one: then retag it to `godot-assets` and neutralize its game framing (the
+> NEW-skill rule below).
 
 Keep the 16 base skills: `agent-report`, `autonomous-main-goal`, `caveman`, `godot-code-rules`,
 `godot-composition`, `godot-docs`, `godot-export-builds`, `godot-main-scene`,
