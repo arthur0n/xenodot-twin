@@ -36,16 +36,19 @@ project's `tools/` in the SAME pass as the base tools above (`validate.sh`, `lib
 `verify_scene.gd`, …) — twin scripts compose the shared `tools/lib/checks.sh` from that one merged
 set. Game (non-viewer) projects still get only the base tools.
 
-## `twin_build.sh` — one command: IFC → verified, data-bound twin
+## `twin_build.sh` — one command: IFC/USD → verified, data-bound twin
 
 ```
-tools/twin_build.sh <model.ifc> [--map binding_map.json] [--out-dir models/] \
+tools/twin_build.sh <model.ifc|.usd|.usda|.usdc> [--map binding_map.json] [--out-dir models/] \
     [--chunks auto|N] [--min-instances N] [--hints h.json] [--occluders] \
     [--vis-ranges] [--wire]
 ```
 
 The deterministic driver that chains the four tools below into ONE gate: **preflight**
-(engine + the `.venv-ifc`/ifcopenshell venv) → **import** (`ifc_convert.py`) → **optimize**
+(engine + the pinned venv the input format needs — `.venv-ifc`/ifcopenshell for `.ifc`,
+`.venv-usd`/usd-core for `.usd/.usda/.usdc`) → **import** (`ifc_convert.py` or `usd_convert.py`,
+selected by extension — same GLB+sidecar shape downstream, so optimize/verify/join are unchanged)
+→ **optimize**
 (`optimize_scene.gd`; registers the `class_name` globals with a one-off headless import when
 a fresh project's class cache is missing them) → **verify** (`verify_twin.sh` pinned to the
 built artifacts — join gate on the import, smoke + static floor on the optimized scene) →
@@ -54,7 +57,8 @@ built artifacts — join gate on the import, smoke + static floor on the optimiz
 pass (no `--map` → the binding smoke SKIPs loudly and the summary names `twin-bind-data`).
 Orchestrates ONLY — every number stays gate-backed; `--occluders` / `--vis-ranges` pass
 through to the optimizer and NEVER default on. The venv is never auto-created (a missing
-`.venv-ifc` FAILs loud with the two `uv` lines). `--wire` is the one opt-in that touches
+`.venv-ifc`/`.venv-usd` FAILs loud with the exact `uv` lines; `--provision` bootstraps the one the
+input format needs). `--wire` is the one opt-in that touches
 user data — it points `viewer.cfg [viewer] model=` at the optimized scene (keeps a `.bak`).
 Operator manual: skill `twin-build`. Measured one-command wall time (clean-stranger seat
 run): `plugin/library/findings/twin-build-2026-07-09.md`.
@@ -134,6 +138,28 @@ against dead sample URLs that download HTML.
 
 Needs a **Python 3.12** venv with `ifcopenshell==0.8.5` (3.14 has no wheel) — provisioned by
 `twin_venv.sh` (below); setup in skill `twin-import`. No engine needed.
+
+## `usd_convert.py` — OpenUSD → GLB + property sidecar
+
+```
+python tools/usd_convert.py <model.usd|.usda|.usdc> [--glb out.glb] [--sidecar out.json] [--metrics m.json]
+```
+
+The extension-switch sibling of `ifc_convert.py` for **OpenUSD**. Same CLI contract
+(`in → out.glb + out_props.json`, stem-derived defaults, `--metrics`), so `twin_build.sh`
+routes a `.usd/.usda/.usdc` input here by extension, not a second pipeline. GLB node names carry
+the **sanitized prim path** — USD's stable join key (the readiness handoff) — and the sidecar is
+keyed identically. **The sanitization contract** (the join, documented in the file header): strip
+the leading `/`, turn every remaining `/` into `__`, then every other non-`[A-Za-z0-9_]` char into
+`_` (`/Plant/Tanks/TK_101` → `Plant__Tanks__TK_101`). Reads `UsdGeom.Mesh` points/faces directly
+via usd-core and writes a hand-rolled glTF-2.0 GLB (pure `struct`, no trimesh/pygltflib);
+customData is the sidecar payload, minus usd-core's auto-injected `userDocBrief` schema-doc key.
+Fail-closed: an unreadable/non-USD file or a stage with no tessellable mesh prims exits non-zero
+(never an empty GLB). **Limits** (honest scope): authored polygon **meshes** only — implicit prims
+(`UsdGeom.Sphere/Cylinder/Cube`) carry no points and are skipped; fan triangulation assumes convex
+faces. Needs a **Python 3.12** venv with `usd-core` (the pip wheel ships the `pxr` module but no CLI
+binaries) — provisioned by `twin_build.sh --provision` for a `.usd*` input; setup in skill
+`twin-import`. No engine needed.
 
 ## `twin_venv.sh` — provision the pinned ifcopenshell venv (idempotent)
 
