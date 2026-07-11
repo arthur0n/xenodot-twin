@@ -2,20 +2,23 @@
 
 # Framework audit ledger
 
-**open (fix-now): 2 · later: 10 · skip: 2**
+**open (fix-now): 6 · later: 10 · skip: 2**
 
 _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k subagent tokens); D1/D4 clean; filed 7 no-brainers + 7 improvements + 3 laters + 1 skip-tombstone. Self-fixed framework-audit.md in-pass: sibling list → glob (×2, was silently omitting token-audit.md), tools/ → plugin/tools/ in D8, Never-bullet no longer recommends the rtk grep it bans. Process note: fan-out gather worked but D9-audit-fanout single-agent comparison still unmeasured. Same day: integrated external review iter1 (86 extracted items → 1 no-brainer + 2 improvements + 4 laters filed after 3-agent repo-state verification; 1 existing row upgraded to MEASURED; roadmap waves parked as pointer; 2 review claims already resolved in repo).
 
 > Source of truth is **`LEDGER.json`** — edit that, then `npm run ledger` (pre-commit also regenerates). This file + `ledger.html` are generated views. Applied findings are DELETED (git is the fix record), never stamped.
 
-## Bucket 3 — no-brainers (0) · fix-now · mechanical (framework-nobrainer-fixer)
+## Bucket 3 — no-brainers (2) · fix-now · mechanical (framework-nobrainer-fixer)
 
-_none_
+- **D8-gatereport-parse-noise** · `D8` · _open_ — check_twin_join via GateReport.merge_write (tools/lib/gate_report.gd) prints 'Parse JSON failed. Error at line 0' to stderr when the --json target doesn't exist yet (JSON.parse_string("") on an empty read); harmless but alarming (W1/W2 verified).
+- **D9-evidence-port-range** · `D9` · _open_ — plugin/tools/web/twin_evidence.js default random port range 8071-8470 (:21) includes the human's long-running reserved ports (8339/8340) (W1/W2 verified).
 
-## Bucket 4 — improvements (2) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (4) · fix-now · needs judgment (/framework-audit-fix)
 
 - **D7-upstream-staleness** · `D7` · _open_ — Fork silently drifts behind upstream: /sync-upstream (.claude/commands/sync-upstream.md) has NEVER been exercised and nothing measures or surfaces staleness — the `upstream` remote (arthur0n/xenodot-forge) exists but no check runs `git fetch upstream && git rev-list --count HEAD..upstream/main`; add a warn-only staleness line (doctor.js or a check:\* script): 'N upstream commits unsynced — run /sync-upstream' (human picks the surface + whether network-in-gate is acceptable).
 - **D6-framework-spine-no-owner** · `D6` · _open_ — Convention article 2 (docs/process/convention.md) lacks a SPECIALIZATION TEST and so over-triggers: it reads as 'every domain needs an owning agent', which prompted an unjustified generic framework-dev agent (created + deleted 2026-07-11). Add one line to article 2: a custom agent is justified only by specialized skills/tools/knowledge (godot-dev pattern) or a hard guardrail charter + cheaper model (framework-nobrainer-fixer pattern); for unspecialized work (plain Node spine fixes) the general agent IS the framework-correct route, not a gap.
+- **D4-publish-index-regen** · `D4` · _open_ — twin_publish_web.sh \_regen_index HTML_TAIL omits the live site's determinism-note footer paragraph and clobbers hand-authored demo cards; no \_demo_meta case for new demos (usd-plant, city, bim fall to generic fallback copy) → every republish silently reverts hand-fixes (W1/W2 verified).
+- **D8-automap-nongeometric** · `D8` · _open_ — plugin/tools/gen_binding_map.js picks sidecar-only aggregate classes (IfcRoof/IfcStair — no leaf mesh in the GLB → 'resolved 0 targets') despite its header (:28-29) claiming geometric-only (W1/W2 verified).
 
 ## Bucket 5 — later (10) · system / parked
 

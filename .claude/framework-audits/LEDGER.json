@@ -144,6 +144,42 @@
       "status": "open",
       "finding": "Convention article 2 (docs/process/convention.md) lacks a SPECIALIZATION TEST and so over-triggers: it reads as 'every domain needs an owning agent', which prompted an unjustified generic framework-dev agent (created + deleted 2026-07-11). Add one line to article 2: a custom agent is justified only by specialized skills/tools/knowledge (godot-dev pattern) or a hard guardrail charter + cheaper model (framework-nobrainer-fixer pattern); for unspecialized work (plain Node spine fixes) the general agent IS the framework-correct route, not a gap.",
       "pattern": "godot-dev = specialization (skills + docs MCP); framework-nobrainer-fixer = guardrail + cheap model; no third justification exists."
+    },
+    {
+      "id": "D4-publish-index-regen",
+      "dim": "D4",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "twin_publish_web.sh _regen_index HTML_TAIL omits the live site's determinism-note footer paragraph and clobbers hand-authored demo cards; no _demo_meta case for new demos (usd-plant, city, bim fall to generic fallback copy) → every republish silently reverts hand-fixes (W1/W2 verified).",
+      "pattern": "template carries the footer note + per-demo meta lives as DATA (a demos.json the tool reads), not hand-edits."
+    },
+    {
+      "id": "D8-automap-nongeometric",
+      "dim": "D8",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "plugin/tools/gen_binding_map.js picks sidecar-only aggregate classes (IfcRoof/IfcStair — no leaf mesh in the GLB → 'resolved 0 targets') despite its header (:28-29) claiming geometric-only (W1/W2 verified).",
+      "pattern": "post-pick resolve-check against the GLB and prune unresolved picks so maps are clean N/N."
+    },
+    {
+      "id": "D8-gatereport-parse-noise",
+      "dim": "D8",
+      "bucket": 3,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "check_twin_join via GateReport.merge_write (tools/lib/gate_report.gd) prints 'Parse JSON failed. Error at line 0' to stderr when the --json target doesn't exist yet (JSON.parse_string(\"\") on an empty read); harmless but alarming (W1/W2 verified).",
+      "pattern": "guard the parse with `if raw_txt != \"\":`."
+    },
+    {
+      "id": "D9-evidence-port-range",
+      "dim": "D9",
+      "bucket": 3,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "plugin/tools/web/twin_evidence.js default random port range 8071-8470 (:21) includes the human's long-running reserved ports (8339/8340) (W1/W2 verified).",
+      "pattern": "read the default port window from tool_config.json (the codex-fix precedent) or narrow the range + always prefer OS-assigned."
     }
   ]
 }

@@ -31,6 +31,13 @@ On every conflict during a sync merge:
 - **Identity → OURS, always.** `package.json` name/description, `.claude-plugin/marketplace.json`,
   `plugin/.claude-plugin/plugin.json` description, `README.md`, `FEATURES.md`.
 - **Behavioral seams → keep our edit AND fold in upstream's real change** (the short table below).
+- **Audit ledger → OURS, then reconcile.** `.claude/framework-audits/LEDGER.json` resolves OURS on
+  every sync, then run the reconcile step: diff our finding ids against
+  `git show upstream/main:.claude/framework-audits/LEDGER.json`. An id WE carry that upstream DROPPED
+  means upstream fixed it → verify the fix actually landed in our tree, then prune our row. Import an
+  upstream row only if its target ships in the twin (glob-check the cited path; never a game-scoped
+  row). Retarget any line-cite a seam rename rotted. `LEDGER.md`/`ledger.html` are generated — never
+  hand-merge them; run `npm run ledger` after.
 
 ## Additive-only areas (no conflict risk — upstream owns none of these)
 
