@@ -202,8 +202,10 @@ Because the win is not unambiguous on BOTH real-shaped scenes (flat on the duple
 - The unique-city is a **synthetic stand-in** (uniqueness via `--min-instances` threshold trick,
   not genuinely distinct geometry) — it is honest about mesh _count_ and cull behavior, but a real
   heterogeneous-plant scene should confirm the numbers.
-- Perceptual verdicts are **frame-reviewed, pending human fly-through** — the hard-pop assessment
-  for `aggressive` in particular wants a live walk before that cutoff is ever adopted.
+- Perceptual verdicts are **frame-reviewed** — closed 2026-07-11 without a formal fly-through:
+  the human accepted the current visuals as fine for now. The hard-pop assessment for
+  `aggressive` still wants a live walk before that cutoff is ever adopted; re-open if popping
+  bothers real use.
 
 ## Reproduce
 

@@ -220,7 +220,8 @@ browser embed cannot lean on the fade to justify the aggressive cutoffs.
   honest about mesh _count_ and cull behavior; a real heterogeneous-plant scene should confirm.
 - **`deps` (fade dependencies) is UNMEASURED** — this sweep is `self` only. `deps` fades a
   `visibility_parent` LOD chain, which none of the bench scenes author; re-bench before relying on it.
-- The perceptual verdict is **frame-reviewed, pending human fly-through** — see above. And the whole
+- The perceptual verdict is **frame-reviewed** — closed 2026-07-11 without a formal fly-through
+  (human accepted as fine for now; re-open if popping bothers real use). And the whole
   fade result is **Forward+ only**; the web pop is unfixed by design.
 
 ## Reproduce
