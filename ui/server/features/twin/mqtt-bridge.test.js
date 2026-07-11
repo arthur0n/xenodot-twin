@@ -1,7 +1,8 @@
 // mqtt-bridge.test.js — in-process integration test for the MQTT→WS bridge. A fake broker (a net
 // server built on the SAME mqtt_protocol.js codec the bridge uses) answers CONNACK/SUBACK and
 // publishes scripted PUBLISHes; the REAL bridge translate path runs; a real ws client asserts it
-// receives the exact DataBus frames `{tag, value, seq, sent_ms}` with gapless seq. No live broker —
+// receives the exact DataBus frames `{tag, value, seq, sent_ms}` with per-tag gapless seq (each tag
+// carries its OWN 0,1,2,… run, so data_bus.gd's per-tag drop counting never phantoms). No live broker —
 // deterministic, CI-safe. Placed under ui/ so the root `npm test` glob runs it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -140,11 +141,13 @@ test("fake broker → bridge → ws client: exact frames, gapless seq, drops cou
   });
   await broker.whenSubscribed;
 
-  // Three that map, two that drop (one non-numeric, one unmapped) — interleaved.
-  broker.publish("house/living_room/temp", "21.5"); // → living_room.temp = 21.5  (seq 0)
-  broker.publish("house/kitchen/temp", "22"); // → house.kitchen.temp = 22       (seq 1)
+  // Three that map, two that drop (one non-numeric, one unmapped) — interleaved. seq is PER TAG:
+  // three DISTINCT tags each publish once, so each independently starts its own run at 0 (not a
+  // single global 0,1,2). This is the honest-drop-count contract — see the multi-publish test below.
+  broker.publish("house/living_room/temp", "21.5"); // → living_room.temp = 21.5  (seq 0, this tag)
+  broker.publish("house/kitchen/temp", "22"); // → house.kitchen.temp = 22        (seq 0, this tag)
   broker.publish("house/bedroom_1/temp", "warm"); // bad payload → dropped
-  broker.publish("plant/pump_1/flow", JSON.stringify({ value: 9 })); // → plant.pump_1.flow = 9 (seq 2)
+  broker.publish("plant/pump_1/flow", JSON.stringify({ value: 9 })); // → plant.pump_1.flow = 9 (seq 0, this tag)
   broker.publish("unmapped/topic", "1"); // no rule → dropped
 
   await gotThree;
@@ -154,8 +157,8 @@ test("fake broker → bridge → ws client: exact frames, gapless seq, drops cou
     frames.map((f) => ({ tag: f.tag, value: f.value, seq: f.seq })),
     [
       { tag: "living_room.temp", value: 21.5, seq: 0 },
-      { tag: "house.kitchen.temp", value: 22, seq: 1 },
-      { tag: "plant.pump_1.flow", value: 9, seq: 2 },
+      { tag: "house.kitchen.temp", value: 22, seq: 0 },
+      { tag: "plant.pump_1.flow", value: 9, seq: 0 },
     ],
   );
   for (const f of frames) assert.equal(typeof f.sent_ms, "number");
@@ -197,10 +200,13 @@ test("--record: forwarded frames serialize as a valid twin-recording (live→hos
   });
   await broker.whenSubscribed;
 
-  broker.publish("house/kitchen/temp", "22.5"); // → house.kitchen.temp = 22.5 (seq 0)
+  // kitchen publishes twice, interleaved with pump — the multi-tag case the per-tag seq fixes.
+  // With a single global counter kitchen would read 0 then 2 (a phantom "dropped seq 1" to the
+  // viewer's per-tag drop math); per-tag it reads 0 then 1 (gapless), while pump keeps its OWN run.
+  broker.publish("house/kitchen/temp", "22.5"); // → house.kitchen.temp = 22.5 (kitchen seq 0)
   broker.publish("house/bedroom_1/temp", "warm"); // dropped — not recorded
-  broker.publish("plant/pump_1/flow", JSON.stringify({ value: 9 })); // → plant.pump_1.flow = 9 (seq 1)
-  broker.publish("house/kitchen/temp", "23.5"); // → house.kitchen.temp = 23.5 (seq 2)
+  broker.publish("plant/pump_1/flow", JSON.stringify({ value: 9 })); // → plant.pump_1.flow = 9 (pump seq 0)
+  broker.publish("house/kitchen/temp", "23.5"); // → house.kitchen.temp = 23.5 (kitchen seq 1)
   await gotThree;
 
   const body = bridge.recording();
@@ -229,11 +235,18 @@ test("--record: forwarded frames serialize as a valid twin-recording (live→hos
   assert.deepEqual(
     recFrames.map((f) => ({ tag: f.tag, value: f.value, seq: f.seq })),
     [
-      { tag: "house.kitchen.temp", value: 22.5, seq: 0 },
-      { tag: "plant.pump_1.flow", value: 9, seq: 1 },
-      { tag: "house.kitchen.temp", value: 23.5, seq: 2 },
+      { tag: "house.kitchen.temp", value: 22.5, seq: 0 }, // kitchen's own run: 0…
+      { tag: "plant.pump_1.flow", value: 9, seq: 0 }, // pump's own run: 0…
+      { tag: "house.kitchen.temp", value: 23.5, seq: 1 }, // …kitchen 1 (gapless — no phantom drop)
     ],
   );
+  // Pin the per-tag contract explicitly: each tag's seq run is gapless (increments by 1 across ITS
+  // own frames), independent of interleaving with other tags. This is what keeps data_bus.gd's
+  // per-tag drop counting honest for a multi-tag publisher.
+  const kitchenSeqs = recFrames.filter((f) => f.tag === "house.kitchen.temp").map((f) => f.seq);
+  const pumpSeqs = recFrames.filter((f) => f.tag === "plant.pump_1.flow").map((f) => f.seq);
+  assert.deepEqual(kitchenSeqs, [0, 1], "kitchen's seq run is gapless per tag");
+  assert.deepEqual(pumpSeqs, [0], "pump's seq run is independent, starting at 0");
   for (let i = 1; i < recFrames.length; i++) {
     const prev = /** @type {import("../../../../plugin/tools/sim/recording.js").RecordingFrame} */ (
       recFrames[i - 1]

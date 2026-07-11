@@ -19,9 +19,14 @@
 // The MQTT codec is ./mqtt_protocol.js; the pure topic→tag/value translation is ./map.js. The
 // broker connection reconnects on drop, mirroring the relay's own reconnect-to-source rationale.
 //
-// Honesty note carried in the frames: `seq` is a bridge-local monotonic counter and `sent_ms` is
-// stamped at translation, so DataBus drop/latency math measures the bridge→viewer hop only, not
-// broker→bridge loss — QoS 0 makes no delivery promise anyway.
+// Honesty note carried in the frames: `seq` is a bridge-local monotonic counter PER TAG (each tag
+// gets its own 0,1,2,… sequence) and `sent_ms` is stamped at translation, so DataBus drop/latency
+// math measures the bridge→viewer hop only, not broker→bridge loss — QoS 0 makes no delivery
+// promise anyway. Per-tag (not one global per-frame counter) is deliberate: core/data_bus.gd counts
+// drops PER TAG (gap in that tag's seq run), so a single global counter would make every multi-tag
+// publisher look lossy — tag A at seq 4, tag B at seq 5, tag A next at seq 6 reads as "A dropped
+// seq 5" though nothing was lost. Per-tag seq keeps each tag's run gapless so the drop count is
+// honest. The viewer side was already per-tag; this is the producer half of that contract.
 //
 // Out of scope v1 (see the plan): MQTT 5, QoS 1/2, TLS (mqtts://), and publishing viewer→broker.
 // Dependency-free by design — the materialized tools/ ships no package.json, bare `node` only.
@@ -266,17 +271,15 @@ function createMqttClient(cfg) {
 /** The live-stream recorder behind --record: fold each forwarded frame into an in-memory
  * twin-recording (../sim/recording.js contract) and, on demand, serialize it to NDJSON. Kept
  * filesystem-pure (returns the body; the CLI owns the write, like --stats) so startBridge stays
- * driveable in-process by the test. hz is DERIVED from the observed frame cadence — the bridge's
- * `seq` is per-frame (not per-tick like the sim), so this reads as forwarded-frames-per-second;
- * it is metadata (the viewer plays by t_ms), so any positive int is a valid recording.
+ * driveable in-process by the test. hz is DERIVED from the observed frame cadence (forwarded frames
+ * over their t_ms span) — NOT from `seq`, which is now per-tag (so no longer a global frame count).
+ * hz is metadata (the viewer plays by t_ms), so any positive int is a valid recording.
  * @returns {{ fold: (tag: string, value: number, seq: number) => void, serialize: () => string | null }} */
 function createRecorder() {
   /** @type {import("../sim/recording.js").RecordingFrame[]} */
   const frames = [];
   /** @type {Map<string, { min: number, max: number }>} */
   const range = new Map();
-  /** @type {Map<number, number>} first arrival t_ms per seq, for hz derivation */
-  const seqArrival = new Map();
   /** @type {bigint | null} monotonic origin, set at the FIRST folded frame */
   let t0 = null;
 
@@ -292,18 +295,17 @@ function createRecorder() {
       r.min = Math.min(r.min, value);
       r.max = Math.max(r.max, value);
     }
-    if (!seqArrival.has(seq)) seqArrival.set(seq, tMs);
   }
 
-  /** @returns {number} the integer header hz derived from the observed inter-frame cadence. */
+  /** @returns {number} the integer header hz derived from the observed inter-frame cadence (folded
+   * frames span their t_ms range; hz = frames-per-second over that span). Independent of `seq`. */
   function deriveHz() {
-    const seqs = [...seqArrival.keys()]; // insertion order = arrival order (ascending)
-    const first = seqs[0];
-    const last = seqs[seqs.length - 1];
-    if (first === undefined || last === undefined || last === first) return RECORD_FALLBACK_HZ;
-    const spanMs = (seqArrival.get(last) ?? 0) - (seqArrival.get(first) ?? 0);
+    const first = frames[0];
+    const last = frames[frames.length - 1];
+    if (first === undefined || last === undefined || frames.length < 2) return RECORD_FALLBACK_HZ;
+    const spanMs = last.t_ms - first.t_ms;
     if (spanMs <= 0) return RECORD_FALLBACK_HZ;
-    return Math.max(RECORD_FALLBACK_HZ, Math.round((1000 * (last - first)) / spanMs));
+    return Math.max(RECORD_FALLBACK_HZ, Math.round((1000 * (frames.length - 1)) / spanMs));
   }
 
   /** @returns {string | null} the NDJSON body (header + frames + trailing newline), or null when
@@ -349,7 +351,9 @@ export function startBridge(opts) {
   const filters = filtersOf(map);
   /** @type {Set<net.Socket>} viewer clients */
   const clients = new Set();
-  let seq = 0; // bridge-local monotonic counter — the bridge→viewer hop (see header honesty note)
+  /** @type {Map<string, number>} next seq to emit PER TAG — keeps each tag's run gapless so
+   * data_bus.gd's per-tag drop counting stays honest (see header honesty note). */
+  const seqByTag = new Map();
   let forwarded = 0;
   const dropped = { noRule: 0, badPayload: 0 };
   const recorder = record ? createRecorder() : null;
@@ -370,7 +374,8 @@ export function startBridge(opts) {
       else dropped.badPayload++;
       return;
     }
-    const thisSeq = seq++;
+    const thisSeq = seqByTag.get(t.tag) ?? 0; // per-tag monotonic — gapless per tag, not global
+    seqByTag.set(t.tag, thisSeq + 1);
     const frame = encodeTextFrame(
       JSON.stringify({ tag: t.tag, value: t.value, seq: thisSeq, sent_ms: Date.now() }),
     );
