@@ -240,6 +240,15 @@
       "status": "open",
       "finding": "Convention article 2 (docs/process/convention.md) lacks a SPECIALIZATION TEST and so over-triggers: it reads as 'every domain needs an owning agent', which prompted an unjustified generic framework-dev agent (created + deleted 2026-07-11). Add one line to article 2: a custom agent is justified only by specialized skills/tools/knowledge (godot-dev pattern) or a hard guardrail charter + cheaper model (framework-nobrainer-fixer pattern); for unspecialized work (plain Node spine fixes) the general agent IS the framework-correct route, not a gap.",
       "pattern": "godot-dev = specialization (skills + docs MCP); framework-nobrainer-fixer = guardrail + cheap model; no third justification exists."
+    },
+    {
+      "id": "D9-toolchain-drift",
+      "dim": "D9",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "Dev toolchain drifts silently from committed source: gdformat 4.5.0 reformats 3 committed .gd files (check_twin_join, smoke_binding, gate_report) and Godot 4.6.3 fails smoke_binding.gd on unsafe-cast warnings-as-errors — pristine main fails its own format gate on this machine (surfaced 2026-07-11 by the BYO acceptance run). Fix: pin the expected Godot + gdtoolkit versions in one addressable place, doctor checks actual vs pinned (warn with the exact mismatch), and reconcile the 3 files with the pinned formatter so a fresh clone's gates are green by construction.",
+      "pattern": "tool_config.json (from the codex fixes) is the precedent — one addressable pin, every consumer reads it."
     }
   ]
 }
