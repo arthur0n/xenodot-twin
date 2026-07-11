@@ -153,13 +153,10 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
   **measured**. Where the plant is the data-binding showcase, this is the **instancing / scale** one
   — chunked MultiMesh, the join gate's honest duplicate-id caveat, before/after benched by hand.
 - **[`docs/tutorials/bring-your-own-ifc.md`](docs/tutorials/bring-your-own-ifc.md)** — skip the
-  bundled assets: point **one command at your own `.ifc`** and get a bound, painted viewer streaming
-  simulated live data, with **no hand-authored binding map**.
-  ```bash
-  npm run byo -- /path/to/your.ifc --project /path/you/choose
-  ```
-  It scaffolds/wires the seat, provisions the IFC venv, generates a binding map from the import
-  sidecar, starts the seeded sim, and prints the exact Godot boot command.
+  bundled assets: walk your own `.ifc` through the pipeline **one explicit step at a time** — wire a
+  seat, provision the IFC venv, build a data-bound viewer with an **auto-generated** binding map,
+  stream a seeded sim, boot it — with **no hand-authored map**. A one-line convenience
+  (`npm run byo -- /path/to/your.ifc --project /path/you/choose`) chains the steps once you know them.
 - **[`plugin/examples/`](plugin/examples)** — the bundled kit the tutorial uses: a sample
   IFC (`Duplex_A_20110907.ifc`), an example `binding_map`, and an example `viewer.cfg`, so you don't
   have to source any files yourself.
