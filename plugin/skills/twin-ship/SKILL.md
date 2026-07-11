@@ -1,6 +1,7 @@
 ---
 name: twin-ship
 agents: [twin-architect]
+domain: twin
 description: >-
   Package an export-safe viewer build together with its swappable data tree as ONE deployable
   (tools/twin_ship.sh) — the last step of the twin journey. It exports the desktop build headless,

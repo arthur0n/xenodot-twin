@@ -68,10 +68,14 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
      `description`/intro to declare its paradigm, e.g. "top-down/orthographic only".)
    - **D4 (add data-driven variant):** add the Resource / `.tres` / `@export`-driven section the
      finding named; keep the existing canonical path, add the data-driven one beside it.
-   - **D5 (extract shared block → skill):** create the new shared skill (`agents:` = the consuming
-     agents), add it to each agent's frontmatter `skills:` AND a load line at conversation start
-     (right after the caveman trigger, so it loads RELIABLY — not just listed), then delete the
-     duplicated prose from each agent body.
+   - **D5 (extract shared block → skill):** for CROSS-agent duplication — create the new shared skill
+     (`agents:` = the consuming agents), add it to each agent's frontmatter `skills:` AND a load line at
+     conversation start (right after the caveman trigger, so it loads RELIABLY — not just listed), then
+     delete the duplicated prose from each agent body. But if the duplication is WITHIN one agent file
+     (a constraint restated 3x+ in the same prompt), DON'T make a skill — trim to a single canonical
+     statement, KEEPING the fleet-standard intro + `## What you never do` scaffold (cut only the THIRD+
+     echo, or the fleet's ~20 agents go inconsistent), and point the other mentions at the canonical
+     one. "State each constraint once" means collapse the redundant echoes, not delete the scaffold.
    - **D6 (orchestrator):** apply the recorded edit to `ui/orchestrator.md` (centralize a
      duplicated directive, move dense prose into a skill, or trim).
    - **D7 (command):** edit the target command per the finding — a shipped `plugin/commands/*.md`
@@ -79,7 +83,10 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
    - **D8 (verification-flow gap):** apply the recorded edit at the named layer — add the missing
      `## Verification (mandatory)` block to the builder, wire the claimed step into
      `plugin/tools/lib/checks.sh` / `plugin/tools/validate.sh` (or correct the skill's claim), or
-     replace a re-taught passage with a pointer to the owning skill. A new gate check graduates as a
+     replace a re-taught passage with a pointer to the owning skill, or REMOVE a redundant/superseded
+     check whose job a live gate already does (an orphan `check_*` no gate composes and no skill
+     documents, competing with the framework's own convention — e.g. the `smoke_*.gd` auto-glob) —
+     delete it and confirm `rg` shows zero remaining refs. A new gate check graduates as a
      `check_*` function in `plugin/tools/lib/checks.sh`.
    - **D9 (harness simplification):** **strip** — apply the agreed removal/down-tier (edit the
      agent's `model:` / skill list, trim the scaffold, drop the dead gate step), then confirm the
@@ -95,18 +102,25 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 4. **Verify.** If any framework file changed: `rtk npm run validate` (tsc + eslint, zero
    warnings — this also runs the skill-scope check, catching D1/D3/D5 wiring mistakes) and
    `rtk npx prettier --write` on the touched files. Report the result honestly; if validate
-   fails, fix or revert that id and say so — never leave the gate red.
+   fails, first confirm the failure is YOURS before acting — attribute red to your id only after
+   checking it against the pre-edit state (`git stash`, re-run, or scope the failing files to what
+   the finding touched). A pre-existing red from unrelated uncommitted WIP (a doc-only fix can't
+   trip tsc/eslint) is NOT yours to fix or revert — say so and leave it. If the red IS yours, fix
+   or revert that id and say so — never leave a gate red that your change caused.
 5. **Record — REMOVE, don't stamp.** DELETE each applied id's object from `LEDGER.json`'s `findings[]`
    (match by `id`) — do NOT mark it `done <YYYY-MM-DD>` (git + this run's commit message are the "what
    was fixed" record, so the ledger stays lean — no `done` findings accumulate as distraction). If it
    clears the LAST `open`/`fix-now` finding anywhere in the ledger (the whole backlog is resolved),
    set `lastAudit` to a fresh one-line summary. Leave `later`/`skip` and un-applied findings untouched.
    Then run `npm run ledger` to regenerate `LEDGER.md` / `ledger.html` (never hand-edit those).
-6. **Self-critique.** This is self-improvement — improve the loop, not just the fix. Note anything
-   that tripped the apply: a dimension playbook that misfit the finding, a blast-radius ref the
-   playbook forgot, an ambiguous ledger field, a step that didn't pay off. Since this command
-   REMOVES rows (no entry to hold a `Process note`), carry the note into the run's report + commit
-   message instead. If a fix to THIS command or a dimension playbook is obvious and safe, make it here.
+6. **Self-critique (in a subagent).** This is self-improvement — improve the loop, not just the fix.
+   Dispatch this critique to a throwaway subagent so its reasoning never becomes main-window context
+   debt: hand it the run's notes and have it flag anything that tripped the apply (a dimension
+   playbook that misfit the finding, a blast-radius ref the playbook forgot, an ambiguous ledger
+   field, a step that didn't pay off), and if a fix to THIS command or a dimension playbook is
+   obvious and safe apply it there. It RETURNS ONLY the one-line verdict. Since this command REMOVES
+   rows (no entry to hold a `Process note`), carry that one line into the run's report + commit
+   message instead. Keep the verdict, not the critique transcript.
 7. **Report — terse.** Per id: applied / skipped (+why), files changed, validate result, plus any
    self-critique note from step 6. This per-id summary IS the fix record now that rows are removed —
    carry it into the commit message (git, not the ledger, is the changelog; no separate changelog
@@ -116,8 +130,10 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
 
 - **Apply only the ids the human passed** — resolve each against `findings[]`; if an id is
   `later`/`skip` or already removed (resolved), skip it and say so. Never invent findings.
-- **Keep the gate green** — `rtk npm run validate` must pass after your edits; fix or revert the
-  offending id rather than leaving it red.
+- **Keep the gate green — that YOUR change didn't break** — `rtk npm run validate` must pass for
+  what your edits touched; fix or revert the offending id rather than leaving it red. But first
+  confirm the red is yours (check vs pre-edit state / scope to the finding's files) — never
+  misattribute a pre-existing red from unrelated uncommitted WIP to a fix that can't have caused it.
 - **Keep skills game-agnostic** — strip any game-specific content to the METHOD; the game holds its
   FACTS game-local (`plugin/library/` = AGNOSTIC records only).
 - **Search with the Grep tool / full-path `rg`** — the `rtk` hook drops matches from bash `grep`,

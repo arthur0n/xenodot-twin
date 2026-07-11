@@ -2,6 +2,7 @@
 name: godot-main-scene
 agents: [godot-dev]
 description: Create the thin main.tscn entry point (set as run/main_scene) that owns the persistent shell — SubViewport pixelation rig, camera rig, UI — and loads/swaps level scenes under a container node. Use when the project needs a main scene, run/main_scene is unset in project.godot, levels need loading/switching, before adding a second level, or when deciding whether something belongs in Main, a level, or an autoload. The persistent-CameraRig-in-Main layout shown is the top-down/iso paradigm; in first-person/third-person the camera lives inside the Player entity, so Main owns no camera and the swap-time rig wiring is dropped — the level-loading spine is identical either way.
+domain: godot-core
 ---
 
 # Godot Main Scene (entry point + level loading)

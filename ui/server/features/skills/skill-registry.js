@@ -18,6 +18,25 @@ export const PLUGIN_DIR = PLUGIN;
  * `orchestrator`; its skill set is ORCHESTRATOR_FRAMEWORK_SKILLS (in skill-catalog.js). */
 export const ORCH = "@orchestrator";
 
+/** The closed set of `domain:` values every skill must declare (M2 taxonomy). One key per skill,
+ * its DOMINANT profile lock. `universal`/`godot-core`/`design`/`twin`/`project-local` are always kept
+ * by the profile filter; `genre-*`/`style-*` are dropped when they mismatch the game profile — but
+ * xenodot-twin ships no genre-/style- skills (the game domain lives upstream), so those entries are
+ * an inert allowlist here and the profile stays effectively unset (fail-open). `twin` is the fork's
+ * digital-twin domain (the always-kept `twin-*` skills). The source of truth for the enum — the gate,
+ * the capabilities index, and the runtime filter all read it from here. @type {readonly string[]} */
+export const SKILL_DOMAINS = [
+  "universal",
+  "godot-core",
+  "design",
+  "twin",
+  "genre-fps",
+  "genre-topdown-iso",
+  "style-pixel",
+  "style-hd",
+  "project-local",
+];
+
 /** The code-writers (stable hardcoded alias). godot-dev is the core/general builder that the viewer
  * orchestrator routes generic Godot glue to; godot-refactor does behaviour-preserving extraction;
  * godot-visuals owns the rendered look; godot-assets owns asset-import wiring. (The game gameplay
@@ -75,18 +94,62 @@ export function readSkills(dir = SKILLS_DIR) {
   return skills;
 }
 
-/** Discover agents: { name -> { skills, tools, model, body } }.
+/** Discover each skill's `domain:` tag: { dir-name -> domain-or-null }. Reads the frontmatter block
+ * ONLY (via split), so a stray `domain:` in a skill's body prose can't be mistaken for the tag.
+ * @param {string} [dir] skills dir to read (defaults to the base plugin's)
+ * @returns {Map<string,string|null>} */
+export function readSkillDomains(dir = SKILLS_DIR) {
+  /** @type {Map<string, string|null>} */
+  const domains = new Map();
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (!e.isDirectory()) continue;
+    const file = path.join(dir, e.name, "SKILL.md");
+    if (!existsSync(file)) continue;
+    const { fm } = split(readFileSync(file, "utf8"));
+    domains.set(e.name, fm.match(/^domain:\s*(\S+)/m)?.[1] ?? null);
+  }
+  return domains;
+}
+
+/** Gate the `domain:` tags: push an error for any skill missing one or carrying a value outside
+ * SKILL_DOMAINS — mirrors the missing-`agents:` gate. Errors flow to the CLI's `errors[]`, which
+ * `gen-skill-scope.js` exits 1 on. @param {Map<string,string|null>} domains @param {string[]} [errors] */
+export function validateSkillDomains(domains, errors) {
+  for (const [skill, domain] of domains) {
+    if (!domain)
+      errors?.push(
+        `skill \`${skill}\` has no \`domain:\` tag — every skill must declare a domain (${SKILL_DOMAINS.join(" · ")})`,
+      );
+    else if (!SKILL_DOMAINS.includes(domain))
+      errors?.push(
+        `skill \`${skill}\` has invalid domain \`${domain}\` — must be one of ${SKILL_DOMAINS.join(" · ")}`,
+      );
+  }
+}
+
+/** Discover agents: { name -> { skills, tools, model, effort, description, body } }. `description`
+ * and `effort` are captured so a full AgentDefinition can be reconstructed at session start (the
+ * M2 profile-filtered `options.agents` overlay) without dropping the agent's tuning.
  * @param {string} [dir] agents dir to read (defaults to the base plugin's)
- * @returns {Map<string,{skills:string[],tools:string[],model:string|null,body:string}>} */
+ * @returns {Map<string,{skills:string[],tools:string[],model:string|null,effort:string|null,description:string,body:string}>} */
 export function readAgents(dir = AGENTS_DIR) {
-  /** @type {Map<string, {skills:string[],tools:string[],model:string|null,body:string}>} */
+  /** @type {Map<string, {skills:string[],tools:string[],model:string|null,effort:string|null,description:string,body:string}>} */
   const agents = new Map();
   for (const f of readdirSync(dir)) {
     if (!f.endsWith(".md")) continue;
     const { fm, body } = split(readFileSync(path.join(dir, f), "utf8"));
     const tools = (fm.match(/^tools:\s*(.+)$/m)?.[1] ?? "").split(",").map((s) => s.trim());
     const model = fm.match(/^model:\s*(\S+)/m)?.[1] ?? null;
-    agents.set(f.replace(/\.md$/, ""), { skills: parseSkillsList(fm), tools, model, body });
+    const effort = fm.match(/^effort:\s*(\S+)/m)?.[1] ?? null;
+    const description = fm.match(/^description:\s*(.+?)\s*$/m)?.[1] ?? "";
+    agents.set(f.replace(/\.md$/, ""), {
+      skills: parseSkillsList(fm),
+      tools,
+      model,
+      effort,
+      description,
+      body,
+    });
   }
   return agents;
 }
@@ -128,17 +191,21 @@ export function expectedByAudience(skills, agentNames, workers, errors) {
  * The one plugin carries both the base and the folded-in twin domain; partitionRegistry splits the
  * result when a pass needs the halves separately.
  * @param {string} [root] plugin root to read (defaults to the plugin)
- * @returns {{ skills: Map<string,string[]>, agents: ReturnType<typeof readAgents>,
- *   agentNames: string[], workers: string[], expected: Map<string,Set<string>>, errors: string[] }} */
+ * @returns {{ skills: Map<string,string[]>, domains: Map<string,string|null>,
+ *   agents: ReturnType<typeof readAgents>, agentNames: string[], workers: string[],
+ *   expected: Map<string,Set<string>>, errors: string[] }} */
 export function loadRegistry(root = PLUGIN) {
-  const skills = readSkills(path.join(root, "skills"));
+  const skillsDir = path.join(root, "skills");
+  const skills = readSkills(skillsDir);
+  const domains = readSkillDomains(skillsDir);
   const agents = readAgents(path.join(root, "agents"));
   const agentNames = [...agents.keys()].sort();
   const workers = agentNames.filter((n) => agents.get(n)?.tools.includes("mcp__ui__tasks"));
   /** @type {string[]} */
   const errors = [];
   const expected = expectedByAudience(skills, agentNames, workers, errors);
-  return { skills, agents, agentNames, workers, expected, errors };
+  validateSkillDomains(domains, errors);
+  return { skills, domains, agents, agentNames, workers, expected, errors };
 }
 
 /** @typedef {ReturnType<typeof loadRegistry>} Registry */

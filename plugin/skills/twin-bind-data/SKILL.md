@@ -1,6 +1,7 @@
 ---
 name: twin-bind-data
 agents: [twin-architect, data-binder]
+domain: twin
 description: >-
   Bind live tag data to a digital-twin scene — the DataBus autoload contract (WebSocketPeer with the
   four gotchas that make it actually work), tag→node binding through the IFC GlobalId join,

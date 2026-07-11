@@ -14,6 +14,7 @@ import {
   FRAMEWORK_PLUGIN_DIR,
   ENGINE,
   ENGINE_LABEL,
+  PROFILE,
   RES_ASSET_MOUNT,
 } from "../core/config.js";
 import { prepareGame } from "./materialize.js";
@@ -114,6 +115,15 @@ const checks = [
     ok: existsSync(path.join(PROJECT_DIR, ".xenodot", "manifest.json")),
     hard: false,
     label: "facts manifest generated (.xenodot/manifest.json)",
+  },
+  {
+    ok: Boolean(PROFILE.genre && PROFILE.style),
+    hard: false,
+    label:
+      PROFILE.genre && PROFILE.style
+        ? `profile declared (${PROFILE.genre}/${PROFILE.style}) — genre/style skills filtered to it`
+        : "profile not declared — every genre/style skill preloads (filter fails open); set it: " +
+          "npm run setup -- <game-path> --genre=… --style=…",
   },
   { ok: libraryLinked(), hard: false, label: "library/ symlinked to the plugin" },
   {

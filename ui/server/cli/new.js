@@ -8,8 +8,9 @@
 //
 // Usage: npm run new -- ../myviewer          (scaffold an empty folder into a digital-twin VIEWER,
 //                                             or wire an existing Godot project in place)
-//        npm run new -- ../myviewer --viewer  (--viewer is accepted but redundant — viewer is the
-//                                             only domain xenodot-twin ships)
+//   The game domain lives upstream (xenodot-forge); `--game` is refused here. The {genre, style}
+//   profile flags (--genre=/--style=) are forwarded to setup for parity, but a viewer ships no
+//   genre-/style- skills, so they stay effectively inert (setup leaves the profile unset).
 import { existsSync, cpSync, readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
@@ -28,12 +29,15 @@ if (argv.includes("--game")) {
   );
   process.exit(1);
 }
-// `--viewer` is the only accepted flag (and it's the default); any other (`--help`/`--project`)
-// must fail loudly, not silently scaffold the default sibling path (or, resolved raw, a literal
-// `--help/` dir).
-const flagArg = argv.find((a) => a.startsWith("-") && a !== "--viewer");
+// Only the profile flags are forwarded (to setup.js); any OTHER flag-shaped arg
+// (`--help`/`--project`) must fail loudly, not silently scaffold the default sibling
+// path (or, resolved raw, a literal `--help/` dir).
+const profileFlags = argv.filter((a) => a.startsWith("--genre=") || a.startsWith("--style="));
+const flagArg = argv.find((a) => a.startsWith("-") && !profileFlags.includes(a));
 if (flagArg) {
-  console.error(`new: ${flagArg} is not a project path. Usage: npm run new -- ../myviewer`);
+  console.error(
+    `new: ${flagArg} is not a project path. Usage: npm run new -- ../myviewer [--genre=…] [--style=…]`,
+  );
   process.exit(1);
 }
 const target = path.resolve(
@@ -89,10 +93,10 @@ if (!existsSync(path.join(target, "project.godot"))) {
 }
 ensureIgnores(target);
 
-// 2. Remember the path (+ projectType "viewer" — a viewer session loads the viewer orchestrator
-//    and the twin-* skill floor from the one xenodot plugin; see config.js getProjectType).
-//    Writes .xenodot.json.
-node(path.join(here, "setup.js"), target, "--viewer");
+// 2. Remember the path (a viewer session loads the viewer orchestrator and the twin-* skill floor
+//    from the one xenodot plugin; see config.js getProjectType). Any profile flags are forwarded
+//    but stay inert for a viewer. Writes .xenodot.json.
+node(path.join(here, "setup.js"), target, ...profileFlags);
 
 // 3. Materialize the plugin's per-game files: tools/ copied, library/ symlinked.
 node(path.join(here, "materialize.js"), target);

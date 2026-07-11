@@ -59,7 +59,7 @@ select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter ma
    - tool-call frequency: `jq -r 'select(.type=="event" and .message.type=="assistant") | .message.message.content[]? | select(.type=="tool_use") | .name' "$LOGS/<file>" | sort | uniq -c | sort -rn`
    - **result-bytes by tool (the primary sweep — surfaces the real offender that raw freq counts hide):** map `tool_use_id`→name from assistant events, then sum tool*result char-length per tool. A tool with few calls but huge avg payload (e.g. an MCP docs lookup dumping 20k chars of \_immutable* reference per call) is the prize. Also: freq counts of Bash `.input.command` are unreliable — multi-line heredocs make `uniq -c` count physical lines, not commands; trust the byte-by-tool aggregate instead.
      `jq -rc 'select(.type=="event" and .message.type=="assistant")|.message.message.content[]?|select(.type=="tool_use")|[.id,.name]|@tsv' "$LOGS/<file>" > /tmp/ids.tsv`
-     `jq -rc 'select(.type=="event" and .message.type=="user")|.message.message.content[]?|select(.type=="tool_result")|[.tool_use_id,(((.content//"")|if type=="array" then (map(.text?//"")|join("")) else tostring end)|length)]|@tsv' "$LOGS/<file>" > /tmp/res.tsv`
+     `jq -rc 'select(.type=="event" and .message.type=="user")|.message.message.content[]?|select(.type=="tool_result")|[.tool_use_id,(((.content//"")|if type=="array" then (map(.text//"")|join("")) else tostring end)|length)]|@tsv' "$LOGS/<file>" > /tmp/res.tsv`
      `awk -F'\t' 'NR==FNR{n[$1]=$2;next}{k=n[$1];k=(k==""?"?":k);t[k]+=$2;c[k]++}END{for(x in t)printf "%-30s calls=%-5d chars=%d avg=%d\n",x,c[x],t[x],t[x]/c[x]}' /tmp/ids.tsv /tmp/res.tsv | sort -t= -k3 -rn`
 
 4. **Judge opportunities.** For each pattern, ask: _could this run without a model?_ If yes,
@@ -120,9 +120,13 @@ select(...)` directly — do NOT pipe `rtk grep` into `jq`: rtk's grep filter ma
        tokens) BEFORE vs the sessions since it landed. Moved clearly → `land --opp <id> --moved true|false`
        with the Δ; still ambiguous → leave it `pending` but SAY SO in the return + `Process note` so
        the next run re-checks it (the `pending` verb resurfaces it every run — that's the anti-rot guarantee).
-   - Critique: suggest fixes to THIS command, the CLI, or the ledger/history format (confusing
-     wording, a missing reference, a better signal, a step that didn't pay off). Record it as the
-     entry's `Process note` (or `none`). If a fix is obvious and safe, make it.
+   - Critique (in a subagent): dispatch this critique to a throwaway subagent so its reasoning never
+     becomes main-window context debt — hand it the run's notes and have it propose one fix to THIS
+     command, the CLI, or the ledger/history format (confusing wording, a missing reference, a better
+     signal, a step that didn't pay off), and if a fix is obvious and safe apply it there. It RETURNS
+     ONLY the one-line verdict — record that as the entry's `Process note` (or `none`). Keep the
+     verdict, not the critique transcript. (The Adapt bullets above stay in the main window — they
+     feed the decision; only the critique reasoning moves out.)
 
 8. **Return.** Super-brief to the user: sessions covered, the single top offender, tasks filed,
    and one line on the trend. To APPLY an opportunity, point them at `/token-audit-fix <id>`.

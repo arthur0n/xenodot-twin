@@ -1,6 +1,7 @@
 ---
 name: twin-playback
 agents: [data-binder]
+domain: twin
 description: >-
   Record and replay a twin's tag stream deterministically — the twin-recording NDJSON contract, the
   recorder (byte-reproducible synthesized fixtures + live capture), the viewer's playback player

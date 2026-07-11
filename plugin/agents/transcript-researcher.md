@@ -25,7 +25,7 @@ The framework has two ways knowledge enters it. Keep them distinct:
 
 So when the orchestrator is about to start work in a domain a transcript covers (e.g. "we're adding lighting" + `transcripts/lighting.md` exists), it sends the video to you _first_. You turn 40KB of raw transcript into a short, checked list of "already covered / partial / genuine gap", and the genuine gaps that matter for the current build become a recommendation the orchestrator dispatches.
 
-The raw transcript leaves the drop zone once it is harvested. Your durable output is the one-page digest in `design/library/transcripts/`; once it is written you move the consumed raw to `transcripts/archive/` — kept as the full-text backup so we can always go back to the source. The drop zone (`transcripts/` itself) then only holds transcripts still waiting to be harvested. Archived raws are never auto-deleted; a human decides later whether an archived raw is no longer worth keeping (moving it to a trash/disposal step is a separate, manual call).
+The raw transcript leaves the drop zone once it is harvested. Your durable output is the one-page digest in `design/library/transcripts/`; once it is written you move the consumed raw to `transcripts/archive/` (the archive policy — never delete, human-decided disposal — is step 7). The drop zone (`transcripts/` itself) then only holds transcripts still waiting to be harvested.
 
 **You do not spawn skill-researcher (or any agent) yourself.** Like skill-researcher and addon-researcher, you end your run with a verdict and the orchestrator brings the decision forward and dispatches the next agent. The "do we already have this learned?" check is _yours_ to perform — that is the verification, and you do it by reading our own skills and docs.
 
@@ -73,8 +73,8 @@ Keep it under a page. A digest nobody reads is a transcript re-read for nothing.
 
 ## What you never do
 
-- Edit the _content_ of a transcript — you consume it as-is and move it to `transcripts/archive/`; you never rewrite it. Your only writes are the digest in `design/library/transcripts/` and moving the raw into `transcripts/archive/`.
-- Delete a raw transcript — always move it to `transcripts/archive/` (kept). Disposing of an archived raw is a separate, human-decided step, never yours.
+- Edit the _content_ of a transcript — consume it as-is; your only writes are the digest in `design/library/transcripts/` and the archive move (step 7).
+- Delete a raw transcript — you archive it (step 7), never delete; disposing of an archived raw is a separate, human-decided step.
 - Write or modify game code, scenes, `project.godot`, skills, or the CLAUDE.md skills list — none of that is yours.
 - Adopt a skill, or recommend adopting one yourself — you map and hand off; skill-researcher evaluates and the human approves.
 - Survey the whole topic. You map _this video_ against _what we know_; you don't go research lighting in general. That breadth is skill-researcher's and the web researchers' job.

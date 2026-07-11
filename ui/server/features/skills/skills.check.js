@@ -9,7 +9,12 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { computeSessionSkills, getPluginOrchestratorSkills } from "./skills.js";
+import {
+  computeSessionSkills,
+  getPluginOrchestratorSkills,
+  computeProfiledAgents,
+} from "./skills.js";
+import { validateSkillDomains } from "./skill-registry.js";
 
 let passed = 0;
 /** @param {string} name @param {() => void} fn */
@@ -93,6 +98,108 @@ check(
   },
 );
 
+// ---- computeProfiledAgents: the M2 options.agents overlay core. Override an agent ONLY when the
+// profile filter actually drops a skill; preserve description/prompt/tools/model/effort otherwise.
+/** One entry of the readAgents() shape, for the overlay tests.
+ * @param {string[]} skills
+ * @returns {{skills:string[],tools:string[],model:string|null,effort:string|null,description:string,body:string}} */
+const agent = (skills) => ({
+  skills,
+  tools: ["Read", "Write"],
+  model: "sonnet",
+  effort: "medium",
+  description: "desc",
+  body: "prompt-body",
+});
+const AGENTS = new Map([
+  [
+    "godot-player",
+    agent(["caveman", "godot-first-person-controller", "godot-orthographic-follow-camera"]),
+  ],
+  ["godot-dev", agent(["caveman", "godot-verify"])], // all universal/core → never narrowed
+]);
+const DOMAINS = new Map([
+  ["caveman", "universal"],
+  ["godot-verify", "godot-core"],
+  ["godot-first-person-controller", "genre-fps"],
+  ["godot-orthographic-follow-camera", "genre-topdown-iso"],
+]);
+const ISO_HD = { genre: "genre-topdown-iso", style: "style-hd" };
+
+check("computeProfiledAgents: overrides only the agent whose skills got narrowed", () => {
+  const out = computeProfiledAgents(AGENTS, DOMAINS, ISO_HD);
+  assert.deepEqual(Object.keys(out), ["godot-player"]); // godot-dev untouched (nothing dropped)
+});
+
+check("computeProfiledAgents: narrows the skill list, preserves the rest of the definition", () => {
+  const def = computeProfiledAgents(AGENTS, DOMAINS, ISO_HD)["godot-player"];
+  assert.ok(def);
+  assert.deepEqual(def.skills, ["caveman", "godot-orthographic-follow-camera"]); // fps dropped
+  assert.equal(def.description, "desc");
+  assert.equal(def.prompt, "prompt-body");
+  assert.equal(def.model, "sonnet");
+  assert.equal(def.effort, "medium");
+  assert.deepEqual(def.tools, ["Read", "Write"]);
+});
+
+check(
+  "computeProfiledAgents: unset profile → empty overlay (fail-open, no override at all)",
+  () => {
+    const out = computeProfiledAgents(AGENTS, DOMAINS, { genre: null, style: null });
+    assert.deepEqual(out, {});
+  },
+);
+
+check("computeProfiledAgents: omits empty tools / null model+effort", () => {
+  const bare = new Map([
+    [
+      "a",
+      {
+        skills: ["godot-first-person-controller", "caveman"],
+        tools: [""],
+        model: null,
+        effort: null,
+        description: "d",
+        body: "b",
+      },
+    ],
+  ]);
+  const def = computeProfiledAgents(bare, DOMAINS, ISO_HD)["a"];
+  assert.ok(def);
+  assert.ok(!("tools" in def) && !("model" in def) && !("effort" in def));
+  assert.deepEqual(def.skills, ["caveman"]);
+});
+
+// ---- validateSkillDomains: the domain gate (mirrors the missing-`agents:` error path).
+check("validateSkillDomains: all-valid map → no errors", () => {
+  /** @type {string[]} */
+  const errors = [];
+  validateSkillDomains(
+    new Map([
+      ["a", "universal"],
+      ["b", "godot-core"],
+    ]),
+    errors,
+  );
+  assert.equal(errors.length, 0);
+});
+
+check("validateSkillDomains: missing or out-of-enum domain → one error each", () => {
+  /** @type {string[]} */
+  const errors = [];
+  validateSkillDomains(
+    new Map([
+      ["a", null],
+      ["b", "genre-bogus"],
+      ["c", "style-hd"],
+    ]),
+    errors,
+  );
+  assert.equal(errors.length, 2);
+  assert.match(errors[0] ?? "", /has no `domain:` tag/);
+  assert.match(errors[1] ?? "", /invalid domain `genre-bogus`/);
+});
+
 console.log(
-  `ok  skills: ${passed} computeSessionSkills + getPluginOrchestratorSkills checks passed`,
+  `ok  skills: ${passed} computeSessionSkills + getPluginOrchestratorSkills + computeProfiledAgents + validateSkillDomains checks passed`,
 );

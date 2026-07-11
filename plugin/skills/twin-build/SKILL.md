@@ -1,6 +1,7 @@
 ---
 name: twin-build
 agents: [twin-architect]
+domain: twin
 description: >-
   The one-command twin pipeline — take an IFC/BIM model and end at a verified, data-bound viewer
   in a single run (tools/twin_build.sh). It chains the four existing tools (import → optimize →

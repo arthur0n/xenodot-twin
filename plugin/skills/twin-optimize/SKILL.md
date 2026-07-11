@@ -1,6 +1,7 @@
 ---
 name: twin-optimize
 agents: [twin-architect, scene-optimizer]
+domain: twin
 description: >-
   Scale a digital-twin viewer to large instance counts without lying to yourself about fps — the
   chunked-MultiMesh recipe (measured to 1M instances), the occlusion-culling toggle discipline (it

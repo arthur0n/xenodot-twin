@@ -54,7 +54,7 @@ Authoring the skill file (step 6) writes under `.claude/`, which is **config-gat
 - **Author-only re-dispatch** (foreground): if you're handed an already-approved skill — the verdict, the full `SKILL.md` content, and the target path — and told to just write it, do **only step 6** (write the file + add the `CLAUDE.md` line) and skip steps 1–5. The decision is already made; do not re-run the investigation.
 - **Foreground from scratch**: run the whole workflow including the write; `mcp__ui__form` is fine here.
 
-A finished background run can't be resumed — the foreground write is always a fresh action (yours, or the orchestrator committing your returned content). So the value of returning the complete content above is that nobody has to redo your research. If a `Write` to `.claude/…` ever comes back "permission denied", that's the signal you're backgrounded — stop writing and return the content rather than fighting it.
+A finished background run can't be resumed — the foreground write is always a fresh action (yours, or the orchestrator committing your returned content). So the value of returning the complete content above is that nobody has to redo your research. A "permission denied" on a `.claude/…` write is the backgrounded signal (see above) — return the content, don't fight it.
 
 ## What you never do
 

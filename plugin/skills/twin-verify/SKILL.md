@@ -1,6 +1,7 @@
 ---
 name: twin-verify
 agents: [twin-architect, scene-optimizer, data-binder]
+domain: twin
 description: >-
   Verify a digital-twin viewer actually works — the base xenodot:godot-verify layers (property
   validation, smoke run, render health) PLUS the three twin-specific gates none of them cover: the

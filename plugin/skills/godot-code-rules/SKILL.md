@@ -1,6 +1,7 @@
 ---
 name: godot-code-rules
 agents: [builders]
+domain: godot-core
 description: Strict typed-GDScript rules (the tsconfig-strict + ESLint equivalent) — full typing, explicit return types, warnings-as-errors, size caps, file headers, @warning_ignore policy, gated by tools/validate.sh. Load BEFORE writing or editing ANY .gd file, when validate.sh / gdlint / gdformat fails, on a typed-GDScript error (UNTYPED_DECLARATION, UNSAFE_*), or when deciding whether code may use Variant, duck typing, or @warning_ignore.
 ---
 

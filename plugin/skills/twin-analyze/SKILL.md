@@ -1,6 +1,7 @@
 ---
 name: twin-analyze
 agents: [orchestrator]
+domain: twin
 description: >-
   The multi-model analysis seam — pack a twin recording (+ binding map + property sidecar) into one
   deterministic bundle and have a NON-Anthropic model narrate a window of it, back as an advisory
