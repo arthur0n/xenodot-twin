@@ -42,6 +42,7 @@ import { handleBindingCandidatesGet } from "../features/assets/binding-candidate
 import { readTasks, reapHandoffs } from "../features/tasks/tasks-store.js";
 import { serveStatic } from "./http/static.js";
 import { reclaimPortIfBusy } from "./http/port.js";
+import { gracefulRestart, RESTART_EXIT_CODE } from "./http/restart.js";
 import { handleConnection } from "./session.js";
 import { prepareGame } from "../cli/materialize.js";
 import { computeUsage } from "./http/usage.js";
@@ -415,10 +416,26 @@ const GET_ROUTES = {
   "/api/binding-status": readBindingStatus,
 };
 
+/** POST /api/restart — the "restart server" one-click. Local-only, same trust model as the other
+ * routes. Ack immediately, then hand off to gracefulRestart, which finishes in-flight work and
+ * exits with RESTART_EXIT_CODE so scripts/serve.sh relaunches on the same port. The browser's
+ * transport auto-reconnects (?resume) once we're back — no client refresh needed.
+ * @param {import("node:http").IncomingMessage} _req @param {import("node:http").ServerResponse} res */
+function handleRestart(_req, res) {
+  res.writeHead(200, { "content-type": "application/json" });
+  res.end(JSON.stringify({ restarting: true, code: RESTART_EXIT_CODE }));
+  console.log("restart requested via /api/restart — exiting for supervisor relaunch");
+  // Let the ack flush before we tear the process down.
+  setTimeout(() => {
+    gracefulRestart({ server, wss, heartbeat });
+  }, 50);
+}
+
 /** POST endpoints: url → handler. Keeps the request dispatcher under the complexity
  * cap by replacing N if-branches with a single lookup (mirrors GET_ROUTES).
  * @type {Record<string, (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => void>} */
 const POST_ROUTES = {
+  "/api/restart": handleRestart,
   "/api/transcript": handleTranscriptPost,
   "/api/asset": handleAssetPost,
   "/api/settings": handleSettingsPost,

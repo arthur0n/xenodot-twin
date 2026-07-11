@@ -24,3 +24,9 @@ export function registerLive(id, ls) {
 export function dropLive(id) {
   live.delete(id);
 }
+
+/** Every live session as a snapshot array — safe to iterate while teardown mutates the map
+ * (e.g. the server-restart shutdown tears each one down). @returns {LiveSession[]} */
+export function allLive() {
+  return [...live.values()];
+}
