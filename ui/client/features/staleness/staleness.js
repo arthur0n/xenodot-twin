@@ -6,7 +6,7 @@
 // NEVER auto-restarts — the click is the consent.
 import { $ } from "../../core/dom.js";
 import { fetchJSON } from "../../../lib/json.js";
-import { update } from "../../core/store.js";
+import { restartServer, newSession } from "../../core/restart-actions.js";
 
 const POLL_MS = 12_000;
 
@@ -15,21 +15,6 @@ const POLL_MS = 12_000;
 /** The trailing, human-recognizable part of a path (e.g. "skills/caveman/SKILL.md"). @param {string} p */
 function short(p) {
   return p.split("/").slice(-2).join("/");
-}
-
-/** POST the server restart, then let the transport's auto-reconnect (?resume) bring us back on the
- * same port. The socket drops as the server exits → websocket.js shows "reconnecting…" and retries. */
-function restartServer() {
-  update((s) => ({ ...s, session: { ...s.session, status: "restarting server…" } }));
-  void fetch("/api/restart", { method: "POST" }).catch(() => {
-    /* the server exits mid-response — the reconnect logic owns recovery from here */
-  });
-}
-
-/** End the current SDK session and spawn a fresh one (plugins + skills re-read at spawn). Reuses
- * the existing "+ new" affordance: navigate with no ?resume. */
-function newSession() {
-  location.href = location.pathname;
 }
 
 /** @param {StalenessReport} r */

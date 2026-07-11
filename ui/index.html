@@ -492,6 +492,23 @@ codex login             # ChatGPT account (incl. Free) or API key</pre
         </p>
         <div class="settings-status" id="twin-source-status"></div>
 
+        <hr class="settings-divider" />
+        <p class="modal-sub">
+          <strong>Server &amp; engine</strong> — the Godot binary the verify gate and headless boot
+          run (blank = auto-detect on PATH / the macOS app bundle), and the port the UI serves on.
+          Both are read <strong>once at server boot</strong>, so a change here needs a
+          <strong>server restart</strong> to bind — offered on save.
+        </p>
+        <label class="form-label" for="engine-bin">Godot binary path</label>
+        <input
+          class="form-input"
+          id="engine-bin"
+          placeholder="/path/to/godot  (blank = auto-detect)"
+        />
+        <label class="form-label" for="server-port">Server port</label>
+        <input class="form-input" id="server-port" type="number" min="1" max="65535" placeholder="8338" />
+
+        <div class="settings-notice" id="settings-notice" style="display: none"></div>
         <div class="modal-error" id="settings-error"></div>
         <div class="modal-actions">
           <button class="btn ghost" id="settings-cancel">Cancel</button>
@@ -604,6 +621,71 @@ codex login             # ChatGPT account (incl. Free) or API key</pre
           <button class="btn ghost" id="autonomous-cancel">Cancel</button>
           <button class="btn ghost" id="autonomous-stop">Stop</button>
           <button class="btn primary" id="autonomous-start">Start</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- First-boot setup panel — shown when NO project is configured. Guides to the onboarding
+         scripts (never hides them): live environment audit + workspace layout + copy-paste
+         commands, plus a configure-project form that validates a path server-side (never
+         scaffolds). See client/features/setup/setup.js. -->
+    <div class="modal-overlay" id="setup-modal" style="display: none">
+      <div class="modal">
+        <div class="modal-head">Set up Xenodot Twin</div>
+        <p class="modal-sub">
+          No project is wired yet. The steps below are plain scripts — run them in a terminal, or
+          point the framework at an existing project with the form at the bottom.
+        </p>
+
+        <div class="settings-notice" style="justify-content: space-between">
+          <span class="form-label" style="margin: 0"><strong>1 · Environment</strong></span>
+          <button class="btn ghost" id="setup-refresh-env" type="button">Re-check</button>
+        </div>
+        <p class="modal-sub muted">
+          Same audit as <code>npm run onboard:check</code>. ✗ marks a missing tool with its fix; —
+          is optional. Godot/uv are only needed for the build &amp; verify steps — you can wire a
+          project without them.
+        </p>
+        <div id="setup-env" class="setup-env"></div>
+
+        <hr class="settings-divider" />
+        <p class="form-label" style="margin-bottom: 0.25rem"><strong>2 · Workspace layout</strong></p>
+        <p class="modal-sub muted">
+          The framework clone and the viewer sit side by side under one folder you named:
+        </p>
+        <pre class="settings-code">
+my-twin/
+├── xenodot-twin/   ← this framework clone (you are here)
+└── viewer/         ← the viewer this wires (its own repo — stays pure)</pre
+        >
+
+        <hr class="settings-divider" />
+        <p class="form-label" style="margin-bottom: 0.25rem"><strong>3 · Onboard (scripts)</strong></p>
+        <p class="modal-sub muted">
+          Run the guided sequence, or the project step alone with your viewer's path:
+        </p>
+        <pre class="settings-code">
+npm run onboard                          # check → project → verify, guided
+npm run onboard:project -- ../viewer     # scaffold OR wire an existing project</pre
+        >
+
+        <hr class="settings-divider" />
+        <p class="form-label" style="margin-bottom: 0.25rem">
+          <strong>4 · Or point at an existing project</strong>
+        </p>
+        <p class="modal-sub muted">
+          The path must already hold a <code>project.godot</code>. This form
+          <strong>never scaffolds</strong> — to create one, use step 3.
+        </p>
+        <input
+          class="form-input"
+          id="setup-path"
+          placeholder="/absolute/path/to/your/project  (or ../viewer)"
+        />
+        <div class="settings-notice" id="setup-notice" style="display: none"></div>
+        <div class="modal-error" id="setup-error"></div>
+        <div class="modal-actions">
+          <button class="btn primary" id="setup-configure" type="button">Configure project</button>
         </div>
       </div>
     </div>

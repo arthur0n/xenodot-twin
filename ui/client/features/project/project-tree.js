@@ -6,6 +6,7 @@ import { $, $$, el, fillComposer, appendToComposer } from "../../core/dom.js";
 import { fetchJSON } from "../../../lib/json.js";
 import { view } from "../../core/state.js";
 import { paint, agentLabel, agentInitial } from "../agents/agents.js";
+import { maybeOpenSetup } from "../setup/setup.js";
 
 const TAB_KEY = "xenodot-side-tab";
 
@@ -261,6 +262,9 @@ export async function loadState() {
   $("proj-path").textContent = s.dir.replace(/^\/Users\/[^/]+/, "~");
   renderBanner(s);
   renderTab();
+  // When NO project is configured at all, the first-boot setup panel owns the screen (it guides to
+  // the onboarding scripts). The in-rail banner below still covers the configured-but-wrong-path case.
+  maybeOpenSetup(s);
 }
 
 /** When the target folder has no Godot project, explain how to point the

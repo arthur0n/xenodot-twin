@@ -40,7 +40,7 @@ export const CODEX_PLUGIN_DIR = path.join(
 
 const args = process.argv.slice(2);
 
-/** @typedef {{ name?: string, projectFile?: string, bin?: string }} EngineConfig */
+/** @typedef {{ name?: string, projectFile?: string, bin?: string | null }} EngineConfig */
 /** Persisted Hermes block (see getHermesConfig). The apiKey lives only here (the
  * file is gitignored) or in env — it is never returned to the browser.
  * @typedef {{ enabled?: boolean, apiUrl?: string, apiKey?: string, model?: string }} HermesConfig */
@@ -60,13 +60,41 @@ const args = process.argv.slice(2);
  * Read once: it carries both the saved project path and the engine block. */
 const SAVED = (() => {
   try {
-    return /** @type {{ projectDir?: string, engine?: EngineConfig, assetLibrary?: string, hermes?: HermesConfig, profile?: { genre?: string | null, style?: string | null } }} */ (
+    return /** @type {{ projectDir?: string, engine?: EngineConfig, assetLibrary?: string, hermes?: HermesConfig, port?: number, profile?: { genre?: string | null, style?: string | null } }} */ (
       parseJSON(readFileSync(CONFIG_FILE, "utf8"))
     );
   } catch {
     return {};
   }
 })();
+
+/** Merge a partial patch into `.xenodot.json`, preserving every other field. The ONE writer the
+ * Phase-2 setup panel / Settings extensions go through — projectDir (setup panel), engine.bin and
+ * port (Settings) are all SERVER-BOOT consts, so a save here needs a server restart to bind (the
+ * UI says so). Deep-merges the `engine` block so an engine patch keeps `name`/`projectFile`.
+ * @param {{ projectDir?: string, engine?: EngineConfig, port?: number }} patch
+ * @returns {{ ok: true } | { error: string }} */
+export function saveConfig(patch) {
+  /** @type {Record<string, unknown>} */
+  let saved = {};
+  try {
+    saved = /** @type {Record<string, unknown>} */ (parseJSON(readFileSync(CONFIG_FILE, "utf8")));
+  } catch {
+    /* absent/invalid — start fresh */
+  }
+  /** @type {Record<string, unknown>} */
+  const next = { ...saved };
+  if (patch.projectDir != null) next.projectDir = patch.projectDir;
+  if (patch.port != null) next.port = patch.port;
+  if (patch.engine)
+    next.engine = { .../** @type {EngineConfig} */ (saved.engine ?? {}), ...patch.engine };
+  try {
+    writeFileSync(CONFIG_FILE, JSON.stringify(next, null, 2) + "\n");
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "write failed" };
+  }
+}
 
 /** Where the framework reads the project from. The framework is independent of the
  * project: it points at this folder in place and never vendors or tracks it. Resolution
@@ -212,7 +240,22 @@ process.env.XENODOT_MANIFEST = MANIFEST_FILE;
 /** Whether PROJECT_DIR actually holds an engine project (Godot or a fork) —
  * drives the startup warning and the UI's empty-state banner. */
 export const PROJECT_FOUND = existsSync(path.join(PROJECT_DIR, ENGINE.projectFile));
-export const PORT = Number(process.env.PORT ?? 8338);
+/** The UI server port. Resolution (first hit wins): env `PORT` → `.xenodot.json` `port` → 8338.
+ * Read ONCE at boot, so a Settings change to it needs a server restart to bind. */
+export const PORT = Number(process.env.PORT ?? SAVED.port ?? 8338);
+
+/** Browser-safe view of the engine + server-boot config for /api/state and the Settings panel.
+ * The binary path is NOT a secret (unlike the Hermes key), so it is surfaced verbatim to prefill
+ * the form. @returns {{ name: string, label: string, projectFile: string, bin: string | null, port: number }} */
+export function enginePublicConfig() {
+  return {
+    name: ENGINE.name,
+    label: ENGINE_LABEL,
+    projectFile: ENGINE.projectFile,
+    bin: ENGINE.bin,
+    port: PORT,
+  };
+}
 
 // Default permission policy for new sessions: ask | edits | all.
 // Override per session from the UI header. AskUserQuestion always prompts.

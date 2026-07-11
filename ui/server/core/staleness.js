@@ -53,7 +53,7 @@ const SESSION_DIRS = [
 // change needs a SERVER restart. Compared by CONTENT (not mtime), so a Settings-panel
 // hermes/codex/docs save — same file, different block, session-level — does not false-trigger a
 // server-stale chip. (The hermes/codex/docs blocks carry their own restart messaging in Settings.)
-const STRUCTURAL_KEYS = ["projectDir", "engine", "profile", "assetLibrary"];
+const STRUCTURAL_KEYS = ["projectDir", "engine", "profile", "assetLibrary", "port"];
 /** Canonical JSON of just the server-boot-const config fields, or "" if unreadable. */
 function structuralConfig() {
   try {

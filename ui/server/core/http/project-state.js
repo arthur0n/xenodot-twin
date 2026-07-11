@@ -11,6 +11,7 @@ import {
   hermesPublicConfig,
   codexPublicConfig,
   docsPublicConfig,
+  enginePublicConfig,
 } from "../config.js";
 import { parseFrontmatter } from "../../../lib/frontmatter.js";
 import { twinPublicConfig } from "../../features/twin/twin-data.js";
@@ -93,9 +94,15 @@ export function projectState() {
   return {
     name,
     dir,
+    // false → no project path is configured AT ALL (not just missing project.godot). Drives the
+    // first-boot setup panel (setup.js) vs. the "wrong path" banner (project-tree.js).
+    configured: PROJECT_CONFIGURED,
     // false → PROJECT_DIR has no project.godot; the UI shows a setup banner
     // instead of empty panels (see loadState in project-tree.js).
     found: PROJECT_FOUND,
+    // Engine (name/label/projectFile/bin) + server port for the Settings form — the binary path
+    // is not a secret, so it is surfaced verbatim to prefill the field.
+    engine: enginePublicConfig(),
     designDocs: walk(path.join(dir, "design"), [".md"], [], dir)
       .filter((f) => !f.endsWith("README.md"))
       .map((f) => ({ path: f, title: firstHeading(path.join(dir, f)) })),

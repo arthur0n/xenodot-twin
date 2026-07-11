@@ -3217,6 +3217,54 @@ input.cmd::placeholder {
   margin: 16px 0 8px;
 }
 
+/* Post-save affordance (Settings panel + first-boot setup) — a saved-message row with the one
+   matching restart button (reuses the staleness chip's restartServer / newSession). */
+.settings-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-1, #000);
+  font-size: 12px;
+  color: var(--text-2);
+}
+.settings-notice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* First-boot setup panel — the environment audit rows (mirrors `npm run onboard:check`). */
+.setup-env {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 6px 0;
+  font-size: 12px;
+}
+.setup-check {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.setup-check-mark {
+  flex: none;
+  width: 1em;
+  font-family: var(--mono, monospace);
+}
+.setup-check-line {
+  color: var(--text-2);
+}
+.setup-check-fix {
+  margin: 0 0 4px 1.5em;
+  font-size: 11px;
+  color: var(--accent-text);
+}
+
 .muted {
   color: var(--text-3);
   font-weight: 400;

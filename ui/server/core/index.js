@@ -28,7 +28,11 @@ import {
   codexPublicConfig,
   saveDocsConfig,
   docsPublicConfig,
+  saveConfig,
+  enginePublicConfig,
 } from "./config.js";
+import { onboardChecks } from "../cli/onboard-checks.js";
+import { handleProjectPost } from "./http/project-config.js";
 import { checkHermes } from "../integrations/hermes/hermes-check.js";
 import { checkCodex } from "../integrations/codex/codex-check.js";
 import { maybeStartHermesGateway } from "../integrations/hermes/hermes-gateway.js";
@@ -115,12 +119,14 @@ function handleAssetPost(req, res) {
   });
 }
 
-/** Persist the settings the ⚙ panel submitted into .xenodot.json — the Hermes block (enable,
- * apiUrl, model, and optionally a new apiKey) and/or the Codex block (just `enabled`; Codex
- * auth lives in the `codex` CLI, so there's no secret here) — then respond with the
- * secret-free public views so the panel re-renders from truth. Each block is optional; only
- * what the panel sent is written. Takes effect immediately — getHermesConfig / getCodexConfig
- * re-read the file per call, so no server restart is needed.
+/** Persist the settings the ⚙ panel submitted into .xenodot.json. Two CLASSES of field, by the
+ * restart they need (docs step-0 RESTART TABLE):
+ *   - SESSION-class — hermes (enable/apiUrl/model/apiKey), codex, docs `enabled`: re-read per call
+ *     / per session spawn, so they take effect on the NEXT session (the panel says so).
+ *   - SERVER-BOOT — engine.bin, port: config.js reads them once at boot, so a change needs a
+ *     server RESTART to bind (the panel says so + offers the one-click restart).
+ * Each block is optional; only what the panel sent is written. Responds with the secret-free
+ * public views so the panel re-renders from truth (the Hermes key is never echoed — hasKey only).
  * @param {import("node:http").IncomingMessage} req @param {import("node:http").ServerResponse} res */
 function handleSettingsPost(req, res) {
   /** @type {Buffer[]} */
@@ -129,35 +135,75 @@ function handleSettingsPost(req, res) {
     chunks.push(c);
   });
   req.on("end", () => {
-    /** @type {{ hermes?: import("../../lib/types.js").HermesPublicConfig, codex?: import("../../lib/types.js").CodexPublicConfig, docs?: import("../../lib/types.js").DocsPublicConfig } | { error: string }} */
+    /** @type {{ hermes?: import("../../lib/types.js").HermesPublicConfig, codex?: import("../../lib/types.js").CodexPublicConfig, docs?: import("../../lib/types.js").DocsPublicConfig, engine?: ReturnType<typeof enginePublicConfig> } | { error: string }} */
     let result;
     try {
       const body =
-        /** @type {{ hermes?: { enabled?: boolean, apiUrl?: string, apiKey?: string, model?: string }, codex?: { enabled?: boolean }, docs?: { enabled?: boolean } }} */ (
+        /** @type {{ hermes?: { enabled?: boolean, apiUrl?: string, apiKey?: string, model?: string }, codex?: { enabled?: boolean }, docs?: { enabled?: boolean }, engine?: { bin?: string | null }, port?: number }} */ (
           parseJSON(Buffer.concat(chunks).toString("utf8"))
         );
+      /** @type {string[]} */
       const errors = [];
-      if (body.hermes) {
-        const saved = saveHermesConfig(body.hermes);
-        if ("error" in saved) errors.push(saved.error);
-      }
-      if (body.codex) {
-        const saved = saveCodexConfig(body.codex);
-        if ("error" in saved) errors.push(saved.error);
-      }
-      if (body.docs) {
-        const saved = saveDocsConfig(body.docs);
-        if ("error" in saved) errors.push(saved.error);
-      }
+      saveSessionBlocks(body, errors);
+      saveBootFields(body, errors);
       result = errors.length
         ? { error: errors.join("; ") }
-        : { hermes: hermesPublicConfig(), codex: codexPublicConfig(), docs: docsPublicConfig() };
+        : {
+            hermes: hermesPublicConfig(),
+            codex: codexPublicConfig(),
+            docs: docsPublicConfig(),
+            engine: enginePublicConfig(),
+          };
     } catch {
       result = { error: "bad request" };
     }
     res.writeHead("error" in result ? 400 : 200, { "content-type": "application/json" });
     res.end(JSON.stringify(result));
   });
+}
+
+/** Persist the SESSION-class Settings blocks (hermes/codex/docs) — each takes effect on the next
+ * session. Collects any write errors. @param {{ hermes?: object, codex?: object, docs?: object }} body
+ * @param {string[]} errors */
+function saveSessionBlocks(body, errors) {
+  if (body.hermes) {
+    const saved = saveHermesConfig(body.hermes);
+    if ("error" in saved) errors.push(saved.error);
+  }
+  if (body.codex) {
+    const saved = saveCodexConfig(body.codex);
+    if ("error" in saved) errors.push(saved.error);
+  }
+  if (body.docs) {
+    const saved = saveDocsConfig(body.docs);
+    if ("error" in saved) errors.push(saved.error);
+  }
+}
+
+/** Persist the SERVER-BOOT Settings fields (engine.bin, port) — each needs a server restart to
+ * bind. A blank engine path clears the override (back to auto-detect); a port outside 1..65535 is
+ * rejected so we never persist a junk port. @param {{ engine?: { bin?: string | null }, port?: number }} body
+ * @param {string[]} errors */
+function saveBootFields(body, errors) {
+  /** @type {{ engine?: { bin?: string | null }, port?: number }} */
+  const patch = {};
+  const eng = body.engine;
+  if (eng && "bin" in eng) {
+    const bin = eng.bin?.trim();
+    patch.engine = { bin: bin?.length ? bin : null };
+  }
+  if (body.port != null) {
+    const p = Number(body.port);
+    if (!Number.isInteger(p) || p < 1 || p > 65535) {
+      errors.push(`invalid port: ${body.port}`);
+      return;
+    }
+    patch.port = p;
+  }
+  if (patch.engine || patch.port != null) {
+    const saved = saveConfig(patch);
+    if ("error" in saved) errors.push(saved.error);
+  }
 }
 
 /** Probe the local Codex install and respond with the verdict — is the `codex` CLI on PATH,
@@ -409,6 +455,9 @@ function skillsConfig() {
 const GET_ROUTES = {
   "/api/state": projectState,
   "/api/staleness": stalenessReport,
+  // First-boot setup panel: the SAME environment audit as `npm run onboard:check` (shared
+  // onboard-checks.js — no re-implementation), so the panel guides to the scripts from truth.
+  "/api/onboard-status": () => ({ checks: onboardChecks() }),
   "/api/sessions": recentSessions,
   "/api/tasks": readTasks,
   "/api/usage": computeUsage,
@@ -438,6 +487,7 @@ function handleRestart(_req, res) {
  * @type {Record<string, (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => void>} */
 const POST_ROUTES = {
   "/api/restart": handleRestart,
+  "/api/project": handleProjectPost,
   "/api/transcript": handleTranscriptPost,
   "/api/asset": handleAssetPost,
   "/api/settings": handleSettingsPost,

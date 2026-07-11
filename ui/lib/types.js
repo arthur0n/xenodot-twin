@@ -19,7 +19,9 @@
  * @typedef {object} ProjectState
  * @property {string} name
  * @property {string} dir
+ * @property {boolean} configured - whether a project path is configured at all (drives the setup panel)
  * @property {boolean} found - whether dir holds a Godot project (has project.godot)
+ * @property {{ name: string, label: string, projectFile: string, bin: string | null, port: number }} engine - engine + port (bin path is not a secret)
  * @property {DesignDoc[]} designDocs
  * @property {LibraryEntry[]} library
  * @property {string[]} scenes
