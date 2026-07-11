@@ -420,8 +420,12 @@ func _write_status(passed: bool, reason := "") -> bool:
 	if json_path == "":
 		return true
 	# Every bind_* field is set on every terminal path — a stale green can never survive a later
-	# failure. The reason key is present only on FAIL. The merge/corrupt-file/write mechanics live in
-	# tools/lib/gate_report.gd (GateReport.merge_write), shared with the join and playback gates.
+	# failure. The reason key is ALWAYS present: the failure reason on FAIL, "" on OK — because
+	# merge_write overwrites the keys it is GIVEN but never deletes absent ones, so omitting reason on
+	# OK would leave a prior FAIL's reason standing in the merged file. Emitting "" clobbers it (the
+	# "a green run erases any stale failure reason" invariant from 27423c6). The merge/corrupt-file/
+	# write mechanics live in tools/lib/gate_report.gd (GateReport.merge_write), shared with the join
+	# and playback gates.
 	var fields: Dictionary = {"bind_smoke": "OK" if passed else "FAIL", "map": map_path}
 	if _binder != null:
 		var counts := _binder.target_counts()
