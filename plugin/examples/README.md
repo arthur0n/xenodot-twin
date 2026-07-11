@@ -107,6 +107,29 @@ shows the one-liner). To regenerate/scale the model itself:
 .venv-ifc/bin/python .../gen_plant_ifc.py --tanks 40 --pumps 30 --out models/plant_big.ifc
 ```
 
+## …or the same plant in OpenUSD (`plant.usda`)
+
+The same demo ships as an **OpenUSD** stage (`plant.usda`, 15 `UsdGeom.Mesh` prims), so the USD
+import path can be tried end-to-end. `twin_build.sh` routes it by extension — same one command, a
+different pinned venv (`.venv-usd`/usd-core instead of `.venv-ifc`/ifcopenshell), same gates:
+
+```bash
+# From a freshly scaffolded viewer project (npm run new -- ../plant-usd --viewer; cd ../plant-usd):
+mkdir -p models && cp /path/to/xenodot-twin/plugin/examples/plant.usda models/
+
+# --provision bootstraps .venv-usd (uv venv 3.12 + usd-core) when missing; --auto-map needs no
+# hand-authored map — the generator reads the USD sidecar and picks a spread across prim-path groups:
+tools/twin_build.sh models/plant.usda --provision --auto-map
+```
+
+The join key is the **sanitized prim path** (`/Plant/Tanks/TK_101` → node/sidecar key
+`Plant__Tanks__TK_101`), not a GlobalId — the join gate and binder join on it identically
+(JOIN 15/15, bindings resolved 12/12 on the bundled stage). Regenerate/scale it with
+`.venv-usd/bin/python .../gen_plant_usd.py --tanks N --pumps M --out models/plant.usda`. Walkthrough:
+[`docs/tutorials/bring-your-own-ifc.md`](../../docs/tutorials/bring-your-own-ifc.md) → "…or your own
+USD". Measured evidence + the honest limits (mesh prims only):
+[`../library/findings/twin-usd-import-2026-07-11.md`](../library/findings/twin-usd-import-2026-07-11.md).
+
 ## By hand — the teaching path
 
 The one command compresses the pipeline; running it by hand is how you learn each stage

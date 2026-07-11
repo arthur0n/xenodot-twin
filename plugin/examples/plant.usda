@@ -1,0 +1,290 @@
+#usda 1.0
+(
+    customLayerData = {
+        string generator = "gen_plant_usd.py"
+        string note = "no real-world provenance; do not present as as-built."
+        string provenance = "synthetic demonstration model"
+    }
+    defaultPrim = "Plant"
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "Plant"
+{
+    def Xform "Tanks"
+    {
+        def Mesh "TK_101" (
+            customData = {
+                string LineReference = "L-100"
+                string NominalCapacity = "10000 L"
+                string Reference = "TK_101"
+                string Service = "buffer"
+                string class = "Tank"
+                string tag = "tank_1.level"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 13, 12, 1, 2, 14, 13, 2, 3, 15, 14, 3, 4, 16, 15, 4, 5, 17, 16, 5, 6, 18, 17, 6, 7, 19, 18, 7, 8, 20, 19, 8, 9, 21, 20, 9, 10, 22, 21, 10, 11, 23, 22, 11, 0, 12, 23]
+            point3f[] points = [(1.5, 0, 0), (1.299038, 0, 0.75), (0.75, 0, 1.299038), (9.184851e-17, 0, 1.5), (-0.75, 0, 1.299038), (-1.299038, 0, 0.75), (-1.5, 0, 1.8369701e-16), (-1.299038, 0, -0.75), (-0.75, 0, -1.299038), (-2.7554554e-16, 0, -1.5), (0.75, 0, -1.299038), (1.299038, 0, -0.75), (1.5, 5, 0), (1.299038, 5, 0.75), (0.75, 5, 1.299038), (9.184851e-17, 5, 1.5), (-0.75, 5, 1.299038), (-1.299038, 5, 0.75), (-1.5, 5, 1.8369701e-16), (-1.299038, 5, -0.75), (-0.75, 5, -1.299038), (-2.7554554e-16, 5, -1.5), (0.75, 5, -1.299038), (1.299038, 5, -0.75)]
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "TK_102" (
+            customData = {
+                string LineReference = "L-101"
+                string NominalCapacity = "5500 L"
+                string Reference = "TK_102"
+                string Service = "feed"
+                string class = "Tank"
+                string tag = "tank_2.level"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 13, 12, 1, 2, 14, 13, 2, 3, 15, 14, 3, 4, 16, 15, 4, 5, 17, 16, 5, 6, 18, 17, 6, 7, 19, 18, 7, 8, 20, 19, 8, 9, 21, 20, 9, 10, 22, 21, 10, 11, 23, 22, 11, 0, 12, 23]
+            point3f[] points = [(1.5, 0, 0), (1.299038, 0, 0.75), (0.75, 0, 1.299038), (9.184851e-17, 0, 1.5), (-0.75, 0, 1.299038), (-1.299038, 0, 0.75), (-1.5, 0, 1.8369701e-16), (-1.299038, 0, -0.75), (-0.75, 0, -1.299038), (-2.7554554e-16, 0, -1.5), (0.75, 0, -1.299038), (1.299038, 0, -0.75), (1.5, 5, 0), (1.299038, 5, 0.75), (0.75, 5, 1.299038), (9.184851e-17, 5, 1.5), (-0.75, 5, 1.299038), (-1.299038, 5, 0.75), (-1.5, 5, 1.8369701e-16), (-1.299038, 5, -0.75), (-0.75, 5, -1.299038), (-2.7554554e-16, 5, -1.5), (0.75, 5, -1.299038), (1.299038, 5, -0.75)]
+            double3 xformOp:translate = (6, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "TK_103" (
+            customData = {
+                string LineReference = "L-102"
+                string NominalCapacity = "5000 L"
+                string Reference = "TK_103"
+                string Service = "product"
+                string class = "Tank"
+                string tag = "tank_3.level"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 13, 12, 1, 2, 14, 13, 2, 3, 15, 14, 3, 4, 16, 15, 4, 5, 17, 16, 5, 6, 18, 17, 6, 7, 19, 18, 7, 8, 20, 19, 8, 9, 21, 20, 9, 10, 22, 21, 10, 11, 23, 22, 11, 0, 12, 23]
+            point3f[] points = [(1.5, 0, 0), (1.299038, 0, 0.75), (0.75, 0, 1.299038), (9.184851e-17, 0, 1.5), (-0.75, 0, 1.299038), (-1.299038, 0, 0.75), (-1.5, 0, 1.8369701e-16), (-1.299038, 0, -0.75), (-0.75, 0, -1.299038), (-2.7554554e-16, 0, -1.5), (0.75, 0, -1.299038), (1.299038, 0, -0.75), (1.5, 5, 0), (1.299038, 5, 0.75), (0.75, 5, 1.299038), (9.184851e-17, 5, 1.5), (-0.75, 5, 1.299038), (-1.299038, 5, 0.75), (-1.5, 5, 1.8369701e-16), (-1.299038, 5, -0.75), (-0.75, 5, -1.299038), (-2.7554554e-16, 5, -1.5), (0.75, 5, -1.299038), (1.299038, 5, -0.75)]
+            double3 xformOp:translate = (12, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "TK_104" (
+            customData = {
+                string LineReference = "L-103"
+                string NominalCapacity = "7000 L"
+                string Reference = "TK_104"
+                string Service = "slop"
+                string class = "Tank"
+                string tag = "tank_4.level"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 1, 13, 12, 1, 2, 14, 13, 2, 3, 15, 14, 3, 4, 16, 15, 4, 5, 17, 16, 5, 6, 18, 17, 6, 7, 19, 18, 7, 8, 20, 19, 8, 9, 21, 20, 9, 10, 22, 21, 10, 11, 23, 22, 11, 0, 12, 23]
+            point3f[] points = [(1.5, 0, 0), (1.299038, 0, 0.75), (0.75, 0, 1.299038), (9.184851e-17, 0, 1.5), (-0.75, 0, 1.299038), (-1.299038, 0, 0.75), (-1.5, 0, 1.8369701e-16), (-1.299038, 0, -0.75), (-0.75, 0, -1.299038), (-2.7554554e-16, 0, -1.5), (0.75, 0, -1.299038), (1.299038, 0, -0.75), (1.5, 5, 0), (1.299038, 5, 0.75), (0.75, 5, 1.299038), (9.184851e-17, 5, 1.5), (-0.75, 5, 1.299038), (-1.299038, 5, 0.75), (-1.5, 5, 1.8369701e-16), (-1.299038, 5, -0.75), (-0.75, 5, -1.299038), (-2.7554554e-16, 5, -1.5), (0.75, 5, -1.299038), (1.299038, 5, -0.75)]
+            double3 xformOp:translate = (18, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "Pumps"
+    {
+        def Mesh "P_101" (
+            customData = {
+                string LineReference = "L-200"
+                string NominalFlowRate = "22 m3/h"
+                string NominalHead = "35 m"
+                string Reference = "P_101"
+                string Service = "feed"
+                string class = "Pump"
+                string tag = "pump_1.flow"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-0.7, -0.4, -0.5), (0.7, -0.4, -0.5), (0.7, 0.4, -0.5), (-0.7, 0.4, -0.5), (-0.7, -0.4, 0.5), (0.7, -0.4, 0.5), (0.7, 0.4, 0.5), (-0.7, 0.4, 0.5)]
+            double3 xformOp:translate = (0, -10, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "P_102" (
+            customData = {
+                string LineReference = "L-201"
+                string NominalFlowRate = "16 m3/h"
+                string NominalHead = "75 m"
+                string Reference = "P_102"
+                string Service = "transfer"
+                string class = "Pump"
+                string tag = "pump_2.flow"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-0.7, -0.4, -0.5), (0.7, -0.4, -0.5), (0.7, 0.4, -0.5), (-0.7, 0.4, -0.5), (-0.7, -0.4, 0.5), (0.7, -0.4, 0.5), (0.7, 0.4, 0.5), (-0.7, 0.4, 0.5)]
+            double3 xformOp:translate = (6, -10, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "P_103" (
+            customData = {
+                string LineReference = "L-202"
+                string NominalFlowRate = "14 m3/h"
+                string NominalHead = "70 m"
+                string Reference = "P_103"
+                string Service = "circulation"
+                string class = "Pump"
+                string tag = "pump_3.flow"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-0.7, -0.4, -0.5), (0.7, -0.4, -0.5), (0.7, 0.4, -0.5), (-0.7, 0.4, -0.5), (-0.7, -0.4, 0.5), (0.7, -0.4, 0.5), (0.7, 0.4, 0.5), (-0.7, 0.4, 0.5)]
+            double3 xformOp:translate = (12, -10, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "Header"
+    {
+        def Mesh "HDR_1" (
+            customData = {
+                string LineReference = "L-HDR"
+                string NominalDiameter = "200 mm"
+                string Reference = "HDR_1"
+                string class = "FlowSegment"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-2, -0.25, -0.25), (2, -0.25, -0.25), (2, 0.25, -0.25), (-2, 0.25, -0.25), (-2, -0.25, 0.25), (2, -0.25, 0.25), (2, 0.25, 0.25), (-2, 0.25, 0.25)]
+            double3 xformOp:translate = (0, -4, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "HDR_2" (
+            customData = {
+                string LineReference = "L-HDR"
+                string NominalDiameter = "200 mm"
+                string Reference = "HDR_2"
+                string class = "FlowSegment"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-2, -0.25, -0.25), (2, -0.25, -0.25), (2, 0.25, -0.25), (-2, 0.25, -0.25), (-2, -0.25, 0.25), (2, -0.25, 0.25), (2, 0.25, 0.25), (-2, 0.25, 0.25)]
+            double3 xformOp:translate = (4, -4, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "HDR_3" (
+            customData = {
+                string LineReference = "L-HDR"
+                string NominalDiameter = "200 mm"
+                string Reference = "HDR_3"
+                string class = "FlowSegment"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-2, -0.25, -0.25), (2, -0.25, -0.25), (2, 0.25, -0.25), (-2, 0.25, -0.25), (-2, -0.25, 0.25), (2, -0.25, 0.25), (2, 0.25, 0.25), (-2, 0.25, 0.25)]
+            double3 xformOp:translate = (8, -4, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "HDR_4" (
+            customData = {
+                string LineReference = "L-HDR"
+                string NominalDiameter = "200 mm"
+                string Reference = "HDR_4"
+                string class = "FlowSegment"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-2, -0.25, -0.25), (2, -0.25, -0.25), (2, 0.25, -0.25), (-2, 0.25, -0.25), (-2, -0.25, 0.25), (2, -0.25, 0.25), (2, 0.25, 0.25), (-2, 0.25, 0.25)]
+            double3 xformOp:translate = (12, -4, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "HDR_5" (
+            customData = {
+                string LineReference = "L-HDR"
+                string NominalDiameter = "200 mm"
+                string Reference = "HDR_5"
+                string class = "FlowSegment"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-2, -0.25, -0.25), (2, -0.25, -0.25), (2, 0.25, -0.25), (-2, 0.25, -0.25), (-2, -0.25, 0.25), (2, -0.25, 0.25), (2, 0.25, 0.25), (-2, 0.25, 0.25)]
+            double3 xformOp:translate = (16, -4, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "Valves"
+    {
+        def Mesh "V_101" (
+            customData = {
+                string LineReference = "L-200"
+                string Reference = "V_101"
+                string Service = "isolation"
+                string Size = "DN100"
+                string class = "Valve"
+                string tag = "valve_1.position"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-0.3, -0.3, -0.3), (0.3, -0.3, -0.3), (0.3, 0.3, -0.3), (-0.3, 0.3, -0.3), (-0.3, -0.3, 0.3), (0.3, -0.3, 0.3), (0.3, 0.3, 0.3), (-0.3, 0.3, 0.3)]
+            double3 xformOp:translate = (0, -7, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "V_102" (
+            customData = {
+                string LineReference = "L-201"
+                string Reference = "V_102"
+                string Service = "isolation"
+                string Size = "DN100"
+                string class = "Valve"
+                string tag = "valve_2.position"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-0.3, -0.3, -0.3), (0.3, -0.3, -0.3), (0.3, 0.3, -0.3), (-0.3, 0.3, -0.3), (-0.3, -0.3, 0.3), (0.3, -0.3, 0.3), (0.3, 0.3, 0.3), (-0.3, 0.3, 0.3)]
+            double3 xformOp:translate = (6, -7, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Mesh "V_103" (
+            customData = {
+                string LineReference = "L-202"
+                string Reference = "V_103"
+                string Service = "isolation"
+                string Size = "DN100"
+                string class = "Valve"
+                string tag = "valve_3.position"
+            }
+        )
+        {
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [4, 5, 6, 7, 0, 3, 2, 1, 0, 1, 5, 4, 2, 3, 7, 6, 1, 2, 6, 5, 0, 4, 7, 3]
+            point3f[] points = [(-0.3, -0.3, -0.3), (0.3, -0.3, -0.3), (0.3, 0.3, -0.3), (-0.3, 0.3, -0.3), (-0.3, -0.3, 0.3), (0.3, -0.3, 0.3), (0.3, 0.3, 0.3), (-0.3, 0.3, 0.3)]
+            double3 xformOp:translate = (12, -7, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+}
+
