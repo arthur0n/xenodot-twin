@@ -5,9 +5,10 @@
 # Pipeline (all at scene (re)load, then per DataBus frame):
 #  1. load_map(path)   — read + validate JSON. Unknown keys tolerated; a binding missing a
 #                        required field is push_warning'd and SKIPPED, never fatal.
-#  2. build_index(root)— one tree walk of `root`: GlobalId -> Array[Locator]. A node whose
-#                        name is a 22-char IFC GlobalId yields a "node" locator; a
-#                        MultiMeshInstance3D carrying meta "twin_globalids"
+#  2. build_index(root)— one tree walk of `root`: join-id -> Array[Locator]. A node whose name
+#                        is a 22-char IFC GlobalId (or any stable id a converter writes as the
+#                        node name — usd_convert.py uses the sanitized PRIM PATH) yields a "node"
+#                        locator; a MultiMeshInstance3D carrying meta "twin_globalids"
 #                        (PackedStringArray, index = instance position) yields one "mmi"
 #                        locator per entry. Duplicate GlobalIds -> many locators, all driven.
 #  3. tag_update       — normalize value into the binding's [min,max], colour = ramp lerp,
@@ -261,9 +262,18 @@ func _walk(node: Node) -> void:
 		var node3d: Node3D = node
 		if node3d.has_meta("twin_globalids"):
 			_index_mmi(node3d)
+		# The join key is the node NAME. Two flavours resolve, so a binding keyed by either hits:
+		#   • an IFC GlobalId — the 22-char base64 prefix (dedup-suffix aware), via _globalid_from_name;
+		#   • any other stable id a converter writes — e.g. usd_convert.py names nodes by the SANITIZED
+		#     PRIM PATH (variable length, not base64: "Plant__Tanks__TK_101"), the USD join key.
+		# Index both. When they coincide (an un-suffixed IFC node: prefix == full name) the second add
+		# is skipped, so IFC target counts and behaviour are byte-for-byte unchanged.
 		var gid := _globalid_from_name(node3d.name)
 		if gid != "":
 			_add_locator(gid, "node", node3d, -1)
+		var full := String(node3d.name)
+		if full != gid:
+			_add_locator(full, "node", node3d, -1)
 	for child: Node in node.get_children():
 		_walk(child)
 
