@@ -94,17 +94,40 @@ mkdir my-twin && cd my-twin
 git clone https://github.com/arthur0n/xenodot-twin.git
 cd xenodot-twin
 npm install
-npm run validate         # tsc + eslint + gates — should be green out of the box
 
-npm run new -- ../plant  # scaffold a digital-twin VIEWER beside the clone (an EXPLICIT path)
-npm start ../plant       # web UI on http://localhost:8338
+npm run onboard -- ../plant   # 3 explicit steps: check the machine → wire the seat → verify it boots
+npm start ../plant            # web UI on http://localhost:8338
 ```
 
-`npm run new -- <project-path>` **requires** an explicit path — it scaffolds only where you name it,
-never a default sibling. It builds a viewer (there is no game path in this fork, see
-[Lineage](#lineage)): copies the viewer starter, remembers the path, materializes the plugin's
-per-project tools, creates the in-project `x-shared-assets/` asset library, symlinks the shared
-knowledge library, and health-checks with `doctor`.
+**`npm run onboard` is no magic — it is a thin sequencer** that _prints_ each numbered step and runs
+the same standalone script you could run yourself, stopping at the first blocker. The three steps:
+
+1. **`npm run onboard:check`** — the environment audit you run _first_: Node, the Godot binary +
+   version, `uv`/Python, gdtoolkit, plus optional `rtk`/`graphify`. One line per tool, with the exact
+   fix command for anything missing. Real output on a ready machine:
+
+   ```
+   onboard:check — environment audit
+     ✓ Node v22.21.1 (need ≥18)
+     ✓ Godot 4.6.3.stable.official resolved ($GODOT=/Applications/Godot.app/Contents/MacOS/Godot)
+     ✓ uv 0.9.7   [twin_build --provision uses: uv venv --python 3.12]
+     ✓ Python 3.14.5   [ifcopenshell 0.8.5 needs 3.12 — no 3.14 wheel]
+     ✓ gdtoolkit gdlint 4.5.0 (gdlint/gdformat)
+   onboard:check: 7 present, 0 missing, 0 optional skipped.
+   ```
+
+2. **`npm run onboard:project -- <path>`** — scaffold an empty folder into a viewer (or wire an
+   existing `project.godot` in place), remember the path, materialize the plugin's per-project tools,
+   create the in-project `x-shared-assets/` library, symlink the shared knowledge library, and
+   health-check with `doctor`. It **requires an explicit path** — it scaffolds only where you name it,
+   never a default sibling (there is no game path in this fork, see [Lineage](#lineage)).
+
+3. **`npm run onboard:verify`** — prove the wired seat is real: `doctor`'s checks plus a headless
+   Godot boot of _your actual project_ (skipped honestly if no engine is installed).
+
+Re-running `npm run onboard` on a wired repo is an all-green audit in seconds that creates nothing.
+Prefer running the gates yourself? `npm run validate` (tsc + eslint + gates) should be green out of
+the box.
 
 Prefer a detached server that survives the terminal? Use the launcher:
 
