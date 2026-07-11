@@ -53,6 +53,33 @@ contract_get() { # <key>
 	printf '%s' "$val"
 }
 
+# --- portable stat (BSD/GNU) ------------------------------------------------------------------
+# `stat` flags differ by platform: BSD/macOS uses `-f`, GNU/Linux uses `-c`. These helpers try BSD
+# first, then GNU, so a gate runs unchanged on a dev Mac and Linux CI. They live here so no tool
+# hand-rolls (and half of them forget) the fallback — twin_publish_web.sh shipped a BSD-only
+# `stat -f '%z'` that would break the publish gate on Linux (Codex MAJOR).
+
+# File size in bytes. BSD `%z` → GNU `%s` → `wc -c` (works even where `stat` is absent).
+stat_size() { # <file>
+	stat -f%z "$1" 2>/dev/null || stat -c%s "$1" 2>/dev/null || wc -c <"$1" | tr -d ' '
+}
+
+# File mtime as a Unix epoch. BSD `%m` → GNU `%Y`.
+stat_mtime() { # <file>
+	stat -f '%m' "$1" 2>/dev/null || stat -c '%Y' "$1" 2>/dev/null
+}
+
+# Read NUL-delimited paths on stdin, print them newest-mtime-first (one per line). Replaces the
+# BSD-only `xargs -0 stat -f '%m %N' | sort -rn | cut` idiom (no GNU fallback, and broken on names
+# with spaces); a tab join keeps spaced filenames intact. Pipe to `head -1` for just the newest.
+list_by_mtime_desc() {
+	local p m
+	while IFS= read -r -d '' p; do
+		m="$(stat_mtime "$p")" || continue
+		[ -n "$m" ] && printf '%s\t%s\n' "$m" "$p"
+	done | sort -rn | cut -f2-
+}
+
 # --- helpers ----------------------------------------------------------------------------------
 
 # Resolve the engine binary into $GODOT and export it. Godot and its compatible forks (Redot,

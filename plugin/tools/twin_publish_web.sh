@@ -361,11 +361,11 @@ if [ -z "$MODEL" ]; then
 fi
 if [ -z "$MODEL" ]; then
 	MODEL="$(find -L models -name '*_opt.tscn' -type f -print0 2>/dev/null \
-		| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+		| list_by_mtime_desc | head -1)"
 fi
 if [ -z "$MODEL" ]; then
 	MODEL="$(find -L models -name '*.glb' -type f -print0 2>/dev/null \
-		| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+		| list_by_mtime_desc | head -1)"
 fi
 [ -n "$MODEL" ] || _fail "no model found (pass --model, set viewer.cfg [viewer] model=, or build one with twin_build.sh)"
 MODEL="${MODEL#res://}"
@@ -416,7 +416,7 @@ if [ -z "$RECORDING" ]; then
 fi
 if [ -z "$RECORDING" ]; then
 	RECORDING="$(find -L recordings -name '*.ndjson' -type f -print0 2>/dev/null \
-		| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+		| list_by_mtime_desc | head -1)"
 fi
 [ -n "$RECORDING" ] || _fail "no recording found — a web demo autoplays one. Make it first:
     node tools/sim/record.js --out recordings/<name>.ndjson --seconds 40 --seed 42 --map $MAP"
@@ -575,12 +575,12 @@ for f in "$EXPORT_OUT" "$WASM" "$PCK"; do
 done
 # GitHub Pages rejects any single file > 100 MB. The no-threads wasm measured ~37 MB — assert it
 # stays under the ceiling so a publish can't silently produce an un-serveable build.
-WASM_BYTES="$(stat -f '%z' "$WASM")"
+WASM_BYTES="$(stat_size "$WASM")"
 WASM_MB=$((WASM_BYTES / 1048576))
 if [ "$WASM_BYTES" -gt 104857600 ]; then
 	_fail "index.wasm is ${WASM_MB} MB — over GitHub Pages' 100 MB/file limit. Optimize the build."
 fi
-echo "$XENO_GATE: PASS export (wasm ${WASM_MB} MB < 100 MB Pages limit, pck $(($(stat -f '%z' "$PCK") / 1024)) KB)"
+echo "$XENO_GATE: PASS export (wasm ${WASM_MB} MB < 100 MB Pages limit, pck $(($(stat_size "$PCK") / 1024)) KB)"
 
 # --- stage 4: smoke (web-wiring proxy: dev-checkout res:// boot) --------------------------------
 _stage 4/7 "smoke (res:// wiring — dev boot, identical resolution to the web pck)"

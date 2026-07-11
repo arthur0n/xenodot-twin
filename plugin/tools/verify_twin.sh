@@ -63,7 +63,7 @@ _twin_discover_pair() {
 		done
 	done < <(
 		find -L models x-shared-assets -name '*.glb' -type f -print0 2>/dev/null \
-			| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | cut -d' ' -f2-
+			| list_by_mtime_desc
 	)
 	return 1
 }

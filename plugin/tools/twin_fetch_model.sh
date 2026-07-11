@@ -25,8 +25,14 @@
 #     --no-lfs-rewrite     do NOT auto-rewrite a GitHub URL to the LFS media endpoint
 # Exit 0 = downloaded (or reused), verified, and stamped.
 set -u
+# Resolve the script dir BEFORE any cd, so sourcing is robust however the script was invoked.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PATH="$HOME/.local/bin:$PATH"
 XENO_GATE="twin-fetch-model"
+# For the portable BSD/GNU stat_size helper (this tool was the reference implementation; the shared
+# copy now lives in one place so no other tool re-hand-rolls the fallback and forgets half of it).
+# shellcheck source=lib/checks.sh
+source "$SCRIPT_DIR/lib/checks.sh"
 
 SHA_EXPECT=""
 OUT=""
@@ -182,11 +188,7 @@ fi
 # FILE_SCHEMA(('IFC2X3')) — tolerate whitespace variants; take the first quoted token.
 SCHEMA="$(head -c 4096 "$TMP" | tr -d '\n' | grep -oiE "FILE_SCHEMA[[:space:]]*\(\([[:space:]]*'[^']*'" | grep -oE "'[^']*'" | head -1 | tr -d "'")"
 [ -n "$SCHEMA" ] || SCHEMA="unknown"
-if command -v stat >/dev/null 2>&1; then
-	SIZE="$(stat -f%z "$TMP" 2>/dev/null || stat -c%s "$TMP" 2>/dev/null)"
-else
-	SIZE="$(wc -c <"$TMP" | tr -d ' ')"
-fi
+SIZE="$(stat_size "$TMP")"
 
 # Move the verified bytes into place only now (never leave a half-verified file at $OUT).
 mv "$TMP" "$OUT" || _fail "could not write $OUT"

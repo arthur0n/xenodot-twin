@@ -311,10 +311,19 @@ _retarget() {
 	EXEC_DIR="$(dirname "$SHIP_CFG")"
 	DATA_DIR="$EXEC_DIR/data"
 	[ -d "$DATA_DIR" ] || _rfail preflight "--retarget: no data/ dir beside $SHIP_CFG"
-	# The executable beside viewer.cfg — the same-binary invariant subject.
-	BIN_PATH="$(find "$EXEC_DIR" -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)"
+	# The executable beside viewer.cfg — the same-binary invariant subject. `find -perm +111` is
+	# BSD-only (GNU find wants `-perm /111`), so neither syntax is portable across a dev Mac and Linux
+	# CI. Iterate the dir's direct children and take the first regular executable via POSIX `[ -x ]`
+	# instead — no perm-syntax dialect. Lexical glob order is deterministic (find's order was not).
+	BIN_PATH=""
+	for _cand in "$EXEC_DIR"/*; do
+		if [ -f "$_cand" ] && [ -x "$_cand" ]; then
+			BIN_PATH="$_cand"
+			break
+		fi
+	done
 	[ -n "$BIN_PATH" ] || _rfail preflight "--retarget: no executable found beside $SHIP_CFG"
-	MTIME_BEFORE="$(stat -f '%m' "$BIN_PATH")"
+	MTIME_BEFORE="$(stat_mtime "$BIN_PATH")"
 	URL_BEFORE="$(_cfg_value viewer url "$SHIP_CFG")"
 
 	# Copy the new data into data/ and compute data/-relative ship paths.
@@ -356,7 +365,7 @@ _retarget() {
 
 	# The same-binary invariant: the executable must be byte-for-byte the same file — assert its mtime
 	# did not move. A retarget that rebuilt the binary would be a re-export wearing a retarget's name.
-	MTIME_AFTER="$(stat -f '%m' "$BIN_PATH")"
+	MTIME_AFTER="$(stat_mtime "$BIN_PATH")"
 	if [ "$MTIME_BEFORE" != "$MTIME_AFTER" ]; then
 		_rfail assert "--retarget: binary mtime CHANGED ($MTIME_BEFORE -> $MTIME_AFTER) — the same-binary invariant broke"
 	fi
@@ -510,7 +519,7 @@ if [ -z "$MODEL" ]; then
 fi
 if [ -z "$MODEL" ]; then
 	MODEL="$(find -L models x-shared-assets -name '*.glb' -type f -print0 2>/dev/null \
-		| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+		| list_by_mtime_desc | head -1)"
 fi
 [ -n "$MODEL" ] || _fail "no model found (pass --model, set viewer.cfg [viewer] model=, or drop a .glb under models/)"
 [ -f "$MODEL" ] || _fail "no such model: $MODEL"
