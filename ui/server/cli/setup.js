@@ -3,8 +3,8 @@
 // Merges the absolute path into .xenodot.json (gitignored) in the framework root,
 // preserving any `engine` / `hermes` block already there (see config.js / docs/engines.md).
 //
-// Usage: npm run setup -- ../viewer      (or any path to your digital-twin viewer project)
-//        npm run setup                    (defaults to ../viewer, the sibling folder)
+// Usage: npm run setup -- ../viewer      (an explicit path to your digital-twin viewer project;
+//                                         REQUIRED — no path is invented for you)
 // Every project is a digital-twin VIEWER (loads the xenodot plugin + the viewer orchestrator); the game
 // domain lives upstream in xenodot-forge, so `--game` is refused here.
 //
@@ -22,13 +22,7 @@ import { createInterface } from "node:readline";
 import path from "node:path";
 import { parseJSON } from "../../lib/json.js";
 import { GENRES, STYLES, validateProfile } from "../../lib/profile.js";
-import {
-  CONFIG_FILE,
-  FRAMEWORK_DIR,
-  ENGINE,
-  ENGINE_LABEL,
-  saveHermesConfig,
-} from "../core/config.js";
+import { CONFIG_FILE, ENGINE, ENGINE_LABEL, saveHermesConfig } from "../core/config.js";
 
 const argv = process.argv.slice(2);
 /** @param {string} name @returns {boolean} */
@@ -99,8 +93,19 @@ async function askProfileValue(rl, kind, options, fallback) {
 // Project-path setup: skip entirely on a Hermes-only run (no explicit path arg), so
 // `npm run hermes` never clobbers the saved project path (or profile) with defaults.
 const arg = argv.find((a) => !a.startsWith("--"));
-if (arg || !hermesArgs) {
-  const target = path.resolve(arg ?? path.join(FRAMEWORK_DIR, "..", "viewer"));
+// REQUIRE an explicit path for a project-setup run — never conjure a `../viewer` sibling the
+// user didn't name (D7-no-silent-sibling-dirs). A Hermes-only run (no path arg) is exempt.
+if (!arg && !hermesArgs) {
+  console.error(
+    "setup: needs an explicit project path — it will NOT invent a folder for you.\n" +
+      "  Usage: npm run setup -- <project-path> [--genre=…] [--style=…]\n" +
+      "The framework clone and the viewer sit side by side under a folder you named, e.g.\n" +
+      "  npm run setup -- ../viewer",
+  );
+  process.exit(1);
+}
+if (arg) {
+  const target = path.resolve(arg);
   // Preserve any existing config (e.g. a manually-added `engine` / `hermes` block).
   /** @type {Record<string, unknown>} */
   let saved = {};

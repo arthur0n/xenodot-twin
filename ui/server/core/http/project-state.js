@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import {
   PROJECT_DIR,
+  PROJECT_CONFIGURED,
   PROJECT_FOUND,
   ENGINE,
   FRAMEWORK_PLUGIN_DIR,
@@ -81,7 +82,8 @@ function collectSkills(dirs) {
 /** @returns {import("../../../lib/types.js").ProjectState} */
 export function projectState() {
   const dir = PROJECT_DIR;
-  let name = path.basename(dir);
+  // Honest name for the unconfigured state — no phantom seat is implied (D7-no-silent-sibling-dirs).
+  let name = PROJECT_CONFIGURED ? path.basename(dir) : "(no project configured)";
   try {
     const match = readFileSync(path.join(dir, ENGINE.projectFile), "utf8").match(
       /config\/name="([^"]+)"/,

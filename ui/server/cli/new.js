@@ -36,13 +36,31 @@ const profileFlags = argv.filter((a) => a.startsWith("--genre=") || a.startsWith
 const flagArg = argv.find((a) => a.startsWith("-") && !profileFlags.includes(a));
 if (flagArg) {
   console.error(
-    `new: ${flagArg} is not a project path. Usage: npm run new -- ../myviewer [--genre=…] [--style=…]`,
+    `new: ${flagArg} is not a project path. Usage: npm run new -- <project-path> [--genre=…] [--style=…]`,
   );
   process.exit(1);
 }
-const target = path.resolve(
-  argv.find((a) => !a.startsWith("-")) ?? path.join(FRAMEWORK_DIR, "..", "viewer"),
-);
+// REQUIRE an explicit project path — never conjure a `../viewer` sibling the user didn't name
+// (D7-no-silent-sibling-dirs). Print the per-project-workspace layout so the next run lands right.
+const projectPathArg = argv.find((a) => !a.startsWith("-"));
+if (!projectPathArg) {
+  console.error(
+    "new: needs an explicit project path — it will NOT invent a folder for you.\n" +
+      "\n" +
+      "  Usage: npm run new -- <project-path> [--genre=…] [--style=…]\n" +
+      "\n" +
+      "Per-project workspace — the framework clone and the viewer sit SIDE BY SIDE under one\n" +
+      "folder YOU named, e.g.:\n" +
+      "\n" +
+      "  my-twin/\n" +
+      "  ├── xenodot-twin/   ← this framework clone (you are here)\n" +
+      "  └── viewer/         ← the viewer project this scaffolds — pass its path:\n" +
+      "\n" +
+      "      npm run new -- ../viewer\n",
+  );
+  process.exit(1);
+}
+const target = path.resolve(projectPathArg);
 
 /** Run a child step, inheriting stdio so its output streams through. @param {string[]} args */
 const node = (...args) => execFileSync("node", args, { stdio: "inherit" });

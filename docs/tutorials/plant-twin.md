@@ -67,8 +67,9 @@ From inside the framework clone, scaffold a **viewer** project into a sibling fo
 import → optimize → verify as one gated command:
 
 ```bash
-# 1. Scaffold a viewer project (creates ../plant with tools/, library, etc.):
-npm run new -- ../plant --viewer          # prints "doctor: OK"
+# 1. Scaffold a viewer project at the EXPLICIT path you name (creates ../plant with tools/,
+#    library, x-shared-assets/, etc. — never a default sibling):
+npm run new -- ../plant          # prints "doctor: OK"
 cd ../plant
 
 # 2. Copy the PLANT kit in (three files — the IFC goes under models/ so build artifacts co-locate):

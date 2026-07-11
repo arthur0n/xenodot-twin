@@ -10,19 +10,22 @@ It uses the bundled **try-it kit** ([`plugin/examples/`](../../plugin/examples/)
 sample IFC, an example `binding_map`, and an example `viewer.cfg` — so you don't have to source
 any files yourself.
 
-You build two things that sit side by side (the standard framework + project layout):
+You build two things that sit side by side under one folder **you named** (the per-project
+workspace — the framework never invents a sibling for you):
 
 ```
-your-workspace/
-├── xenodot-twin/       the framework (a clone of this repo)
-├── house/              the viewer project the framework scaffolds for you
-└── x-shared-assets/    shared-asset library (models/textures), symlinked into the project
+your-workspace/            a folder you created
+├── xenodot-twin/          the framework (a clone of this repo)
+└── house/                 the viewer project the framework scaffolds for you
+    └── x-shared-assets/   in-project shared-asset library (models/textures)
 ```
 
-`x-shared-assets/` is created by scaffolding as a sibling at the workspace root and symlinked
-into the project at `res://x-shared-assets/` — it holds assets the project uses but keeps
-outside its own tree, so the project stays pure. (This tutorial's model loads from `models/`
-instead, so you won't touch it, but the scaffold reports creating it in Step 2.)
+`x-shared-assets/` is created **inside the project** at `res://x-shared-assets/` (a real dir, made
+only when you scaffold the project you named) — it holds assets the project uses but keeps out of
+its committed tree, so the project stays pure. (This tutorial's model loads from `models/` instead,
+so you won't touch it, but the scaffold reports creating it in Step 2. If you want ONE asset library
+shared across several viewers, set an external `assetLibrary` in `.xenodot.json` and it's symlinked
+in instead.)
 
 The framework never contains twin/game content — it points at an external project (`house/`
 here), reads it in place, and the project stays pure. That is why there are two repos.
@@ -89,31 +92,31 @@ hit it. If you ever do see a `: stale` line, the error prints the exact fix —
 
 ## Step 2 — scaffold the viewer project
 
-From inside the clone, scaffold a **viewer** (the digital-twin flavor) into a sibling folder:
+From inside the clone, scaffold a **viewer** (the digital-twin flavor) into a sibling folder. The
+path is **required** — `new` scaffolds only where you name it, never a default sibling:
 
 ```bash
-npm run new -- ../house --viewer
+npm run new -- ../house
 ```
 
-This scaffolds `starter-viewer/`, records the project path + type, materializes the plugin's
-per-project files, and health-checks. The output confirms the shape:
+This scaffolds `starter-viewer/`, records the project path, materializes the plugin's per-project
+files, and health-checks. The output confirms the shape:
 
 ```
 new: scaffolded starter-viewer → .../your-workspace/house
-  projectType: viewer
-materialize: ... tools copied 37/37, library created, x-shared-assets created.
+materialize: ... tools copied 37/37, library created, x-shared-assets created in-project.
 doctor: ... ✓ plugin capabilities (13 agents, 25 skills)  ✓ library/ symlinked
 doctor: OK
 ```
 
 What landed and what stayed put:
 
-- The clone gets its **own** `.xenodot.json` (`projectDir` → `your-workspace/house`,
-  `projectType: viewer`). If you also have the framework checked out elsewhere, that other
-  `.xenodot.json` is untouched — each checkout remembers its own project.
-- `house/tools/` (the twin tooling: `ifc_convert.py`, `sim/`, `verify_twin.sh`, …) and
-  `house/library`, `house/x-shared-assets` are **symlinked/copied and gitignored** —
-  framework-generated, never committed into the project.
+- The clone gets its **own** `.xenodot.json` (`projectDir` → `your-workspace/house`). If you also
+  have the framework checked out elsewhere, that other `.xenodot.json` is untouched — each checkout
+  remembers its own project.
+- `house/tools/` (the twin tooling: `ifc_convert.py`, `sim/`, `verify_twin.sh`, …), `house/library`
+  (symlinked to the plugin), and `house/x-shared-assets/` (an in-project real dir) are all
+  **gitignored** — framework-generated, never committed into the project.
 - The framework's agents/skills are **not** copied into the project. The web UI loads the
   **xenodot** plugin automatically. For terminal Claude Code, run the one-time install that
   `doctor` prints (the `/plugin marketplace add` + `/plugin install xenodot@xenodot-twin` pair

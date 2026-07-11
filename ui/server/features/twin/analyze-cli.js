@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { FRAMEWORK_DIR, CONFIG_FILE, FRAMEWORK_PLUGIN_DIR } from "../../core/config.js";
+import { CONFIG_FILE, FRAMEWORK_PLUGIN_DIR } from "../../core/config.js";
 import { parseJSON } from "../../../lib/json.js";
 import { parseArgs } from "../../../../plugin/tools/sim/stream.js";
 import { TASK_TYPES, isValidTask } from "./analysis-report.js";
@@ -35,8 +35,9 @@ const USAGE =
 /** Resolve the project root the report is written into. Deliberately NOT `config.PROJECT_DIR`: that
  * value is derived from `process.argv` positionals, and this CLI's own `--task <value>` leaves a
  * non-`--` token in argv that config would misread as a project path. Mirror config's env/saved/
- * default precedence WITHOUT the argv scan: GAME_DIR → `.xenodot.json` projectDir → `../game`.
- * @returns {string} */
+ * precedence WITHOUT the argv scan: GAME_DIR → `.xenodot.json` projectDir → "" (unconfigured). Never
+ * a conjured `../game` sibling (D7-no-silent-sibling-dirs) — the caller fails honestly on "".
+ * @returns {string} an absolute project path, or "" when unconfigured */
 function resolveProjectDir() {
   if (process.env.GAME_DIR) return path.resolve(process.env.GAME_DIR);
   try {
@@ -45,9 +46,9 @@ function resolveProjectDir() {
     );
     if (saved.projectDir) return path.resolve(saved.projectDir);
   } catch {
-    /* absent/invalid — fall through to the default sibling */
+    /* absent/invalid — unconfigured */
   }
-  return path.resolve(FRAMEWORK_DIR, "..", "game");
+  return "";
 }
 
 /** Print a message + usage to stderr and exit nonzero. @param {string} msg @returns {never} */
@@ -102,6 +103,7 @@ function resolveBundleJson(args, allowOversize) {
  * string, tasksDir?: string, now?: () => string, adapterOpts?: object }} [deps] @returns {Promise<void>} */
 export async function runAnalyzeCli(argv, deps = {}) {
   const projectDir = deps.projectDir ?? resolveProjectDir();
+  if (!projectDir) fail("no project configured — run `npm run setup -- <project-path>` first");
   const tasksDir =
     deps.tasksDir ?? path.join(FRAMEWORK_PLUGIN_DIR, "skills", "twin-analyze", "tasks");
   const now = deps.now ?? (() => new Date().toISOString());

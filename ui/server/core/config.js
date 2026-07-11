@@ -68,23 +68,31 @@ const SAVED = (() => {
   }
 })();
 
-/** Where the framework reads the game project from. The framework is
- * independent of the project: it points at this folder in place and never
- * vendors or tracks it. Resolution order (first hit wins):
- *   1. a path argument:        `npm start /path/to/project`
+/** Where the framework reads the project from. The framework is independent of the
+ * project: it points at this folder in place and never vendors or tracks it. Resolution
+ * order (first hit wins); when NOTHING is configured it resolves to "" — the honest
+ * "unconfigured" state (PROJECT_CONFIGURED === false) — NEVER a conjured `../viewer`/`../game`
+ * sibling (D7-no-silent-sibling-dirs): a seat is created only where the user explicitly named
+ * it. The boot banner + doctor report the unconfigured state; the session guard
+ * (projectDirMissing) refuses to spawn into a missing/empty dir.
+ *   1. a path argument:  `npm start /path/to/project`
  *   2. the GAME_DIR env var
- *   3. the saved path:         `.xenodot.json` (set once via `npm run setup`)
- *   4. default sibling:        `../game` (next to the framework folder)
- */
+ *   3. the saved path:   `.xenodot.json` (set once via `npm run setup -- <path>`)
+ * @returns {string} an absolute project path, or "" when unconfigured */
 function resolveProjectDir() {
   const argPath = args.find((a) => !a.startsWith("--"));
   if (argPath) return path.resolve(argPath);
   if (process.env.GAME_DIR) return path.resolve(process.env.GAME_DIR);
   if (SAVED.projectDir) return path.resolve(SAVED.projectDir);
-  return path.resolve(FRAMEWORK_DIR, "..", "game");
+  return "";
 }
 
+/** The project directory, or "" when no project is configured (see resolveProjectDir). */
 export const PROJECT_DIR = resolveProjectDir();
+/** Whether a project path is configured at all (arg / GAME_DIR / `.xenodot.json`). When false
+ * the framework is in the honest "unconfigured" state: the UI opens, boot + doctor say so, and
+ * nothing is scaffolded or materialized until the user names a project. */
+export const PROJECT_CONFIGURED = PROJECT_DIR !== "";
 
 /** The target engine: Godot or a source-compatible fork (Redot / Blazium). The
  * forks share Godot's project format, scene files, GDScript and CLI, so swapping
@@ -143,18 +151,27 @@ function persistEngineBin(bin) {
  * materialize / asset-write / doctor / the client, to avoid drift. */
 export const RES_ASSET_MOUNT = "x-shared-assets";
 
-/** The external "shared asset library": free-library example assets (models/textures) the
- * game uses but kept OUTSIDE its tree, so the game stays pure game. Symlinked into the game
- * at `res://x-shared-assets/` — and, unlike the knowledge library, NOT .gdignored, so Godot
- * scans and imports it. The framework is per-game, so this dir is effectively this game's,
- * just external. Resolution (first hit wins): env `XENODOT_ASSET_LIBRARY` → `.xenodot.json`
- * `assetLibrary` → default sibling `../x-shared-assets`. May start empty — the framework
- * only needs to know where it is. */
-export const ASSET_LIBRARY = path.resolve(
-  process.env.XENODOT_ASSET_LIBRARY ??
-    SAVED.assetLibrary ??
-    path.join(FRAMEWORK_DIR, "..", RES_ASSET_MOUNT),
-);
+/** An EXPLICIT external shared-asset library (env `XENODOT_ASSET_LIBRARY` → `.xenodot.json`
+ * `assetLibrary`), or null. When set it is an EXTERNAL path — shared across projects — and is
+ * symlinked into the project at `res://x-shared-assets/` (see materialize.js). */
+const EXPLICIT_ASSET_LIBRARY = process.env.XENODOT_ASSET_LIBRARY ?? SAVED.assetLibrary ?? null;
+
+/** Whether the asset library is an explicit EXTERNAL path (shared across projects, symlinked in)
+ * rather than the in-project default. Drives materialize's real-dir-vs-symlink choice. */
+export const ASSET_LIBRARY_EXTERNAL = EXPLICIT_ASSET_LIBRARY != null;
+
+/** The "shared asset library": free-library example assets (models/textures) the project uses,
+ * mounted at `res://x-shared-assets/` — and, unlike the knowledge library, NOT .gdignored, so
+ * Godot scans and imports it. By DEFAULT it lives INSIDE the project (`<project>/x-shared-assets`,
+ * a real dir created only when a named project is scaffolded/materialized) — NEVER a conjured
+ * framework sibling (D7-no-silent-sibling-dirs). An explicit EXTERNAL `assetLibrary` wins (for
+ * sharing across projects) and is symlinked in instead. "" when nothing is configured. May start
+ * empty — the framework only needs to know where it is. */
+export const ASSET_LIBRARY = EXPLICIT_ASSET_LIBRARY
+  ? path.resolve(EXPLICIT_ASSET_LIBRARY)
+  : PROJECT_CONFIGURED
+    ? path.join(PROJECT_DIR, RES_ASSET_MOUNT)
+    : "";
 
 // Resolve the engine binary ONCE and propagate it as $GODOT so the verify gate and every
 // agent shell use it with no per-call setup. The Claude Code session the SDK spawns inherits
@@ -183,7 +200,7 @@ process.env.XENODOT_LIBRARY = path.join(FRAMEWORK_PLUGIN_DIR, "library");
 // The external shared-asset library (see ASSET_LIBRARY). Exported so the spawned session,
 // its agents (asset-advisor reads/verifies the sourced file here) and validate.sh can locate
 // it regardless of cwd; the game reaches the same bytes via the res://x-shared-assets symlink.
-process.env.XENODOT_ASSET_LIBRARY = ASSET_LIBRARY;
+if (ASSET_LIBRARY) process.env.XENODOT_ASSET_LIBRARY = ASSET_LIBRARY;
 
 /** The generated per-game facts manifest (engine bin/version, render config, commands,
  * capability registry) — written by gen-manifest.js inside prepareGame(). Exported so the

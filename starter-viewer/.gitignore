@@ -19,7 +19,8 @@ assets/
 # Framework working files — generated from the xenodot plugin, not repo content
 /tools/
 /library
-# External shared-asset library — symlink to free-library example assets kept outside the game
+# Shared-asset library — in-project dir of free-library example assets (models/textures), kept out
+# of the repo; materialize creates it, or symlinks it to an external library if one is configured
 /x-shared-assets
 /transcripts/
 

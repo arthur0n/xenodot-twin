@@ -11,9 +11,11 @@
 //                verdicts/digests here; a symlink keeps the framework the single source
 //                so that knowledge persists in the plugin, not a throwaway game copy.
 //                Twin agents reach the same folded-in viewer knowledge through this mount.
-//   • x-shared-assets/ — SYMLINKED to the external asset library (config.js ASSET_LIBRARY):
-//                free-library example assets the game uses but keeps OUTSIDE its tree. Unlike
-//                library/, this link is NOT .gdignored — Godot must scan & import it.
+//   • x-shared-assets/ — the project's res:// asset mount (config.js ASSET_LIBRARY): free-library
+//                example assets the project uses but keeps out of its committed tree. By default a
+//                REAL dir INSIDE the project; an explicit external `assetLibrary` config makes it a
+//                SYMLINK into a shared library instead. Unlike library/, NOT .gdignored — Godot
+//                must scan & import it.
 import {
   existsSync,
   mkdirSync,
@@ -29,7 +31,12 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { FRAMEWORK_PLUGIN_DIR, ASSET_LIBRARY, RES_ASSET_MOUNT } from "../core/config.js";
+import {
+  FRAMEWORK_PLUGIN_DIR,
+  ASSET_LIBRARY,
+  ASSET_LIBRARY_EXTERNAL,
+  RES_ASSET_MOUNT,
+} from "../core/config.js";
 import { generateManifest } from "./gen-manifest.js";
 import { generateCapabilities } from "./gen-capabilities.js";
 
@@ -119,22 +126,31 @@ export function ensureLibraryLink(projectDir) {
   );
 }
 
-/** Ensure <projectDir>/x-shared-assets is a symlink to the external shared-asset library
- * (config.js ASSET_LIBRARY) — free-library example assets the game uses but keeps OUTSIDE its
- * tree. NOTE: unlike ensureLibraryLink (whose source carries a .gdignore so Godot skips it),
- * this link MUST be scanned by Godot — do NOT add a .gdignore anywhere up this chain, or the
- * assets silently fail to import. Creates the external dir + its models/ and textures/ subdirs
- * first (it may start empty) so the symlink resolves. Idempotent: repoints a stale link, but
- * leaves a real directory untouched (a game that vendored its own).
+/** Ensure the project's `res://x-shared-assets/` mount is ready — free-library example assets the
+ * project uses but keeps out of its committed tree. Two shapes:
+ *   • DEFAULT (in-project): the mount IS the library — a REAL dir at `<projectDir>/x-shared-assets`,
+ *     created here only for the project the user named. No framework sibling is ever conjured
+ *     (D7-no-silent-sibling-dirs).
+ *   • EXTERNAL (explicit `assetLibrary` config): the library lives elsewhere (shared across
+ *     projects) and the mount is a SYMLINK into it.
+ * NOTE: unlike ensureLibraryLink (whose source carries a .gdignore so Godot skips it), this mount
+ * MUST be scanned by Godot — do NOT add a .gdignore anywhere up this chain, or the assets silently
+ * fail to import. Creates the models/ and textures/ subdirs (it may start empty). Idempotent:
+ * repoints a stale link, but leaves a real directory untouched (a project that vendored its own).
  * @param {string} projectDir @returns {{linked:boolean, reason:string}} */
 export function ensureAssetLibraryLink(projectDir) {
+  const mount = path.join(projectDir, RES_ASSET_MOUNT);
+  if (!ASSET_LIBRARY_EXTERNAL) {
+    // In-project default: the mount itself is the real library. Create it in the named project only.
+    const existed = existsSync(mount);
+    mkdirSync(path.join(mount, "models"), { recursive: true });
+    mkdirSync(path.join(mount, "textures"), { recursive: true });
+    return { linked: true, reason: existed ? "in-project" : "created in-project" };
+  }
+  // External library (explicit config): create it + symlink the mount into it.
   mkdirSync(path.join(ASSET_LIBRARY, "models"), { recursive: true });
   mkdirSync(path.join(ASSET_LIBRARY, "textures"), { recursive: true });
-  return ensureSymlink(
-    ASSET_LIBRARY,
-    path.join(projectDir, RES_ASSET_MOUNT),
-    `a real ${RES_ASSET_MOUNT}/ exists — left untouched`,
-  );
+  return ensureSymlink(ASSET_LIBRARY, mount, `a real ${RES_ASSET_MOUNT}/ exists — left untouched`);
 }
 
 /** Prepare a game directory to be driven by the framework: tools copied, library linked,
@@ -177,6 +193,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(1);
   }
   const target = arg ? path.resolve(arg) : PROJECT_DIR;
+  // Never materialize into "nowhere": with no arg AND no configured project there is no seat to
+  // prepare — refuse rather than mkdir tools/ into the framework's own cwd (D7-no-silent-sibling-dirs).
+  if (!target) {
+    console.error(
+      "materialize: no project configured and no path given.\n" +
+        "  Usage: npm run materialize -- <project-path>   (or run `npm run setup -- <path>` first)",
+    );
+    process.exit(1);
+  }
   const { tools, lib, assets } = prepareGame(target);
   console.log(
     `materialize: ${target} — tools copied ${tools.copied}/${tools.copied + tools.fresh}` +

@@ -80,19 +80,31 @@ Numbers from the spike + benchmark findings in [`plugin/library/findings/`](plug
 Requires [Claude Code](https://claude.com/claude-code), Node 18+, and a Godot-family 4.x binary
 (see [Requirements](#requirements)).
 
+**Per-project workspace.** The framework clone and the viewer it drives sit side by side under one
+folder **you name** — the framework never invents a sibling for you:
+
+```
+my-twin/                 ← a workspace folder you created
+├── xenodot-twin/        ← this framework (the clone)
+└── plant/               ← the viewer project the framework scaffolds + drives
+```
+
 ```bash
+mkdir my-twin && cd my-twin
 git clone https://github.com/arthur0n/xenodot-twin.git
 cd xenodot-twin
 npm install
-npm run validate        # tsc + eslint + gates — should be green out of the box
+npm run validate         # tsc + eslint + gates — should be green out of the box
 
-npm run new -- ../plant  # scaffold a digital-twin VIEWER next door (projectType: viewer)
+npm run new -- ../plant  # scaffold a digital-twin VIEWER beside the clone (an EXPLICIT path)
 npm start ../plant       # web UI on http://localhost:8338
 ```
 
-`npm run new -- <path>` scaffolds a viewer by default — there is no game path in this fork (see
-[Lineage](#lineage)). It copies the viewer starter, remembers the path, materializes the plugin's
-per-project tools, symlinks the shared library, and health-checks with `doctor`.
+`npm run new -- <project-path>` **requires** an explicit path — it scaffolds only where you name it,
+never a default sibling. It builds a viewer (there is no game path in this fork, see
+[Lineage](#lineage)): copies the viewer starter, remembers the path, materializes the plugin's
+per-project tools, creates the in-project `x-shared-assets/` asset library, symlinks the shared
+knowledge library, and health-checks with `doctor`.
 
 Prefer a detached server that survives the terminal? Use the launcher:
 

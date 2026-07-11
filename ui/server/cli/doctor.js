@@ -11,11 +11,13 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import {
   PROJECT_DIR,
+  PROJECT_CONFIGURED,
   FRAMEWORK_PLUGIN_DIR,
   ENGINE,
   ENGINE_LABEL,
   PROFILE,
   RES_ASSET_MOUNT,
+  ASSET_LIBRARY_EXTERNAL,
 } from "../core/config.js";
 import { prepareGame } from "./materialize.js";
 import { readPromotions, approvedPending } from "../features/promotions/promotions-store.js";
@@ -67,16 +69,37 @@ function libraryLinked() {
   }
 }
 
-/** @returns {boolean} */
-function assetLibraryLinked() {
+/** Whether the res://x-shared-assets mount is present — a real in-project dir (the default) or a
+ * symlink into an external shared library. @returns {boolean} */
+function assetMountReady() {
   try {
-    return lstatSync(path.join(PROJECT_DIR, RES_ASSET_MOUNT)).isSymbolicLink();
+    lstatSync(path.join(PROJECT_DIR, RES_ASSET_MOUNT));
+    return true;
   } catch {
     return false;
   }
 }
 
-// Bring the game's generated files up to date (tools copied, library linked), then check.
+// Honest unconfigured / missing states (D7-no-silent-sibling-dirs): there is nothing to check and,
+// crucially, nothing to materialize — refuse rather than mkdir tools/ into a phantom seat. (The
+// live session guard `projectDirMissing` covers the same for the spawn path; this covers the CLI.)
+if (!PROJECT_CONFIGURED) {
+  console.error(
+    "doctor: no project configured. Name your viewer and point the framework at it:\n" +
+      "  npm run setup -- <project-path>      (or scaffold one: npm run new -- <project-path>)\n" +
+      "See the per-project workspace layout in the README Quickstart.",
+  );
+  process.exit(1);
+}
+if (!existsSync(PROJECT_DIR)) {
+  console.error(
+    `doctor: configured project directory is missing: ${PROJECT_DIR}\n` +
+      "  repoint it: npm run setup -- <project-path>",
+  );
+  process.exit(1);
+}
+
+// Bring the project's generated files up to date (tools copied, library linked), then check.
 prepareGame(PROJECT_DIR);
 
 const pluginAgents = countFiles(path.join(FRAMEWORK_PLUGIN_DIR, "agents"), ".md");
@@ -127,9 +150,11 @@ const checks = [
   },
   { ok: libraryLinked(), hard: false, label: "library/ symlinked to the plugin" },
   {
-    ok: assetLibraryLinked(),
+    ok: assetMountReady(),
     hard: false,
-    label: `${RES_ASSET_MOUNT}/ symlinked to the external asset library`,
+    label: ASSET_LIBRARY_EXTERNAL
+      ? `${RES_ASSET_MOUNT}/ symlinked to the external asset library`
+      : `${RES_ASSET_MOUNT}/ present in the project (in-project asset library)`,
   },
   { ok: hasRtk(), hard: false, label: "rtk on PATH (optional — hook no-ops without it)" },
   {

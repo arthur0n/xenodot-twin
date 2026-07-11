@@ -56,8 +56,8 @@ The city scene, its optimized variants, and the bench reports are all **regenera
 nothing here is meant to be committed. Do it in a disposable sibling project:
 
 ```bash
-# From inside the framework clone:
-npm run new -- ../city-scale --viewer      # prints "doctor: OK"
+# From inside the framework clone (the path is REQUIRED — no default sibling is invented):
+npm run new -- ../city-scale      # prints "doctor: OK"
 cd ../city-scale
 
 # Get a Duplex GLB in place (the same pinned-venv convert the house tutorial teaches):

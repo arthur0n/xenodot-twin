@@ -79,7 +79,11 @@ never deletes/overwrites beyond the recorded fix. Run it caveman.
    - **D6 (orchestrator):** apply the recorded edit to `ui/orchestrator.md` (centralize a
      duplicated directive, move dense prose into a skill, or trim).
    - **D7 (command):** edit the target command per the finding — a shipped `plugin/commands/*.md`
-     or a forge-local `.claude/commands/*.md` (the self-improvement commands audited under D7).
+     or a forge-local `.claude/commands/*.md` (the self-improvement commands audited under D7). "Command"
+     also covers the forge CLI subcommands (`forge new`, `setup`, `doctor`, `materialize`, …), whose
+     BEHAVIOR lives in `ui/server/cli/*.js` (+ shared `core/config.js`) — when the finding is about a
+     command's runtime behavior, not its prose, the target is the Node code, and the fix runs `rtk npm
+run validate` (a doc-only D7 does not).
    - **D8 (verification-flow gap):** apply the recorded edit at the named layer — add the missing
      `## Verification (mandatory)` block to the builder, wire the claimed step into
      `plugin/tools/lib/checks.sh` / `plugin/tools/validate.sh` (or correct the skill's claim), or

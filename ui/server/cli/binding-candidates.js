@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { FRAMEWORK_DIR, CONFIG_FILE } from "../core/config.js";
+import { CONFIG_FILE } from "../core/config.js";
 import { parseJSON } from "../../lib/json.js";
 import { parseArgs } from "../../../plugin/tools/sim/stream.js";
 import {
@@ -33,7 +33,9 @@ const USAGE =
 
 /** Resolve the project root to scan for sidecars. Mirrors analyze-cli's precedence WITHOUT config's
  * argv scan (this CLI's `--model <value>` would leave a non-`--` token config could misread as a
- * path): GAME_DIR → `.xenodot.json` projectDir → `../game`. @returns {string} */
+ * path): GAME_DIR → `.xenodot.json` projectDir → "" (unconfigured). Never a conjured `../game`
+ * sibling (D7-no-silent-sibling-dirs) — the caller fails honestly on "".
+ * @returns {string} an absolute project path, or "" when unconfigured */
 function resolveProjectDir() {
   if (process.env.GAME_DIR) return path.resolve(process.env.GAME_DIR);
   try {
@@ -42,9 +44,9 @@ function resolveProjectDir() {
     );
     if (saved.projectDir) return path.resolve(saved.projectDir);
   } catch {
-    /* absent/invalid — fall through to the default sibling */
+    /* absent/invalid — unconfigured */
   }
-  return path.resolve(FRAMEWORK_DIR, "..", "game");
+  return "";
 }
 
 /** Print a FAIL verdict (stdout, greppable like the OK path — verdict on EVERY terminal path) plus
@@ -93,6 +95,7 @@ export function runBindingCli(argv, deps = {}) {
   const args = parseArgs(argv);
   const asJson = argv.includes("--json");
   const projectDir = deps.projectDir ?? resolveProjectDir();
+  if (!projectDir) fail("no project configured — run `npm run setup -- <project-path>` first");
   try {
     // parseArgs omits absent flags (undefined) and gives "" to a value-less one; both read as
     // "no filter" downstream (resolveSidecarPath treats "" as absent, queryCandidates trims it).

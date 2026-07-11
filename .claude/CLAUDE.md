@@ -23,7 +23,7 @@ Rules for working **on the framework itself** (the Node/TS web UI and tooling un
   `doctor`, `materialize`, `update-badges`, `release-*`). New files go in the matching domain.
 - `ui/client/` — browser modules, grouped by domain: `core/` (state, transport, dom/render
   helpers, `main.js` entry) and `features/{chat,activity,tasks,approvals,agents,settings,
-sessions,promotions,project,level-editor,assets}/`. `ui/lib/` — shared JSDoc typedefs + helpers.
+sessions,promotions,project,assets}/`. `ui/lib/` — shared JSDoc typedefs + helpers.
 - `plugin/` — the **xenodot** Claude Code plugin: the framework's agents, skills, tools, hooks
   and knowledge base (`library/`). ONE plugin — the engine-generic base and the digital-twin
   domain (the `twin-*` prefix) ship together. The single source of truth, loaded into every
@@ -31,5 +31,8 @@ sessions,promotions,project,level-editor,assets}/`. `ui/lib/` — shared JSDoc t
   installs it once (`.claude-plugin/marketplace.json`). Capabilities namespace as `xenodot:<name>`.
 - `starter-viewer/` — the minimal Godot viewer project + thin templates `forge new` scaffolds
   into a new digital-twin viewer.
-- Never put project-specific files in the framework; it points at an external viewer (default
-  `../viewer`), reads it in place, and the viewer stays pure project.
+- Never put project-specific files in the framework; it points at an external viewer, reads it in
+  place, and the viewer stays pure project. The viewer path is ALWAYS explicit — `forge new`/`setup`
+  require it and never conjure a `../viewer` sibling (per-project workspace: `<name>/{xenodot-twin/,
+viewer/}`). Unconfigured is an honest state the server + doctor report; nothing is scaffolded until
+  the user names a project.

@@ -14,6 +14,7 @@ import { parseJSON } from "../../lib/json.js";
 import {
   PORT,
   PROJECT_DIR,
+  PROJECT_CONFIGURED,
   PROJECT_FOUND,
   CONFIG_FILE,
   FRAMEWORK_DIR,
@@ -500,23 +501,42 @@ wss.on("close", () => {
 
 /** What runs once the server is actually listening. */
 function onListening() {
-  console.log(`UI on http://localhost:${PORT} — project: ${PROJECT_DIR}`);
+  console.log(
+    `UI on http://localhost:${PORT} — project: ${PROJECT_CONFIGURED ? PROJECT_DIR : "(none configured)"}`,
+  );
   // Boot-time cleanup: clear last session's transient builder handoff files (all consumed
   // by now). Deterministic, stateless — see reapHandoffs / the Handoffs orchestrator rule.
   reapHandoffs();
   // Bring up the Hermes gateway too when Hermes is on (opt-in, skipped if already up).
   // Non-blocking and non-fatal: the UI is fully usable whether or not this succeeds.
   void maybeStartHermesGateway();
-  if (!PROJECT_FOUND) {
+  if (!PROJECT_CONFIGURED) {
+    // Honest unconfigured state — no seat conjured (D7-no-silent-sibling-dirs). The UI opens on the
+    // empty state; nothing is scaffolded until the user names a project.
+    console.warn(
+      [
+        "",
+        "⚠  No project configured — the framework is not pointed at a viewer yet.",
+        "   The UI will open but show no sessions or files until you name one.",
+        "   Per-project workspace: the framework clone and the viewer sit side by side under a",
+        "   folder you named. Scaffold or point at your viewer (it stays pure — read in place):",
+        "     • scaffold:  npm run new -- <project-path>",
+        "     • existing:  npm run setup -- <project-path>   (then `npm start`)",
+        "     • one-off:   npm start <project-path>",
+        `   The chosen target is saved in ${CONFIG_FILE}.`,
+        "",
+      ].join("\n"),
+    );
+  } else if (!PROJECT_FOUND) {
     console.warn(
       [
         "",
         `⚠  No ${ENGINE_LABEL} project at: ${PROJECT_DIR}`,
         "   The UI will open but show no sessions or files until it points at one.",
-        "   Point it at your game (the framework only reads it — it stays in place):",
-        "     • once:      npm run setup -- /path/to/your/game",
-        "     • one-off:   npm start /path/to/your/game",
-        `   Current target is set in ${CONFIG_FILE} (or defaults to ../game).`,
+        "   Point it at your project (the framework only reads it — it stays in place):",
+        "     • once:      npm run setup -- <project-path>",
+        "     • one-off:   npm start <project-path>",
+        `   Current target is set in ${CONFIG_FILE}.`,
         "",
       ].join("\n"),
     );
