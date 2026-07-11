@@ -423,6 +423,29 @@ body.resizing iframe {
   background: var(--amber);
 }
 
+/* Staleness chip — an on-disk change (edited skill/agent, orchestrator prompt, block file, or
+   project config) that the RUNNING session/server hasn't loaded. Amber like the approvals pill
+   (it too wants a deliberate click), with the ⟳ signalling the one-click restart it offers. */
+.stale-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--amber);
+  background: var(--hazard), color-mix(in oklab, var(--amber) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--amber) 42%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.stale-chip:hover {
+  background: color-mix(in oklab, var(--amber) 17%, transparent);
+}
+
 /* Autonomous Mode flag in the top bar — dim when off, Forge-green + pulsing when on */
 .auto-pill {
   display: flex;

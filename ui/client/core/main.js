@@ -17,6 +17,7 @@ import { initTranscript } from "../features/sessions/transcript.js";
 import { initGetAssets } from "../features/assets/get-assets.js";
 import { initSettings, maybeAutoOpenSkillSetup } from "../features/settings/settings.js";
 import { initAutonomous } from "../features/autonomous/autonomous.js";
+import { initStaleness } from "../features/staleness/staleness.js";
 import { send } from "./websocket.js";
 import { $, $input } from "./dom.js";
 
@@ -38,6 +39,7 @@ initGetAssets();
 initTranscript();
 initSettings();
 initAutonomous();
+initStaleness();
 void maybeAutoOpenSkillSetup();
 
 $input("mode-select").onchange = () => {
