@@ -41,6 +41,25 @@
 - **License:** self-owned; released under the repository's license as example data for the
   try-it kit. No upstream terms apply (nothing was sourced).
 
+## `plant.usda`
+
+- **What it is:** the **OpenUSD** sibling of `plant.ifc` — the same synthetic tank-farm / pump-skid
+  demonstration model (4 tank prisms, 3 pump boxes, a 5-segment header run, 3 inline valves =
+  **15 `UsdGeom.Mesh` prims**), authored so the USD import path (`tools/usd_convert.py`) has a
+  bundled sample. It has **no real-world provenance** and must never be presented as as-built.
+- **Provenance:** **self-owned / generated** — NOT a mirror of any public USD asset. Emitted by
+  `gen_plant_usd.py` (bundled beside this file); the "synthetic demonstration model" label is
+  written into the stage's `customLayerData` and the generator's docstring.
+- **How to reproduce it:** in the pinned 3.12 usd-core venv,
+  `.venv-usd/bin/python plugin/examples/gen_plant_usd.py --seed 42 --tanks 4 --pumps 3
+--out plant.usda`. Same `--seed` ⇒ identical stage (the prim paths — the join key — are structural;
+  property values come from a seeded PRNG). `usdchecker plant.usda` → `Success!`.
+- **Schema:** OpenUSD (`.usda`, ASCII crate), `upAxis=Y`, `metersPerUnit=1`.
+- **Size / integrity:** ~14.6 KB (14,609 bytes).
+  `sha256 = 1c2451ffbe599be13561e2704c1fb37ea5c47349b82711b5fe5647d169aecc26`
+- **License:** self-owned; released under the repository's license as example data. No upstream
+  terms apply (nothing was sourced).
+
 The rest of this kit (`binding_map.example.json`, `binding_map.plant.example.json`,
-`viewer.cfg.example`, `viewer.cfg.plant.example`, `gen_plant_ifc.py`, `README.md`) is authored
-for xenodot-twin and released under the repository's license.
+`viewer.cfg.example`, `viewer.cfg.plant.example`, `gen_plant_ifc.py`, `gen_plant_usd.py`,
+`README.md`) is authored for xenodot-twin and released under the repository's license.

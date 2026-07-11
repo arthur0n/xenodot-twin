@@ -167,6 +167,56 @@ uv venv --python 3.12 .venv-ifc && uv pip install --python .venv-ifc/bin/python 
 
 `npm run onboard:check` reports `uv`/Python status up front so you catch this before you build.
 
+## …or your own USD
+
+The same pipeline takes an **OpenUSD** stage (`.usd` / `.usda` / `.usdc`) — `twin_build.sh` routes
+it by extension to `tools/usd_convert.py`, no second pipeline. Only two things differ from IFC: the
+pinned venv (`.venv-usd` with `usd-core`, provisioned the same way by `--provision`), and the join
+key. USD's stable id is the **prim path**, sanitized into a node-name / sidecar key:
+
+```
+/Plant/Tanks/TK_101   →   Plant__Tanks__TK_101      (strip leading '/', '/'→'__', other → '_')
+```
+
+That sanitization IS the join contract — the GLB node and the sidecar key are produced by the same
+rule, so the generic join gate and the binder join on it unchanged. One command, using the bundled
+`plugin/examples/plant.usda` as a stand-in for "your own USD":
+
+```bash
+mkdir -p models && cp /path/to/xenodot-twin/plugin/examples/plant.usda models/
+tools/twin_build.sh models/plant.usda --provision --auto-map
+```
+
+Preflight provisions `.venv-usd`, import reads the mesh prims, and `--auto-map` reads the USD sidecar
+and picks a spread across prim-path groups (Tanks/Pumps/Header/Valves — the auto-mapper is
+sidecar-generic: IFC `ifc_class` or USD prim-path parent segment):
+
+```
+twin-build: PASS preflight (engine + .venv-usd/pxr present)
+opened models/plant.usda upAxis=Y
+GLB written: models/plant.glb — 15 nodes (4944 bin bytes) in 0.0s
+gen_binding_map: OK — 12 binding(s) → models/plant_auto_binding_map.json (VERDICT: GEN-BINDING-MAP OK)
+```
+
+The same two gates prove the build — join coverage on the sanitized prim path, then resolution +
+live drive (real-run outputs on the bundled stage):
+
+```
+SIDECAR_KEYS=15
+JOIN: 15/15 (100.0%)
+JOIN-GATE: OK (min 95.0%)
+
+viewer: model loaded from models/plant_opt.tscn
+viewer: bindings resolved 12/12
+```
+
+Boot it exactly as the IFC path (Step 5), pointing `--model=` / `--binding-map=` at the USD build's
+`models/plant_opt.tscn` + `models/plant_auto_binding_map.json`. **Honest scope:** this route
+tessellates authored polygon **meshes** — implicit prims (`UsdGeom.Sphere/Cylinder/Cube`) are
+skipped, so a stage built from them needs a prior tessellation pass (guc / Blender headless). The
+bundled sample authors real meshes on purpose. Full evidence + limits:
+[`../../plugin/library/findings/twin-usd-import-2026-07-11.md`](../../plugin/library/findings/twin-usd-import-2026-07-11.md).
+
 ---
 
 **Footnote — the one-line convenience.** `npm run byo -- /path/to/your.ifc --project /path/you/choose`

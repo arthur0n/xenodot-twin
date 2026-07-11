@@ -1,5 +1,8 @@
-// tools/gen_binding_map.js — turn an IFC property sidecar (`<stem>_props.json`, written by
-// ifc_convert.py) into a VALID binding map (`{version, bindings:[…]}`) with ZERO hand-authoring.
+// tools/gen_binding_map.js — turn a property sidecar (`<stem>_props.json`, written by
+// ifc_convert.py OR usd_convert.py) into a VALID binding map (`{version, bindings:[…]}`) with ZERO
+// hand-authoring. Sidecar-generic: an IFC entry carries `ifc_class`, a USD entry carries
+// `{type, prim_path}` — `classOf()` reads either, and the sidecar KEY (GlobalId or sanitized prim
+// path) becomes the binding's stable join id unchanged.
 // The "bring your own IFC" seam: nothing else synthesizes a map today (binding-candidates.js only
 // LISTS candidate GlobalIds), so a stranger's file could import + join but never paint. This picks
 // a small spread of real elements across distinct IFC classes and emits the schema binding_map.gd
@@ -105,6 +108,28 @@ const RECOGNIZABLE_PREFIXES = [
  * the `ifcbuilding` prefix with the non-geometric IfcBuilding/IfcBuildingStorey — special-cased. */
 const GEOMETRIC_OVERRIDE_PREFIX = "ifcbuildingelement";
 
+/** The join-class of a sidecar entry, format-generically. An IFC entry (ifc_convert.py) carries
+ * `ifc_class` (e.g. "IfcPump") — used verbatim, so the IFC path is unchanged and byte-identical. A
+ * USD entry (usd_convert.py) has NO class field: its sidecar is `{type, prim_path, name, attributes}`,
+ * so the "class" is derived from the prim path's PARENT segment (`/Plant/Tanks/TK_101` → "Tanks"),
+ * which groups siblings the way an IFC class groups its instances — a meaningful spread for the
+ * round-robin. The prim `type` ("Mesh") would collapse every element into one bucket, so it is only
+ * the last-ditch fallback. Returns "" (⇒ skipped) when nothing usable is present.
+ * @param {Record<string, unknown>} entry @returns {string} */
+function classOf(entry) {
+  const ifcClass = entry.ifc_class;
+  if (typeof ifcClass === "string" && ifcClass) return ifcClass;
+  const primPath = entry.prim_path;
+  if (typeof primPath === "string" && primPath) {
+    const segs = primPath.split("/").filter(Boolean);
+    if (segs.length >= 2) return segs[segs.length - 2] ?? "";
+    if (segs.length === 1) return segs[0] ?? "";
+  }
+  const type = entry.type;
+  if (typeof type === "string" && type) return type;
+  return "";
+}
+
 /** @param {string} ifcClass @returns {boolean} true when the class reliably carries render geometry. */
 function isGeometric(ifcClass) {
   const cl = ifcClass.toLowerCase();
@@ -141,7 +166,7 @@ function collectByClass(sidecar) {
   for (const [globalId, raw] of Object.entries(sidecar)) {
     if (typeof raw !== "object" || raw === null) continue;
     const entry = /** @type {Record<string, unknown>} */ (raw);
-    const ifcClass = typeof entry.ifc_class === "string" ? entry.ifc_class : "";
+    const ifcClass = classOf(entry);
     if (!ifcClass || !isGeometric(ifcClass)) continue;
     const name = typeof entry.name === "string" ? entry.name : null;
     const bucket = byClass.get(ifcClass) ?? [];
@@ -149,7 +174,9 @@ function collectByClass(sidecar) {
     byClass.set(ifcClass, bucket);
   }
   for (const bucket of byClass.values()) {
-    bucket.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "") || a.globalId.localeCompare(b.globalId));
+    bucket.sort(
+      (a, b) => (a.name ?? "").localeCompare(b.name ?? "") || a.globalId.localeCompare(b.globalId),
+    );
   }
   return byClass;
 }
@@ -250,8 +277,9 @@ export function buildBindingMap(sidecar, opts = {}) {
     version: 1,
     _about:
       `Auto-generated binding map (tools/gen_binding_map.js) — ${bindings.length} tag(s) across ` +
-      `${classes} IFC class(es), picked from the property sidecar. Each row binds a synthesized ` +
-      `tag to a REAL element by its 22-char GlobalId; the sim (tools/sim/server.js --map) derives ` +
+      `${classes} class(es), picked from the property sidecar. Each row binds a synthesized ` +
+      `tag to a REAL element by its stable id (IFC GlobalId, or USD prim path); the sim ` +
+      `(tools/sim/server.js --map) derives ` +
       `its tag table + [min,max] from here, so data and geometry never drift. The ramps/ranges are ` +
       `neutral defaults — retune each row for the element's real telemetry before shipping.`,
     bindings,
@@ -343,7 +371,9 @@ export function runCli(argv) {
     );
   } else {
     process.stdout.write(json);
-    console.error(`gen_binding_map: OK — ${map.bindings.length} binding(s) (VERDICT: GEN-BINDING-MAP OK)`);
+    console.error(
+      `gen_binding_map: OK — ${map.bindings.length} binding(s) (VERDICT: GEN-BINDING-MAP OK)`,
+    );
   }
 }
 
