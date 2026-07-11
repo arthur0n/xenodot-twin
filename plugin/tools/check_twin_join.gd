@@ -185,19 +185,22 @@ func _write_json(
 ## stale count is inherited. The gate is already exiting non-zero on these paths; the write is what
 ## clobbers the stale green (its own failure can't make an already-failing gate any greener).
 func _write_setup_fail(reason: String) -> void:
-	GateReport.merge_write(
-		json_path,
-		{
-			"join_matched": 0,
-			"join_total": 0,
-			"join_pct": 0.0,
-			"join_gate": "FAIL",
-			"join_stage": "setup",
-			"join_reason": reason,
-			"join_min_pct": snappedf(min_ratio * 100.0, 0.1),
-			"join_checked_at": GateReport.now_iso(),
-		},
-		"JOIN"
+	(
+		GateReport
+		. merge_write(
+			json_path,
+			{
+				"join_matched": 0,
+				"join_total": 0,
+				"join_pct": 0.0,
+				"join_gate": "FAIL",
+				"join_stage": "setup",
+				"join_reason": reason,
+				"join_min_pct": snappedf(min_ratio * 100.0, 0.1),
+				"join_checked_at": GateReport.now_iso(),
+			},
+			"JOIN"
+		)
 	)
 
 

@@ -71,10 +71,12 @@ static func merge_write(json_path: String, fields: Dictionary, gate_label: Strin
 	if fh == null:
 		push_error(
 			(
-				"%s: could not write --json=%s (%s) — FAILING the gate: an unwritten verdict must"
-				+ " never leave a prior green struct standing"
+				(
+					"%s: could not write --json=%s (%s) — FAILING the gate: an unwritten verdict must"
+					+ " never leave a prior green struct standing"
+				)
+				% [gate_label, out_path, error_string(FileAccess.get_open_error())]
 			)
-			% [gate_label, out_path, error_string(FileAccess.get_open_error())]
 		)
 		return false
 	fh.store_string(JSON.stringify(merged, " "))

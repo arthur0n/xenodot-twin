@@ -2,7 +2,7 @@
 
 # Framework audit ledger
 
-**open (fix-now): 10 · later: 14 · skip: 3**
+**open (fix-now): 9 · later: 14 · skip: 3**
 
 _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k subagent tokens); D1/D4 clean; filed 7 no-brainers + 7 improvements + 3 laters + 1 skip-tombstone. Self-fixed framework-audit.md in-pass: sibling list → glob (×2, was silently omitting token-audit.md), tools/ → plugin/tools/ in D8, Never-bullet no longer recommends the rtk grep it bans. Process note: fan-out gather worked but D9-audit-fanout single-agent comparison still unmeasured. Same day: integrated external review iter1 (86 extracted items → 1 no-brainer + 2 improvements + 4 laters filed after 3-agent repo-state verification; 1 existing row upgraded to MEASURED; roadmap waves parked as pointer; 2 review claims already resolved in repo).
 
@@ -12,7 +12,7 @@ _Last audit:_ 2026-07-08 — full 9-dim fan-out pass (8 gather agents, ~355k sub
 
 _none_
 
-## Bucket 4 — improvements (10) · fix-now · needs judgment (/framework-audit-fix)
+## Bucket 4 — improvements (9) · fix-now · needs judgment (/framework-audit-fix)
 
 - **D6-magic-number-dup** · `D6` · _open_ — ui/orchestrator.md:8 restates godot-code-rules' no-magic-tuning rule near-verbatim (same lerpf/score_value examples; the skill already loads into all 9 builders); trim to a one-line routing directive pointing at the rule.
 - **D3-main-scene-camera** · `D3` · _open_ — godot-main-scene silently assumes the orthographic paradigm (:18 CameraRig in Main, :33 'levels must not ship a camera') contradicting the FPS sibling where the camera lives inside the player; scope the description + add a paradigm note mirroring the fps/ortho sibling split — don't rewrite the skill.
@@ -23,7 +23,6 @@ _none_
 - **D7-negative-rule-loop** · `D7` · _open_ — Self-improvement loop breaks its own anti-negative-instruction principle: LEDGER.json findings are 'problem+fix' with NO positive-exemplar field, and the 5 workflow commands each ship a literal '## Never' bullet list (framework-audit 18, -fix 15, harvest-sessions 14, framework-feedback 10, token-audit 8). Add a `pattern` (one-line 'here is the good pattern') field to the finding schema (LEDGER.json + README:23-46 + the 3 append commands) and rewrite the commands' '## Never' into positive '## Do this' exemplars (keep genuine irreversibility/safety guardrails as-is); warn-only check:negative-rules lint (precedent: check:contamination/check:skills) catches regressions. CRITICAL: shipped game-skill Never/Don't counts (godot-enemy-ai 20, godot-verify 19...) are MOSTLY FALSE POSITIVES — troubleshooting symptom labels ('enemy never moves') + already-positive guardrails; do NOT bulk-flip those, the real target is the workflow commands' own Never-lists.
 - **D7-upstream-staleness** · `D7` · _open_ — Fork silently drifts behind upstream: /sync-upstream (.claude/commands/sync-upstream.md) has NEVER been exercised and nothing measures or surfaces staleness — the `upstream` remote (arthur0n/xenodot-forge) exists but no check runs `git fetch upstream && git rev-list --count HEAD..upstream/main`; add a warn-only staleness line (doctor.js or a check:\* script): 'N upstream commits unsynced — run /sync-upstream' (human picks the surface + whether network-in-gate is acceptable).
 - **D6-framework-spine-no-owner** · `D6` · _open_ — Convention article 2 (docs/process/convention.md) lacks a SPECIALIZATION TEST and so over-triggers: it reads as 'every domain needs an owning agent', which prompted an unjustified generic framework-dev agent (created + deleted 2026-07-11). Add one line to article 2: a custom agent is justified only by specialized skills/tools/knowledge (godot-dev pattern) or a hard guardrail charter + cheaper model (framework-nobrainer-fixer pattern); for unspecialized work (plain Node spine fixes) the general agent IS the framework-correct route, not a gap.
-- **D9-toolchain-drift** · `D9` · _open_ — Dev toolchain drifts silently from committed source: gdformat 4.5.0 reformats 3 committed .gd files (check_twin_join, smoke_binding, gate_report) and Godot 4.6.3 fails smoke_binding.gd on unsafe-cast warnings-as-errors — pristine main fails its own format gate on this machine (surfaced 2026-07-11 by the BYO acceptance run). Fix: pin the expected Godot + gdtoolkit versions in one addressable place, doctor checks actual vs pinned (warn with the exact mismatch), and reconcile the 3 files with the pinned formatter so a fresh clone's gates are green by construction.
 
 ## Bucket 5 — later (14) · system / parked
 

@@ -99,20 +99,26 @@ func _run() -> void:
 ## time math depends on the Hz the sim actually runs at, and a re-hardcoded default is exactly the
 ## parallel state the shared contract removes. Returns false on failure so _run() can bail.
 func _load_contract() -> bool:
-	var here := (get_script() as Resource).resource_path.get_base_dir()
+	# Typed assignments (not `as` casts) keep this green under unsafe-cast warnings-as-errors.
+	var this_script: Script = get_script()
+	var here := this_script.resource_path.get_base_dir()
 	var txt := FileAccess.get_file_as_string(here.path_join("tool_config.json"))
 	var parsed: Variant = JSON.parse_string(txt)
-	if not (parsed is Dictionary) or not (parsed as Dictionary).has("hz"):
+	var contract: Dictionary = parsed if parsed is Dictionary else {}
+	if not contract.has("hz"):
 		print(
 			(
-				"BIND-SMOKE: FAIL — cannot read integer 'hz' from tools/tool_config.json (%s) — the"
-				+ " shared tool contract the sim and this smoke MUST agree on"
+				(
+					"BIND-SMOKE: FAIL — cannot read integer 'hz' from tools/tool_config.json (%s) — the"
+					+ " shared tool contract the sim and this smoke MUST agree on"
+				)
+				% here.path_join("tool_config.json")
 			)
-			% here.path_join("tool_config.json")
 		)
 		quit(1)
 		return false
-	stream_hz = int((parsed as Dictionary)["hz"])
+	var hz: float = contract["hz"]  # JSON numbers parse as float; int() restores the contract type
+	stream_hz = int(hz)
 	return true
 
 
