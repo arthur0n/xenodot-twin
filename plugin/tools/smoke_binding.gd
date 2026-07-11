@@ -43,21 +43,12 @@ const DataBusScript := preload("res://core/data_bus.gd")
 const CONNECT_TIMEOUT_MS := 6000
 
 ## Frames that must arrive before the connection counts as "up" — proves the stream flows, not just
-## that the socket opened. A handful is enough at STREAM_HZ without stretching the bounded run.
+## that the socket opened. A handful is enough at stream_hz without stretching the bounded run.
 const CONNECT_MIN_FRAMES := 3
 
-## Default sampling gap for the node-drive assertion (ms). ~1.5 s spans several STREAM_HZ frames, so
+## Default sampling gap for the node-drive assertion (ms). ~1.5 s spans several stream_hz frames, so
 ## two albedo samples reliably differ if the viewer is live. Overridden by --seconds / --frames.
 const DEFAULT_GAP_MS := 1500
-
-## Sim publish rate in Hz, loaded from tools/tool_config.json (contract.hz) in _run() — the ONE
-## addressable source this value shares with sim/stream.js DEFAULT_HZ and the shell gates
-## (verify_twin.sh --hz, twin_ship.sh) via lib/checks.sh contract_get. It used to be a re-hardcoded
-## `10` with a "MUST equal sim/stream.js" comment — parallel state that could drift; reading the
-## shared contract makes "the same value" structural. --frames=N is converted to seconds as
-## N/STREAM_HZ, so a wrong Hz breaks the frame->time math. 0 until _load_contract() sets it; the
-## smoke fails closed if the contract can't be read (a smoke with no contract must not invent a Hz).
-var STREAM_HZ := 0
 
 ## RGBA white — the un-driven instance/albedo colour the optimizer initializes to; a driven node
 ## target must move OFF this to prove it is painting.
@@ -65,6 +56,15 @@ const WHITE := Color(1, 1, 1, 1)
 
 ## Milliseconds per second — --seconds / --frames convert to the ms gap the assertions wait.
 const MSEC_PER_SEC := 1000.0
+
+## Sim publish rate in Hz, loaded from tools/tool_config.json (contract.hz) in _run() — the ONE
+## addressable source this value shares with sim/stream.js DEFAULT_HZ and the shell gates
+## (verify_twin.sh --hz, twin_ship.sh) via lib/checks.sh contract_get. It used to be a re-hardcoded
+## `10` with a "MUST equal sim/stream.js" comment — parallel state that could drift; reading the
+## shared contract makes "the same value" structural. --frames=N is converted to seconds as
+## N/stream_hz, so a wrong Hz breaks the frame->time math. 0 until _load_contract() sets it; the
+## smoke fails closed if the contract can't be read (a smoke with no contract must not invent a Hz).
+var stream_hz := 0
 
 var map_path := "binding_map.json"
 var url := ""
@@ -94,7 +94,7 @@ func _run() -> void:
 		await _run_bind()
 
 
-## Load the shared tool contract (tools/tool_config.json, beside this script) and set STREAM_HZ from
+## Load the shared tool contract (tools/tool_config.json, beside this script) and set stream_hz from
 ## contract.hz. Fail closed (print FAIL + quit) if the file or key is missing — the smoke's frame->
 ## time math depends on the Hz the sim actually runs at, and a re-hardcoded default is exactly the
 ## parallel state the shared contract removes. Returns false on failure so _run() can bail.
@@ -112,7 +112,7 @@ func _load_contract() -> bool:
 		)
 		quit(1)
 		return false
-	STREAM_HZ = int((parsed as Dictionary)["hz"])
+	stream_hz = int((parsed as Dictionary)["hz"])
 	return true
 
 
@@ -134,7 +134,7 @@ func _parse_args() -> void:
 			gap_ms = int(a.substr("--seconds=".length()).to_float() * MSEC_PER_SEC)
 		elif a.begins_with("--frames="):
 			gap_ms = int(
-				a.substr("--frames=".length()).to_float() / float(STREAM_HZ) * MSEC_PER_SEC
+				a.substr("--frames=".length()).to_float() / float(stream_hz) * MSEC_PER_SEC
 			)
 
 
