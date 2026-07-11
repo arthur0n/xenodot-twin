@@ -263,6 +263,15 @@
       "status": "open",
       "finding": "Fork silently drifts behind upstream: /sync-upstream (.claude/commands/sync-upstream.md) has NEVER been exercised and nothing measures or surfaces staleness — the `upstream` remote (arthur0n/xenodot-forge) exists but no check runs `git fetch upstream && git rev-list --count HEAD..upstream/main`; add a warn-only staleness line (doctor.js or a check:* script): 'N upstream commits unsynced — run /sync-upstream' (human picks the surface + whether network-in-gate is acceptable).",
       "pattern": "doctor.js already prints actionable environment checks at forge new — upstream drift belongs beside them as one measured, warn-only line."
+    },
+    {
+      "id": "D6-framework-spine-no-owner",
+      "dim": "D6",
+      "bucket": 4,
+      "verdict": "fix-now",
+      "status": "open",
+      "finding": "Convention article 2 (docs/process/convention.md) lacks a SPECIALIZATION TEST and so over-triggers: it reads as 'every domain needs an owning agent', which prompted an unjustified generic framework-dev agent (created + deleted 2026-07-11). Add one line to article 2: a custom agent is justified only by specialized skills/tools/knowledge (godot-dev pattern) or a hard guardrail charter + cheaper model (framework-nobrainer-fixer pattern); for unspecialized work (plain Node spine fixes) the general agent IS the framework-correct route, not a gap.",
+      "pattern": "godot-dev = specialization (skills + docs MCP); framework-nobrainer-fixer = guardrail + cheap model; no third justification exists."
     }
   ]
 }
