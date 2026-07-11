@@ -28,6 +28,58 @@ XENO_BENIGN='ObjectDB instances leaked|resources still in use at exit'
 XENO_BENIGN="$XENO_BENIGN|RID allocations of type .* were leaked at exit"
 XENO_BENIGN="$XENO_BENIGN|Pages in use exist at exit|Leaked instance dependency"
 
+# The tools/ dir that holds this lib — used to locate the shared tool contract regardless of the
+# caller's cwd. This file lives at tools/lib/checks.sh, so tools/ is one directory up.
+XENO_TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Read ONE flat integer key from the shared tool contract (tools/tool_config.json) — the single
+# addressable source the sim (sim/stream.js DEFAULT_*), the bind smoke (smoke_binding.gd STREAM_HZ)
+# and the shell gates share, so a value like the sim Hz / seed / port / boot-smoke frame count can
+# never drift between a JS, GDScript and Bash copy carrying "MUST equal" comments. Dependency-free
+# on purpose (the materialized tools/ ships no jq): the contract keeps these keys flat integers so a
+# grep parses them. Prints the value on stdout; returns 1 with a stderr note when the file or key is
+# missing so a caller fails closed instead of inventing a default (the parallel state we removed).
+contract_get() { # <key>
+	local key="$1" file="$XENO_TOOLS_DIR/tool_config.json" val
+	[ -f "$file" ] || {
+		echo "$XENO_GATE: contract — missing $file" >&2
+		return 1
+	}
+	val="$(grep -oE "\"$key\"[[:space:]]*:[[:space:]]*[0-9]+" "$file" | grep -oE '[0-9]+$' | head -1)"
+	[ -n "$val" ] || {
+		echo "$XENO_GATE: contract — no integer key '$key' in $file" >&2
+		return 1
+	}
+	printf '%s' "$val"
+}
+
+# --- portable stat (BSD/GNU) ------------------------------------------------------------------
+# `stat` flags differ by platform: BSD/macOS uses `-f`, GNU/Linux uses `-c`. These helpers try BSD
+# first, then GNU, so a gate runs unchanged on a dev Mac and Linux CI. They live here so no tool
+# hand-rolls (and half of them forget) the fallback — twin_publish_web.sh shipped a BSD-only
+# `stat -f '%z'` that would break the publish gate on Linux (Codex MAJOR).
+
+# File size in bytes. BSD `%z` → GNU `%s` → `wc -c` (works even where `stat` is absent).
+stat_size() { # <file>
+	stat -f%z "$1" 2>/dev/null || stat -c%s "$1" 2>/dev/null || wc -c <"$1" | tr -d ' '
+}
+
+# File mtime as a Unix epoch. BSD `%m` → GNU `%Y`.
+stat_mtime() { # <file>
+	stat -f '%m' "$1" 2>/dev/null || stat -c '%Y' "$1" 2>/dev/null
+}
+
+# Read NUL-delimited paths on stdin, print them newest-mtime-first (one per line). Replaces the
+# BSD-only `xargs -0 stat -f '%m %N' | sort -rn | cut` idiom (no GNU fallback, and broken on names
+# with spaces); a tab join keeps spaced filenames intact. Pipe to `head -1` for just the newest.
+list_by_mtime_desc() {
+	local p m
+	while IFS= read -r -d '' p; do
+		m="$(stat_mtime "$p")" || continue
+		[ -n "$m" ] && printf '%s\t%s\n' "$m" "$p"
+	done | sort -rn | cut -f2-
+}
+
 # --- helpers ----------------------------------------------------------------------------------
 
 # Resolve the engine binary into $GODOT and export it. Godot and its compatible forks (Redot,

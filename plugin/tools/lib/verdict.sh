@@ -105,3 +105,9 @@ verdict_fail() { # <stage> <reason...>
 # The gate wrote its own PASS manifest inline — mark the verdict satisfied so the safety net leaves it
 # in place. Call it only once the PASS artifact is truly final (after the last thing that could fail).
 verdict_pass() { XENO_VERDICT_DONE=1; }
+
+# A terminal SKIP is on record: the gate wrote its own status:"SKIP" manifest and OWNS a non-zero
+# exit (a SKIP is never a pass). Mark the verdict satisfied so the EXIT trap leaves that honest SKIP
+# manifest in place instead of clobbering it with a fail-closed FAIL — SKIP and FAIL are different
+# facts and the manifest must keep saying which one. The caller still returns/exits non-zero itself.
+verdict_skip() { XENO_VERDICT_DONE=1; }

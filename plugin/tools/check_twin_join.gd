@@ -23,11 +23,13 @@ extends SceneTree
 ## it. If the path already holds a JSON object (e.g. ifc_convert.py --metrics wrote import time /
 ## shapes / schema there), the join fields are MERGED in — one file carries the whole import result.
 ## The join struct: join_matched, join_total, join_pct, join_gate (OK|FAIL), join_min_pct,
-## sidecar_keys, mesh_nodes, multimesh_ids, join_checked_at (ISO-8601 UTC). It is written on the OK
-## path and on FAIL paths that reach a verdict (threshold not met, zero candidates) — a failing join
-## is a recorded fact, not a hole. It is NOT written on early-exit failures that never reach a
-## verdict
-## (unreadable/empty sidecar, scene-load failure) — there is no join struct to report yet.
+## sidecar_keys, mesh_nodes, multimesh_ids, join_checked_at (ISO-8601 UTC). It is written on EVERY
+## terminal path: the OK path, FAIL paths that reach a verdict (threshold not met, zero candidates),
+## AND setup failures BEFORE a verdict exists (unreadable/empty sidecar, scene-load failure) — those
+## write a zeroed FAIL struct with join_gate="FAIL", join_stage="setup" and a join_reason. Writing on
+## the setup paths too is the point: a prior green metrics file must never survive a broken rerun and
+## keep a UI badge lying green. If an explicit --json cannot be written, the gate FAILS (non-zero)
+## rather than exit green over an unwritten verdict.
 
 ## IFC GlobalId length in chars (buildingSMART base64) — the join key is this 22-char prefix, the
 ## same fact TwinHints.GUID_LEN and binding_map.gd GLOBALID_LEN encode.
@@ -80,12 +82,17 @@ func _run() -> void:
 	var side := _load_sidecar()
 	if side.is_empty():
 		print("JOIN-GATE: FAIL (empty or unreadable sidecar: %s)" % sidecar_path)
+		# Setup failure BEFORE a verdict — still write a zeroed FAIL struct so a prior green metrics
+		# file cannot survive this broken rerun and keep a UI badge green (the stale-green class).
+		_write_setup_fail("empty or unreadable sidecar: %s" % sidecar_path)
 		quit(1)
 		return
 	print("SIDECAR_KEYS=%d" % side.size())
 
 	var scene := _load_scene()
 	if scene == null:
+		# Scene-load failure is the other pre-verdict early exit — overwrite any stale green here too.
+		_write_setup_fail("scene load failed: %s" % scene_path)
 		quit(1)
 		return
 	root.add_child(scene)
@@ -133,8 +140,12 @@ func _run() -> void:
 	var ok := float(matched) / float(total) >= min_ratio
 	var gate := "OK" if ok else "FAIL"
 	print("JOIN-GATE: %s (min %.1f%%)" % [gate, min_ratio * 100.0])
-	_write_json(matched, total, pct, gate, side.size(), mesh_nodes.size(), meta_ids.size())
-	quit(0 if ok else 1)
+	# An unwritable explicit --json is fatal even on an OK join: exiting green over an unwritten
+	# verdict would leave a prior green struct standing (the stale-green class merge_write closes).
+	var wrote := _write_json(matched, total, pct, gate, side.size(), mesh_nodes.size(), meta_ids.size())
+	if ok and not wrote:
+		print("JOIN-GATE: FAIL — verdict --json could not be written (see error above)")
+	quit(0 if (ok and wrote) else 1)
 
 
 ## Merge the join verdict as a STRUCT into --json=<path> (a no-op when unset). The merge, corrupt-
@@ -144,8 +155,8 @@ func _run() -> void:
 ## import result; otherwise a fresh object is written.
 func _write_json(
 	matched: int, total: int, pct: float, gate: String, keys: int, meshes: int, multis: int
-) -> void:
-	(
+) -> bool:
+	return (
 		GateReport
 		. merge_write(
 			json_path,
@@ -154,6 +165,7 @@ func _write_json(
 				"join_total": total,
 				"join_pct": snappedf(pct, 0.1),
 				"join_gate": gate,
+				"join_stage": "verdict",
 				"join_min_pct": snappedf(min_ratio * 100.0, 0.1),
 				"sidecar_keys": keys,
 				"mesh_nodes": meshes,
@@ -162,6 +174,28 @@ func _write_json(
 			},
 			"JOIN"
 		)
+	)
+
+
+## Pre-verdict setup failure (unreadable/empty sidecar, scene-load failure): write a zeroed FAIL
+## struct with join_stage="setup" + a reason so the merge OVERWRITES any prior green metrics — a
+## broken rerun must never leave a stale-green file behind. join_matched/total/pct are zeroed so no
+## stale count is inherited. The gate is already exiting non-zero on these paths; the write is what
+## clobbers the stale green (its own failure can't make an already-failing gate any greener).
+func _write_setup_fail(reason: String) -> void:
+	GateReport.merge_write(
+		json_path,
+		{
+			"join_matched": 0,
+			"join_total": 0,
+			"join_pct": 0.0,
+			"join_gate": "FAIL",
+			"join_stage": "setup",
+			"join_reason": reason,
+			"join_min_pct": snappedf(min_ratio * 100.0, 0.1),
+			"join_checked_at": GateReport.now_iso(),
+		},
+		"JOIN"
 	)
 
 

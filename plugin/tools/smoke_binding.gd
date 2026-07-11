@@ -50,11 +50,14 @@ const CONNECT_MIN_FRAMES := 3
 ## two albedo samples reliably differ if the viewer is live. Overridden by --seconds / --frames.
 const DEFAULT_GAP_MS := 1500
 
-## Sim publish rate in Hz. MUST equal sim/stream.js DEFAULT_HZ (10) — the shared default the sim
-## server AND recorder both import: the gate launches that sim, and --frames=N is converted to
-## seconds as N/STREAM_HZ, so any drift makes the frame->time math wrong.
-## (Cross-ref: plugin/tools/sim/stream.js DEFAULT_HZ, verify_twin.sh's --hz.)
-const STREAM_HZ := 10
+## Sim publish rate in Hz, loaded from tools/tool_config.json (contract.hz) in _run() — the ONE
+## addressable source this value shares with sim/stream.js DEFAULT_HZ and the shell gates
+## (verify_twin.sh --hz, twin_ship.sh) via lib/checks.sh contract_get. It used to be a re-hardcoded
+## `10` with a "MUST equal sim/stream.js" comment — parallel state that could drift; reading the
+## shared contract makes "the same value" structural. --frames=N is converted to seconds as
+## N/STREAM_HZ, so a wrong Hz breaks the frame->time math. 0 until _load_contract() sets it; the
+## smoke fails closed if the contract can't be read (a smoke with no contract must not invent a Hz).
+var STREAM_HZ := 0
 
 ## RGBA white — the un-driven instance/albedo colour the optimizer initializes to; a driven node
 ## target must move OFF this to prove it is painting.
@@ -81,12 +84,36 @@ func _init() -> void:
 
 
 func _run() -> void:
+	if not _load_contract():
+		return  # _load_contract printed the FAIL line and called quit(1)
 	_parse_args()
 	await process_frame
 	if mode == "hints":
 		await _run_hints()
 	else:
 		await _run_bind()
+
+
+## Load the shared tool contract (tools/tool_config.json, beside this script) and set STREAM_HZ from
+## contract.hz. Fail closed (print FAIL + quit) if the file or key is missing — the smoke's frame->
+## time math depends on the Hz the sim actually runs at, and a re-hardcoded default is exactly the
+## parallel state the shared contract removes. Returns false on failure so _run() can bail.
+func _load_contract() -> bool:
+	var here := (get_script() as Resource).resource_path.get_base_dir()
+	var txt := FileAccess.get_file_as_string(here.path_join("tool_config.json"))
+	var parsed: Variant = JSON.parse_string(txt)
+	if not (parsed is Dictionary) or not (parsed as Dictionary).has("hz"):
+		print(
+			(
+				"BIND-SMOKE: FAIL — cannot read integer 'hz' from tools/tool_config.json (%s) — the"
+				+ " shared tool contract the sim and this smoke MUST agree on"
+			)
+			% here.path_join("tool_config.json")
+		)
+		quit(1)
+		return false
+	STREAM_HZ = int((parsed as Dictionary)["hz"])
+	return true
 
 
 func _parse_args() -> void:
@@ -154,7 +181,12 @@ func _run_bind() -> void:
 				% [node_count, mmi_count, bus.frames_received, bus.drops]
 			)
 		)
-		_write_status(true)
+		if not _write_status(true):
+			# The smoke passed but its demanded --json verdict could not be written — fail closed so
+			# no reader inherits a stale-green status file the write never overwrote.
+			print("BIND-SMOKE: FAIL — verdict --json could not be written (see error above)")
+			quit(1)
+			return
 		quit(0)
 
 
@@ -384,9 +416,9 @@ func _fail(reason: String) -> void:
 # empty map), which write an honest zeroed FAIL struct (stage "setup" + the reason). Every bind_*
 # field is overwritten each run, so a previously-green status file can never survive a later
 # setup break and keep a UI badge lying green.
-func _write_status(passed: bool, reason := "") -> void:
+func _write_status(passed: bool, reason := "") -> bool:
 	if json_path == "":
-		return
+		return true
 	# Every bind_* field is set on every terminal path — a stale green can never survive a later
 	# failure. The reason key is present only on FAIL. The merge/corrupt-file/write mechanics live in
 	# tools/lib/gate_report.gd (GateReport.merge_write), shared with the join and playback gates.
@@ -412,4 +444,6 @@ func _write_status(passed: bool, reason := "") -> void:
 	# merge overwrites any prior one (merge_write overwrites the gate's own keys every run).
 	fields["reason"] = "" if passed else reason
 	fields["bind_checked_at"] = GateReport.now_iso()
-	GateReport.merge_write(json_path, fields, "BIND-SMOKE")
+	# false = an explicit --json could not be written; the caller must fail closed (a passing smoke
+	# whose verdict never lands would leave a prior green struct standing — the stale-green class).
+	return GateReport.merge_write(json_path, fields, "BIND-SMOKE")

@@ -1,0 +1,7 @@
+{
+  "_about": "ONE addressable source for the tool-layer values that MUST agree across languages. Read by JS (sim/stream.js), GDScript (smoke_binding.gd) and Bash (twin_ship.sh, verify_twin.sh via lib/checks.sh contract_get). Do NOT re-hardcode any of these in a tool; read them here. Keys are flat integers so a dependency-free bash grep can parse the file without jq.",
+  "port": 8765,
+  "hz": 10,
+  "seed": 42,
+  "smoke_frames": 20
+}

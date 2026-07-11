@@ -29,6 +29,28 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Buffer } from "node:buffer";
+import { createServer } from "node:net";
+
+/**
+ * Ask the OS for a currently-free TCP port by binding :0 on loopback and reading the assignment,
+ * then release it. Replaces the old `base + Math.random()` pick, which raced two ways: two evidence
+ * runs could pick the same port, and a picked port could be taken before the child bound it. The
+ * window between release here and the child re-binding is tiny; serveDir additionally retries if it
+ * loses that race. @returns {Promise<number>}
+ */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const addr = srv.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      srv.close(() => {
+        resolve(port);
+      });
+    });
+  });
+}
 
 /**
  * @typedef {Object} Options
@@ -108,31 +130,41 @@ function parseArgs(argv) {
  * @returns {Promise<{ url: string, stop: () => void }>}
  */
 async function serveDir(dir, port) {
-  const chosen = port ?? 8071 + Math.floor(Math.random() * 400);
-  const py = spawn(
-    "python3",
-    [join(HERE, "serve_coi.py"), "--dir", dir, "--port", String(chosen)],
-    {
-      stdio: "ignore",
-    },
-  );
-  // A spawn 'error' (python3 missing/mispathed) with no listener crashes the process with
-  // exit 1 — which the gate reads as "console errors". Route it to exit 2 (setup failure).
-  py.on("error", (e) => {
-    console.error(`twin-evidence: ERROR — could not start python3 for serve_coi.py: ${e.message}`);
-    process.exit(2);
-  });
-  const url = `http://127.0.0.1:${chosen}/`;
-  for (let i = 0; i < 60; i++) {
-    try {
-      await fetch(url);
-      return { url, stop: () => py.kill("SIGKILL") };
-    } catch {
-      await sleep(200);
+  // An explicit --port is honoured as-is (one try); an auto-picked port is an OS-assigned free port
+  // and, if it still loses the pick->bind race, we retry with a fresh one (bounded).
+  const attempts = port ? 1 : 4;
+  let lastUrl = "";
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const chosen = port ?? (await freePort());
+    const py = spawn(
+      "python3",
+      [join(HERE, "serve_coi.py"), "--dir", dir, "--port", String(chosen)],
+      {
+        stdio: "ignore",
+      },
+    );
+    // A spawn 'error' (python3 missing/mispathed) with no listener crashes the process with
+    // exit 1 — which the gate reads as "console errors". Route it to exit 2 (setup failure).
+    py.on("error", (e) => {
+      console.error(
+        `twin-evidence: ERROR — could not start python3 for serve_coi.py: ${e.message}`,
+      );
+      process.exit(2);
+    });
+    const url = `http://127.0.0.1:${chosen}/`;
+    lastUrl = url;
+    for (let i = 0; i < 60; i++) {
+      try {
+        await fetch(url);
+        return { url, stop: () => py.kill("SIGKILL") };
+      } catch {
+        await sleep(200);
+      }
     }
+    // Did not come up on this port (lost the race, or the port went busy) — reap and retry.
+    py.kill("SIGKILL");
   }
-  py.kill("SIGKILL");
-  throw new Error(`serve_coi did not come up on ${url}`);
+  throw new Error(`serve_coi did not come up on ${lastUrl}`);
 }
 
 /** Poll the CDP /json endpoint for the page target's websocket debugger URL. @param {number} port */
@@ -228,8 +260,8 @@ function wire(ws, lines) {
   };
 }
 
-/** @param {Options} o @param {string} targetUrl @returns {{ chrome: import("node:child_process").ChildProcess, port: number, profile: string }} */
-function launchChrome(o, targetUrl) {
+/** @param {Options} o @param {string} targetUrl @returns {Promise<{ chrome: import("node:child_process").ChildProcess, port: number, profile: string }>} */
+async function launchChrome(o, targetUrl) {
   // Preflight: a missing/mispathed Chrome must be a SETUP failure (exit 2), never mistaken
   // for a failing web build (exit 1). Thrown here → caught by main() → exit 2.
   if (!existsSync(o.chrome)) {
@@ -237,7 +269,9 @@ function launchChrome(o, targetUrl) {
       `Chrome executable not found: ${o.chrome} — pass --chrome <path> or set $CHROME`,
     );
   }
-  const port = 9400 + Math.floor(Math.random() * 400);
+  // OS-assigned free debug port (was `9400 + random`, which could collide with another run or a
+  // port taken between pick and bind — the CDP poll would then never find the page target).
+  const port = await freePort();
   const profile = mkdtempSync(join(tmpdir(), "twin-evidence-"));
   const chrome = spawn(
     o.chrome,
@@ -296,7 +330,7 @@ async function capture(o) {
     server = s;
     targetUrl = s.url;
   }
-  const { chrome, port, profile } = launchChrome(o, targetUrl);
+  const { chrome, port, profile } = await launchChrome(o, targetUrl);
   const cleanup = () => {
     try {
       chrome.kill("SIGKILL");

@@ -311,10 +311,19 @@ _retarget() {
 	EXEC_DIR="$(dirname "$SHIP_CFG")"
 	DATA_DIR="$EXEC_DIR/data"
 	[ -d "$DATA_DIR" ] || _rfail preflight "--retarget: no data/ dir beside $SHIP_CFG"
-	# The executable beside viewer.cfg — the same-binary invariant subject.
-	BIN_PATH="$(find "$EXEC_DIR" -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)"
+	# The executable beside viewer.cfg — the same-binary invariant subject. `find -perm +111` is
+	# BSD-only (GNU find wants `-perm /111`), so neither syntax is portable across a dev Mac and Linux
+	# CI. Iterate the dir's direct children and take the first regular executable via POSIX `[ -x ]`
+	# instead — no perm-syntax dialect. Lexical glob order is deterministic (find's order was not).
+	BIN_PATH=""
+	for _cand in "$EXEC_DIR"/*; do
+		if [ -f "$_cand" ] && [ -x "$_cand" ]; then
+			BIN_PATH="$_cand"
+			break
+		fi
+	done
 	[ -n "$BIN_PATH" ] || _rfail preflight "--retarget: no executable found beside $SHIP_CFG"
-	MTIME_BEFORE="$(stat -f '%m' "$BIN_PATH")"
+	MTIME_BEFORE="$(stat_mtime "$BIN_PATH")"
 	URL_BEFORE="$(_cfg_value viewer url "$SHIP_CFG")"
 
 	# Copy the new data into data/ and compute data/-relative ship paths.
@@ -356,7 +365,7 @@ _retarget() {
 
 	# The same-binary invariant: the executable must be byte-for-byte the same file — assert its mtime
 	# did not move. A retarget that rebuilt the binary would be a re-export wearing a retarget's name.
-	MTIME_AFTER="$(stat -f '%m' "$BIN_PATH")"
+	MTIME_AFTER="$(stat_mtime "$BIN_PATH")"
 	if [ "$MTIME_BEFORE" != "$MTIME_AFTER" ]; then
 		_rfail assert "--retarget: binary mtime CHANGED ($MTIME_BEFORE -> $MTIME_AFTER) — the same-binary invariant broke"
 	fi
@@ -366,11 +375,46 @@ _retarget() {
 	fi
 	echo "$XENO_GATE: PASS retarget — model=$MODEL_SHIP swapped; binary mtime UNCHANGED ($MTIME_BEFORE); url= untouched ($URL_AFTER)"
 
-	# --json: a manifest of exactly what a stranger may swap without re-exporting (and what they may not).
+	# Boot the SAME binary to prove the swapped data paints, and classify the result BEFORE writing the
+	# manifest. The old order wrote a PASS manifest FIRST, THEN ran the smoke — so a smoke SKIP (or one
+	# that would have failed) still left a green-looking manifest and reached verdict_pass: the JSON
+	# said pass, the log said SKIP (Codex MAJOR). Now the smoke runs first and stamps the manifest.
+	# Contract — smoke ∈ { PASS | SKIP | FAIL }:
+	#   FAIL → _rfail (FAIL manifest, exit 1);
+	#   SKIP → status:"SKIP" manifest, NO "OK" line, non-zero exit (a SKIP is never a pass);
+	#   PASS → status:"PASS" manifest, verdict_pass, "OK (retarget)", exit 0.
+	SMOKE_RESULT="SKIP"
+	if [ "$SMOKE" -eq 0 ]; then
+		echo "$XENO_GATE: SKIP retarget smoke — --no-smoke requested (a SKIP is not a pass)."
+	else
+		ret_frames="$(contract_get smoke_frames)" || _rfail smoke "cannot read smoke_frames from the shared tool contract (tools/tool_config.json)"
+		RLOG="$("$BIN_PATH" --headless -- "--quit-after=$ret_frames" 2>&1)"
+		if echo "$RLOG" | grep -qE "^viewer: model loaded from data/"; then
+			echo "$RLOG" | grep -E "^viewer:" | sed 's/^/    /'
+			if ! echo "$RLOG" | grep -qE "^viewer: bindings resolved [1-9][0-9]*/[0-9]+"; then
+				# _rfail writes the FAIL manifest (no PASS manifest exists yet in the new order) and
+				# fails loud: model loaded but the map resolves nothing against the swapped model.
+				_rfail smoke "--retarget smoke: model loaded but bindings 0/N (the new model does not match the map)"
+			fi
+			echo "$XENO_GATE: PASS retarget smoke — the swapped model booted painted from data/ (same binary)"
+			SMOKE_RESULT="PASS"
+		else
+			echo "$XENO_GATE: SKIP retarget smoke — this host could not boot the artifact's binary (a SKIP is"
+			echo "  NOT a pass — boot it on its target platform). First lines seen:"
+			echo "$RLOG" | head -3 | sed 's/^/    /'
+		fi
+	fi
+
+	# --json: a manifest of exactly what a stranger may swap without re-exporting (and what they may
+	# not) — now stamped with the smoke result (status + smoke), written AFTER the smoke so the JSON
+	# contract can never claim a pass the smoke did not earn. status == smoke: "PASS" only when the
+	# boot smoke actually passed; "SKIP" when it was skipped (never verified).
 	if [ "$WANT_JSON" -eq 1 ]; then
 		MANIFEST="$EXEC_DIR/retarget.json"
 		{
 			printf '{\n'
+			printf '  "status": "%s",\n' "$SMOKE_RESULT"
+			printf '  "smoke": "%s",\n' "$SMOKE_RESULT"
 			printf '  "artifact": "%s",\n' "$EXEC_DIR"
 			printf '  "binary": "%s",\n' "$(basename "$BIN_PATH")"
 			printf '  "binary_mtime": %s,\n' "$MTIME_AFTER"
@@ -383,38 +427,28 @@ _retarget() {
 			printf '  "fixed_requires_re_export": [ "the executable / pck (code + starter scenes)" ]\n'
 			printf '}\n'
 		} >"$MANIFEST"
-		echo "$XENO_GATE: PASS retarget --json manifest ($MANIFEST)"
+		echo "$XENO_GATE: wrote retarget --json manifest ($MANIFEST, status=$SMOKE_RESULT)"
 	fi
 
-	# Boot the SAME binary to prove the swapped data paints (host-runnable only; a SKIP is LOUD).
-	if [ "$SMOKE" -eq 0 ]; then
-		echo "$XENO_GATE: SKIP retarget smoke — --no-smoke requested (a SKIP is not a pass)."
-	else
-		RLOG="$("$BIN_PATH" --headless -- --quit-after=20 2>&1)"
-		if echo "$RLOG" | grep -qE "^viewer: model loaded from data/"; then
-			echo "$RLOG" | grep -E "^viewer:" | sed 's/^/    /'
-			if ! echo "$RLOG" | grep -qE "^viewer: bindings resolved [1-9][0-9]*/[0-9]+"; then
-				# _rfail, not _fail: the PASS manifest was just written above — a smoke failure
-				# must overwrite it or the artifact carries a green manifest for a red run.
-				_rfail smoke "--retarget smoke: model loaded but bindings 0/N (the new model does not match the map)"
-			fi
-			echo "$XENO_GATE: PASS retarget smoke — the swapped model booted painted from data/ (same binary)"
-		else
-			echo "$XENO_GATE: SKIP retarget smoke — this host could not boot the artifact's binary (a SKIP is"
-			echo "  NOT a pass — boot it on its target platform). First lines seen:"
-			echo "$RLOG" | head -3 | sed 's/^/    /'
-		fi
+	if [ "$SMOKE_RESULT" = "PASS" ]; then
+		# The swap, the same-binary/url invariants AND the boot smoke all passed — mark the verdict
+		# satisfied so the EXIT trap leaves the PASS manifest in place instead of failing it closed.
+		verdict_pass
+		echo
+		echo "$XENO_GATE: OK (retarget)"
+		echo "  artifact: $EXEC_DIR"
+		return 0
 	fi
-
-	# Everything that could fail has passed (assemble, invariant asserts, and the smoke or its LOUD
-	# skip) — mark the verdict satisfied so the EXIT trap leaves the PASS manifest written above in
-	# place instead of failing it closed. Placed last on purpose: an unrouted death anywhere earlier
-	# still overwrites a stale/premature green with an honest FAIL.
-	verdict_pass
+	# SMOKE_RESULT == SKIP: the data swapped and the invariants held, but the boot smoke did not run/
+	# verify — a SKIP is never a pass. The manifest (if any) already says status:"SKIP"; tell the
+	# verdict library a terminal SKIP is on record so its EXIT trap leaves that honest SKIP manifest
+	# alone (not a fail-closed FAIL), then exit non-zero. No "OK (retarget)" line is printed.
+	verdict_skip
 	echo
-	echo "$XENO_GATE: OK (retarget)"
+	echo "$XENO_GATE: SKIP (retarget) — data swapped and invariants held, but the boot smoke was"
+	echo "  skipped: this run is UNVERIFIED, not a pass. Re-run with --smoke on the target platform."
 	echo "  artifact: $EXEC_DIR"
-	return 0
+	return 3
 }
 
 if [ -n "$RETARGET_DIR" ]; then
@@ -509,7 +543,7 @@ if [ -z "$MODEL" ]; then
 fi
 if [ -z "$MODEL" ]; then
 	MODEL="$(find -L models x-shared-assets -name '*.glb' -type f -print0 2>/dev/null \
-		| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+		| list_by_mtime_desc | head -1)"
 fi
 [ -n "$MODEL" ] || _fail "no model found (pass --model, set viewer.cfg [viewer] model=, or drop a .glb under models/)"
 [ -f "$MODEL" ] || _fail "no such model: $MODEL"
@@ -632,7 +666,7 @@ SHIP_CFG="$EXEC_DIR/viewer.cfg"
 if [ -f viewer.cfg ]; then
 	cp viewer.cfg "$SHIP_CFG"
 else
-	printf '[viewer]\nurl="ws://localhost:8765"\n' >"$SHIP_CFG"
+	printf '[viewer]\nurl="ws://localhost:%s"\n' "$(contract_get port)" >"$SHIP_CFG"
 fi
 CFG_GD="$WORK/twin_ship_cfg.gd"
 _emit_cfg_gd "$CFG_GD"
@@ -711,7 +745,7 @@ if [ "$SMOKE" -eq 1 ]; then
 elif [ "$SMOKE" -eq -1 ] && [ "$HOST_MATCH" -eq 1 ]; then
 	RUN_SMOKE=1
 fi
-SMOKE_FRAMES=20
+SMOKE_FRAMES="$(contract_get smoke_frames)" || _fail "smoke — cannot read smoke_frames from the shared tool contract (tools/tool_config.json)"
 if [ "$RUN_SMOKE" -ne 1 ]; then
 	if [ "$SMOKE" -eq 0 ]; then
 		echo "$XENO_GATE: SKIP smoke — --no-smoke requested (a SKIP is not a pass)."

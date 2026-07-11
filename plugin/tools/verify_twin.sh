@@ -63,7 +63,7 @@ _twin_discover_pair() {
 		done
 	done < <(
 		find -L models x-shared-assets -name '*.glb' -type f -print0 2>/dev/null \
-			| xargs -0 stat -f '%m %N' 2>/dev/null | sort -rn | cut -d' ' -f2-
+			| list_by_mtime_desc
 	)
 	return 1
 }
@@ -120,13 +120,16 @@ _twin_binding_map() {
 # different port means this gate never collides with a sim a developer is already running on 8765
 # during authoring. Override with TWIN_SIM_PORT=<free port> if 8899 is taken.
 TWIN_SIM_PORT="${TWIN_SIM_PORT:-8899}"
-# Deterministic-fixture pins (see the twin-bind-data / twin-verify skills):
-#   TWIN_SIM_SEED — any fixed integer replays bit-for-bit; 42 is the conventional arbitrary seed and
-#     matches sim/server.js DEFAULT_SEED, so the smoke's expectations don't depend on that default.
-#   TWIN_SIM_HZ   — MUST equal smoke_binding.gd STREAM_HZ and sim/server.js DEFAULT_HZ: the smoke
-#     converts --frames=N to seconds as N/STREAM_HZ, so changing one without the others desyncs it.
-TWIN_SIM_SEED=42
-TWIN_SIM_HZ=10
+# Deterministic-fixture pins — read from the shared tool contract (tools/tool_config.json), the ONE
+# source these values share with sim/stream.js (DEFAULT_SEED/DEFAULT_HZ) and smoke_binding.gd
+# (STREAM_HZ). They used to be re-hardcoded here as `42` / `10` with "MUST equal ..." comments —
+# parallel state that could drift; reading contract_get makes agreement structural. Env override is
+# still honoured (a run may pin a different seed/hz), but the DEFAULT is the shared contract.
+#   TWIN_SIM_SEED — any fixed integer replays bit-for-bit; contract.seed (42) is the shared default.
+#   TWIN_SIM_HZ   — the smoke converts --frames=N to seconds as N/STREAM_HZ; contract.hz keeps this
+#                   equal to the Hz the sim actually runs at (no cross-file drift).
+TWIN_SIM_SEED="${TWIN_SIM_SEED:-$(contract_get seed)}" || _fail "cannot read seed from the shared tool contract (tools/tool_config.json)"
+TWIN_SIM_HZ="${TWIN_SIM_HZ:-$(contract_get hz)}" || _fail "cannot read hz from the shared tool contract (tools/tool_config.json)"
 if [ ! -f "tools/smoke_binding.gd" ] || [ ! -f "tools/sim/server.js" ]; then
 	_miss=""
 	[ -f "tools/smoke_binding.gd" ] || _miss="$_miss tools/smoke_binding.gd"

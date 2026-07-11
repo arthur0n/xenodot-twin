@@ -11,22 +11,50 @@
 // Dependency-free by design: the materialized tools/ ships no package.json, so this must run
 // under a bare `node` (see server.js's header for the full rationale).
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
-// --- CLI defaults (cross-file contract — see the paired doc comments) ---
+// --- CLI defaults: the ONE cross-language contract (tools/tool_config.json) ---
+// port / hz / seed are read from tools/tool_config.json — the single addressable source these
+// values share with smoke_binding.gd (STREAM_HZ) and the shell gates (twin_ship.sh, verify_twin.sh
+// via lib/checks.sh contract_get). They used to be hardcoded here AND re-hardcoded there with "MUST
+// equal" comments — parallel state that could silently drift. Now there is one file and three
+// readers. A missing/malformed contract is fatal (throws at import): a sim with no contract has no
+// business inventing its own defaults.
+/** @returns {{ port: number, hz: number, seed: number, smoke_frames: number }} */
+function loadContract() {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const parsed = /** @type {unknown} */ (
+    JSON.parse(readFileSync(join(here, "..", "tool_config.json"), "utf8"))
+  );
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error("sim: tools/tool_config.json is not a JSON object");
+  }
+  const c = /** @type {Record<string, unknown>} */ (parsed);
+  /** @param {string} k @returns {number} */
+  const int = (k) => {
+    const v = Number(c[k]);
+    if (!Number.isFinite(v)) throw new Error(`sim: tool_config.json missing integer '${k}'`);
+    return v;
+  };
+  return { port: int("port"), hz: int("hz"), seed: int("seed"), smoke_frames: int("smoke_frames") };
+}
+const CONTRACT = loadContract();
+
 /** Default WebSocket port. The viewer's DataBus default URL (starter-viewer/core/data_bus.gd
  * DEFAULT_URL = "ws://localhost:8765") points here, so a sim started with no --port pairs with a
  * default viewer out of the box. The verify_twin.sh gate deliberately runs its OWN sim on 8899
- * instead, to avoid colliding with a sim a developer may already have on 8765. */
-export const DEFAULT_PORT = 8765;
+ * instead, to avoid colliding with a sim a developer may already have on 8765. Value: contract.port. */
+export const DEFAULT_PORT = CONTRACT.port;
 
-/** Default publish rate in Hz. smoke_binding.gd's STREAM_HZ MUST equal this: the smoke converts
- * --frames=N to seconds as N/STREAM_HZ, so any drift desynchronizes its frame->time math. */
-export const DEFAULT_HZ = 10;
+/** Default publish rate in Hz. smoke_binding.gd's STREAM_HZ reads the SAME contract.hz: the smoke
+ * converts --frames=N to seconds as N/STREAM_HZ, so any drift desynchronizes its frame->time math. */
+export const DEFAULT_HZ = CONTRACT.hz;
 
 /** Default PRNG seed. Any fixed integer works — the only contract is that a given seed replays
- * bit-for-bit. 42 is the conventional "arbitrary but fixed" seed; verify_twin.sh passes it
- * explicitly so the gate's expectations never depend on this default. */
-export const DEFAULT_SEED = 42;
+ * bit-for-bit. 42 is the conventional "arbitrary but fixed" seed; verify_twin.sh reads the same
+ * contract.seed so the gate's expectations never depend on a re-hardcoded copy. */
+export const DEFAULT_SEED = CONTRACT.seed;
 
 /** Milliseconds per second — the setInterval period is 1000/hz, and a recording's t_ms is
  * tick * 1000/hz (record.js). */
@@ -133,33 +161,43 @@ function bindingsOf(parsed) {
   return out;
 }
 
-/** Derive the tag table from a binding map file, or fall back to DEMO_TAGS. Each row keeps only
- * what the sim needs: tag name + [min,max]. Malformed/absent file ⇒ demo set (logged).
- * @param {string | undefined} mapPath @returns {TagRow[]} */
-export function tagsFromMap(mapPath) {
-  if (!mapPath) return DEMO_TAGS;
+/** Derive the tag table from a binding map file. Each row keeps only what the sim needs: tag name +
+ * [min,max]. Fail-closed on a SUPPLIED map: a mapPath that is unreadable or carries no usable
+ * bindings THROWS — a typo in --map must not yield a valid-looking recording secretly built from
+ * demo data. The built-in DEMO_TAGS are reachable ONLY when NO map is supplied AND `demo` is true
+ * (the caller passed --demo, an explicit opt-in). No map and no --demo is itself an error: the sim
+ * refuses to invent tags silently.
+ * @param {string | undefined} mapPath @param {boolean} [demo=false] @returns {TagRow[]} */
+export function tagsFromMap(mapPath, demo = false) {
+  if (!mapPath) {
+    if (demo) return DEMO_TAGS;
+    throw new Error(
+      "sim: no --map supplied. Pass --map <binding_map.json>, or --demo to use the built-in demo tags.",
+    );
+  }
+  /** @type {unknown} */
+  let parsed;
   try {
-    const parsed = /** @type {unknown} */ (JSON.parse(readFileSync(mapPath, "utf8")));
-    const bindings = bindingsOf(parsed);
-    /** @type {TagRow[]} */
-    const rows = [];
-    for (const b of bindings) {
-      if (typeof b.tag !== "string") continue;
-      const min = Number(b.min);
-      const max = Number(b.max);
-      if (!Number.isFinite(min) || !Number.isFinite(max)) continue;
-      rows.push({ tag: b.tag, min, max });
-    }
-    if (rows.length === 0) {
-      console.warn(`sim: '${mapPath}' has no usable bindings — using the demo tag set`);
-      return DEMO_TAGS;
-    }
-    return rows;
+    parsed = JSON.parse(readFileSync(mapPath, "utf8"));
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.warn(`sim: could not read map '${mapPath}' (${msg}) — using the demo tag set`);
-    return DEMO_TAGS;
+    // A SUPPLIED map that can't be read/parsed is fatal — never a silent demo fallback.
+    throw new Error(`sim: could not read map '${mapPath}' (${msg})`, { cause: e });
   }
+  const bindings = bindingsOf(parsed);
+  /** @type {TagRow[]} */
+  const rows = [];
+  for (const b of bindings) {
+    if (typeof b.tag !== "string") continue;
+    const min = Number(b.min);
+    const max = Number(b.max);
+    if (!Number.isFinite(min) || !Number.isFinite(max)) continue;
+    rows.push({ tag: b.tag, min, max });
+  }
+  if (rows.length === 0) {
+    throw new Error(`sim: '${mapPath}' has no usable bindings (tag + finite [min,max])`);
+  }
+  return rows;
 }
 
 /** The value for tag `i` (of `count`) at integer `tick`, under `seed`. Pure: depends ONLY on
