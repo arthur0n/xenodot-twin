@@ -40,14 +40,6 @@
       "finding": "ui/orchestrator.md:8 restates godot-code-rules' no-magic-tuning rule near-verbatim (same lerpf/score_value examples; the skill already loads into all 9 builders); trim to a one-line routing directive pointing at the rule."
     },
     {
-      "id": "D6-issuekit-mechanics",
-      "dim": "D6",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "ui/orchestrator.md:25 embeds builder-facing issuekit CLI syntax (attempt/resolve flags) + the known-issues graduation recipe inside the routing doc; trim to the routing decision (search tracker first → spawn builder/designer) and let the issue process own the mechanics."
-    },
-    {
       "id": "D3-main-scene-camera",
       "dim": "D3",
       "bucket": 4,
@@ -70,14 +62,6 @@
       "verdict": "fix-now",
       "status": "open",
       "finding": "check_navmesh_baked (checks.sh:395) is composed by no gate and documented in no skill — yet it's the deterministic nav check D9-greybox-eye-harden asks for; compose it (optional, self-gating on tools/check_nav_bake.gd) in validate.sh or document the wiring in the nav/greybox skills."
-    },
-    {
-      "id": "D5-agent-restatement",
-      "dim": "D5",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "3x-restatement pattern in transcript-researcher (archive policy, 'no spawn'), level-designer (handoff), bug-triage (no game code), skill-researcher (config gating) — state each constraint once."
     },
     {
       "id": "D2-engine-version",
@@ -176,14 +160,6 @@
       "finding": "no domain/genre taxonomy on skills (skill-registry.js:66 reads only agents:) — godot-player preloads BOTH camera-paradigm skills (:14-15), so FPS prose leaks into iso/top-down sessions (review transcript evidence; mechanism verified 2026-07-08, only prose 'Pick ONE camera genre' mitigates); fix is review P2D-1/2 profile:{genre,style} skill-scope projection — plan-scale, park until that wave."
     },
     {
-      "id": "D6-routing-table-static",
-      "dim": "D6",
-      "bucket": 5,
-      "verdict": "later",
-      "status": "open",
-      "finding": "orchestrator routing is a hardcoded prose table (orchestrator.md:16-22) and session.js:311-318 injects no generated capabilities block — drift mechanism verified (a game-local builder would be invisible to routing; none exist today, so no live instance); fix is review P0A-1/2/4 data-driven routing block rendered from capabilities.json."
-    },
-    {
       "id": "D9-caveman-gate",
       "dim": "D9",
       "bucket": 5,
@@ -206,14 +182,6 @@
       "verdict": "fix-now",
       "status": "open",
       "finding": "Self-improvement loop breaks its own anti-negative-instruction principle: LEDGER.json findings are 'problem+fix' with NO positive-exemplar field, and the 5 workflow commands each ship a literal '## Never' bullet list (framework-audit 18, -fix 15, harvest-sessions 14, framework-feedback 10, token-audit 8). Add a `pattern` (one-line 'here is the good pattern') field to the finding schema (LEDGER.json + README:23-46 + the 3 append commands) and rewrite the commands' '## Never' into positive '## Do this' exemplars (keep genuine irreversibility/safety guardrails as-is); warn-only check:negative-rules lint (precedent: check:contamination/check:skills) catches regressions. CRITICAL: shipped game-skill Never/Don't counts (godot-enemy-ai 20, godot-verify 19...) are MOSTLY FALSE POSITIVES — troubleshooting symptom labels ('enemy never moves') + already-positive guardrails; do NOT bulk-flip those, the real target is the workflow commands' own Never-lists."
-    },
-    {
-      "id": "D9-critique-in-mainwindow",
-      "dim": "D9",
-      "bucket": 4,
-      "verdict": "fix-now",
-      "status": "open",
-      "finding": "Every self-improvement command runs its self-critique/verdict step in the MAIN window, not a subagent — framework-audit step7, framework-audit-fix step6, framework-feedback step7, harvest-sessions step9, token-audit step7 — so critique reasoning becomes orchestrator context debt. Dispatch each critique to a throwaway subagent (like framework-audit's step-3 gather fan-out) and keep only the one-line verdict: keep the verdict, not the transcript. Pairs with D9-audit-fanout."
     },
     {
       "id": "D9-tokens-per-accepted-change",
