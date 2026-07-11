@@ -12,7 +12,7 @@ import {
   docsPublicConfig,
 } from "../config.js";
 import { parseFrontmatter } from "../../../lib/frontmatter.js";
-import { getTwinConfig } from "../../features/twin/twin-data.js";
+import { twinPublicConfig } from "../../features/twin/twin-data.js";
 
 /**
  * @param {string} dir
@@ -139,6 +139,8 @@ export function projectState() {
     // Configured twin data source (the relay's `sourceUrl` seam) for the settings panel — a LIVE
     // ws:// source is integrator-side and not hostable; a published demo bakes url="" (a baked
     // recording). Read-only: the bridge/viewer run outside the web UI, only the config is shown.
-    twin: getTwinConfig(),
+    // Userinfo (user:pass@) is redacted here so bridge-embedded operator credentials never reach
+    // the client — the on-disk config and the live relay keep the real URL.
+    twin: twinPublicConfig(),
   };
 }

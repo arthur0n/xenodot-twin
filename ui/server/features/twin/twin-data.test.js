@@ -7,7 +7,13 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import http from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
-import { makeTwinRelay, registerTwinRelay, isTwinDataPath, TWIN_DATA_PATH } from "./twin-data.js";
+import {
+  makeTwinRelay,
+  registerTwinRelay,
+  isTwinDataPath,
+  redactUrlUserinfo,
+  TWIN_DATA_PATH,
+} from "./twin-data.js";
 
 /** A fake upstream/downstream socket: an EventEmitter plus the WebSocket surface the relay uses
  * (send / readyState / close). readyState defaults to OPEN (1). */
@@ -31,6 +37,25 @@ class FakeSocket extends EventEmitter {
 
 /** @param {number} ms */
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+test("redactUrlUserinfo: strips user:pass@ from a bridge URL, leaves everything else", () => {
+  // userinfo present → redacted out, host/path/query preserved
+  assert.equal(
+    redactUrlUserinfo("ws://operator:s3cret@plant.example:1883/twin-data?x=1"),
+    "ws://plant.example:1883/twin-data?x=1",
+  );
+  // username only → still redacted
+  assert.equal(redactUrlUserinfo("wss://admin@host/path"), "wss://host/path");
+  // no userinfo → byte-identical passthrough
+  assert.equal(
+    redactUrlUserinfo("ws://plant.example:1883/twin-data"),
+    "ws://plant.example:1883/twin-data",
+  );
+  // non-URL / empty / null → unchanged
+  assert.equal(redactUrlUserinfo("not a url"), "not a url");
+  assert.equal(redactUrlUserinfo(""), "");
+  assert.equal(redactUrlUserinfo(null), null);
+});
 
 test("isTwinDataPath: matches /twin-data (with or without query), rejects others", () => {
   assert.equal(isTwinDataPath({ url: TWIN_DATA_PATH }), true);

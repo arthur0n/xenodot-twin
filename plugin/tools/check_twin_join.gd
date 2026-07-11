@@ -26,8 +26,8 @@ extends SceneTree
 ## sidecar_keys, mesh_nodes, multimesh_ids, join_checked_at (ISO-8601 UTC). It is written on EVERY
 ## terminal path: the OK path, FAIL paths that reach a verdict (threshold not met, zero candidates),
 ## AND setup failures BEFORE a verdict exists (unreadable/empty sidecar, scene-load failure) — those
-## write a zeroed FAIL struct with join_gate="FAIL", join_stage="setup" and a join_reason. Writing on
-## the setup paths too is the point: a prior green metrics file must never survive a broken rerun and
+## write a zeroed FAIL struct with join_gate="FAIL", join_stage="setup" and join_reason. Writing on
+## the setup paths too is the point: a prior green metrics file cannot survive a broken rerun and
 ## keep a UI badge lying green. If an explicit --json cannot be written, the gate FAILS (non-zero)
 ## rather than exit green over an unwritten verdict.
 
@@ -142,7 +142,9 @@ func _run() -> void:
 	print("JOIN-GATE: %s (min %.1f%%)" % [gate, min_ratio * 100.0])
 	# An unwritable explicit --json is fatal even on an OK join: exiting green over an unwritten
 	# verdict would leave a prior green struct standing (the stale-green class merge_write closes).
-	var wrote := _write_json(matched, total, pct, gate, side.size(), mesh_nodes.size(), meta_ids.size())
+	var wrote := _write_json(
+		matched, total, pct, gate, side.size(), mesh_nodes.size(), meta_ids.size()
+	)
 	if ok and not wrote:
 		print("JOIN-GATE: FAIL — verdict --json could not be written (see error above)")
 	quit(0 if (ok and wrote) else 1)
