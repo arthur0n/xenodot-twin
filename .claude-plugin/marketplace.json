@@ -11,7 +11,7 @@
     {
       "name": "xenodot",
       "description": "Builder/researcher agents, godot-* engine skills (verify, code-rules, export-builds, import) and the digital-twin domain — the twin-architect / scene-optimizer / data-binder agents and twin-import / twin-optimize / twin-bind-data / twin-verify / twin-playback skills for building IFC/BIM → Godot viewers with live data — plus verification tools and safety hooks for Godot / Redot / Blazium work with Claude Code. One plugin, xenodot: namespace.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Xenodot Twin"
       },

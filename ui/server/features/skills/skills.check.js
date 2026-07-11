@@ -85,7 +85,7 @@ function makeSkill(name, agents) {
 }
 makeSkill("twin-status", "orchestrator");
 makeSkill("twin-terse", "all");
-makeSkill("twin-verify", "builders, data-binder");
+makeSkill("twin-verify", "builders, twin-data-binder");
 
 check("getPluginOrchestratorSkills: orchestrator/all-tagged skills in, builder-tagged out", () => {
   assert.deepEqual(getPluginOrchestratorSkills(fixture), ["twin-status", "twin-terse"]);

@@ -1,5 +1,5 @@
 ---
-name: data-binder
+name: twin-data-binder
 description: >-
   The live-data builder for the viewer project — joins model geometry to live tags and makes state
   visible. Owns the GlobalId join (GLB node names ↔ sidecar JSON), DataBus wiring (WebSocketPeer
@@ -7,7 +7,7 @@ description: >-
   the seeded simulator fixture that makes binding work testable without a real plant. Dispatch when
   a slice is squarely data/overlay: "bind pump_1.temp to its pump", "show live values on the model",
   "the stream drops frames on reconnect", "wire the simulator". Route scale/performance work to
-  scene-optimizer instead.
+  twin-scene-optimizer instead.
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
@@ -45,7 +45,7 @@ Your scope, end to end:
 - **Simulator fixtures** — the seeded (deterministic) simulator `tools/sim/server.js` (a plugin tool materialized into the project's `tools/`) is the test fixture. Run it with `node tools/sim/server.js --seed 42 --port 8765 --hz 10 --map binding_map.json` (it derives the tag list + `[min,max]` from the map itself). Never bind against a live source you can't replay. Real sources reach viewers through the framework relay's `/twin-data` seam (`.xenodot.json` `twin: {sourceUrl}`) — a WebSocket bridge plugs in there. The first such bridge is the MQTT→WS adapter `tools/bridge/mqtt_ws.js` (`--broker mqtt://… --map mqtt_map.json --port 8766`, point `sourceUrl`/`TWIN_SOURCE_URL` at it); schema + map rules in skill `twin-bind-data` → "The MQTT→WS bridge".
 - **Record & replay** — the twin-recording format, the recorder (`tools/sim/record.js`: byte-reproducible synthesized fixtures + live capture), and the viewer's playback player (`core/recording.gd` + `core/playback.gd`: `load_recording`/`seek`/`play`/`pause`/`set_speed`, replayed through the SAME `DataBus.inject_frame` seam as live data, timeline bar in `overlay/timeline.gd`). Replay must be reproducible — same fixture + same seeks → identical emitted-state hash, enforced by the `tools/check_playback.gd` determinism gate. Full contract + seek/speed semantics + the amber-PLAYBACK honesty convention: skill `twin-playback`.
 
-NOT yours: chunking/LOD/occlusion (`scene-optimizer`), the IFC→GLB conversion itself (`twin-import` slice), deciding which tags matter (`twin-architect`), and the framework relay's Node/JS internals (`ui/server/features/twin/`).
+NOT yours: chunking/LOD/occlusion (`twin-scene-optimizer`), the IFC→GLB conversion itself (`twin-import` slice), deciding which tags matter (`twin-architect`), and the framework relay's Node/JS internals (`ui/server/features/twin/`).
 
 ## Rules
 

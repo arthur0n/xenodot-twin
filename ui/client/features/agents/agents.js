@@ -29,8 +29,8 @@ let nextIdx = 0;
 /** @type {Record<string, string>} */
 const ROLE_COLOR = {
   "twin-architect": "oklch(0.74 0.13 300)", // violet — scene/data architecture
-  "scene-optimizer": "oklch(0.74 0.12 255)", // blue — geometry & scene scale
-  "data-binder": "oklch(0.71 0.16 25)", // red — live telemetry & alarm state
+  "twin-scene-optimizer": "oklch(0.74 0.12 255)", // blue — geometry & scene scale
+  "twin-data-binder": "oklch(0.71 0.16 25)", // red — live telemetry & alarm state
   "godot-dev": "oklch(0.78 0.13 85)", // amber — hot iron at the forge
   "godot-refactor": "oklch(0.78 0.1 210)", // cyan — inspection steel
   "addon-researcher": "oklch(0.76 0.13 150)", // verdigris — the library
@@ -56,8 +56,8 @@ function stripNs(name) {
 const DISPLAY = {
   main: "Xenodot Hive",
   "twin-architect": "Xenodot Architect",
-  "scene-optimizer": "Xenodot Optimizer",
-  "data-binder": "Xenodot Data Binder",
+  "twin-scene-optimizer": "Xenodot Optimizer",
+  "twin-data-binder": "Xenodot Data Binder",
   "godot-dev": "Xenodot Developer",
   "godot-refactor": "Xenodot Refactor",
   "addon-researcher": "Xenodot Researcher",

@@ -1,6 +1,6 @@
 ---
 name: twin-bind-data
-agents: [twin-architect, data-binder]
+agents: [twin-architect, twin-data-binder]
 domain: twin
 description: >-
   Bind live tag data to a digital-twin scene — the DataBus autoload contract (WebSocketPeer with the
@@ -70,7 +70,7 @@ against `%ModelHost`, and pushes a `bindings: N/M resolved` HUD line (via `overl
 
 ### Binding map schema (agent-emitted JSON, NOT `.tres`)
 
-The `data-binder` agent **emits JSON** — a data artifact it can author/regenerate deterministically,
+The `twin-data-binder` agent **emits JSON** — a data artifact it can author/regenerate deterministically,
 diff, and validate — never a Godot resource. Project file `binding_map.json`:
 
 ```json
@@ -127,7 +127,7 @@ DataBus (text + green→red ramp). `albedo_ramp` updates every frame.
 
 ## Authoring a map against real GlobalIds (the operator recipe)
 
-The binding map is **authored**, not generated — an operator (or the `data-binder` agent) writes
+The binding map is **authored**, not generated — an operator (or the `twin-data-binder` agent) writes
 `tag → GlobalId` rows against a REAL model. The one failure mode that hides is a **silent unbound
 tag**: a mistyped or copy-pasted GlobalId that is a valid 22-char string but is absent from the
 model resolves to **0 targets** — the viewer boots, the HUD still shows the other tags moving, and
@@ -299,7 +299,7 @@ counterpart to the seeded sim. Live-validated against Mosquitto (codec-level) �
 ## Serving to the browser / Grafana embed (the web recipe)
 
 The same viewer exports to a Godot Web (WASM) build that embeds in a Grafana dashboard as a live 3D
-panel (the OpenTwins pattern). The relay-side facts a data-binder needs — measured, from
+panel (the OpenTwins pattern). The relay-side facts a twin-data-binder needs — measured, from
 `plugin/library/findings/twin-web-ceiling-2026-07-10.md` (Chrome 150, one machine; **Safari
 unverified** — see the caveat there, do not claim Safari works):
 

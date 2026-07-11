@@ -25,7 +25,7 @@ GlobalId join, and load it."_).
 ## The one rule
 
 **You only ever type the plain-language request.** The Hive (the orchestrator) maps each to the right
-specialist — `twin-architect` for design, `data-binder` for the data layer, `scene-optimizer` for
+specialist — `twin-architect` for design, `twin-data-binder` for the data layer, `twin-scene-optimizer` for
 scale — and **won't let a build report "done" until its gates pass** (render health + the twin
 join/DataBus gates). If you're unsure of scope, just describe the outcome you want and it routes to
 the architect first rather than guessing.
@@ -47,7 +47,7 @@ deliberate — it stops the data contract from drifting slice by slice.
 > **Say this:** _"Build the data binding from the design doc — join the model tags to their nodes and
 > paint live values on them."_
 
-**What happens:** routes to `data-binder`, the core pillar. It joins node names to tags via the IFC
+**What happens:** routes to `twin-data-binder`, the core pillar. It joins node names to tags via the IFC
 GlobalId sidecar, wires the DataBus, and paints live values onto the geometry (colour ramp / Label3D),
 then runs the join + overlay gates before reporting. Nothing is claimed done until the bound
 GlobalIds actually resolve and updates reach their elements.
@@ -66,7 +66,7 @@ whether it's the sim or a plant.
 > **Say this:** _"Optimize the scene to hold 60 fps — apply what the design doc called for and give me
 > the before/after numbers."_
 
-**What happens:** routes to `scene-optimizer`; it chunks/LODs the geometry and reports measured
+**What happens:** routes to `twin-scene-optimizer`; it chunks/LODs the geometry and reports measured
 before/after, every optimization shipped toggleable. Skip this step entirely if step 1 said the model
 is light (a single small building usually is).
 
@@ -104,7 +104,7 @@ node tools/bridge/mqtt_ws.js --broker mqtt://host:1883 --map mqtt_map.json --por
 
 — and point `viewer.cfg url="ws://localhost:8766"` at it. The bridge re-emits the **exact** DataBus
 frames the sim does, so the join, overlays, and playback are untouched — "consumers can't tell broker
-from sim." It'll offer to hand off to `data-binder` to author the map against your real
+from sim." It'll offer to hand off to `twin-data-binder` to author the map against your real
 `binding_map.json` tags and verify the join end-to-end. (No broker to hand? See the demo publisher in
 [the CLI tutorial](./digital-twin.md#point-it-at-your-mqtt-broker-the-real-source-happy-path).)
 

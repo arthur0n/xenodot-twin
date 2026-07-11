@@ -46,8 +46,8 @@ buildable slice, locks a design doc, and only then hands off to a builder — an
 ```
 idea → twin-architect    interviews you, refuses vague scope, writes a one-page design doc
      → twin-import        IFC/BIM → GLB + property sidecar, joined by GlobalId
-     → scene-optimizer    measured LOD / MultiMesh / chunking to hit a frame budget
-     → data-binder        master data + live time-series bound to the actual elements
+     → twin-scene-optimizer    measured LOD / MultiMesh / chunking to hit a frame budget
+     → twin-data-binder        master data + live time-series bound to the actual elements
      → twin-verify        headless engine checks + join / binding / playback gates
      → you                one look in the running viewer — that's your job
 ```
@@ -195,7 +195,7 @@ Then open the tutorial and the try-it kit — they're the fastest way in.
   (`godot-verify`, `godot-code-rules`, `godot-composition`, `godot-export-builds`, `godot-main-scene`,
   …). Loaded into every session.
 - **The digital-twin domain** (also in `plugin/`, `twin-*` prefix) — `twin-architect`,
-  `scene-optimizer`, `data-binder` and the `twin-import` / `twin-optimize` / `twin-bind-data` /
+  `twin-scene-optimizer`, `twin-data-binder` and the `twin-import` / `twin-optimize` / `twin-bind-data` /
   `twin-playback` / `twin-verify` skills. Folded into the one `xenodot` plugin: the engine-generic
   base and the twin capabilities ship together under the `xenodot:` namespace.
 - **The viewer starter** (`starter-viewer/`) — the minimal Godot project `new` scaffolds.

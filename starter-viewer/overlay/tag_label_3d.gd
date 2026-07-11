@@ -2,7 +2,7 @@
 # tag. Drop it next to (or under) the mesh it annotates, set `tag` and the
 # value_min/value_max ramp, and it live-updates text + color from the DataBus:
 # green at value_min ramping to red at value_max, grey while offline/stale.
-# The twin data-binder attaches these per node later; hand-placing works today.
+# The twin-data-binder attaches these per node later; hand-placing works today.
 class_name TagLabel3D
 extends Label3D
 

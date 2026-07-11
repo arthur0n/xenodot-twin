@@ -1,6 +1,6 @@
 ---
 name: godot-assets
-description: Godot 4.6 ASSETS builder for the digital-twin viewer project — importing and wiring sourced assets. Use to import + wire a sourced .glb model or texture (LINEAR/mipmaps, PBR StandardMaterial3D/ORM, colliders, Make-Unique materials, uv1 tiling) — e.g. an equipment model, a fallback prop, or a texture that dresses the scene. NOT the BIM/CAD import pipeline (that is xenodot:twin-import), NOT the rendering rig (godot-visuals), NOT heavy geometry restructuring (xenodot:scene-optimizer).
+description: Godot 4.6 ASSETS builder for the digital-twin viewer project — importing and wiring sourced assets. Use to import + wire a sourced .glb model or texture (LINEAR/mipmaps, PBR StandardMaterial3D/ORM, colliders, Make-Unique materials, uv1 tiling) — e.g. an equipment model, a fallback prop, or a texture that dresses the scene. NOT the BIM/CAD import pipeline (that is xenodot:twin-import), NOT the rendering rig (godot-visuals), NOT heavy geometry restructuring (xenodot:twin-scene-optimizer).
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:

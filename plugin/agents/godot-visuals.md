@@ -1,6 +1,6 @@
 ---
 name: godot-visuals
-description: Godot 4.6 VISUALS builder for the digital-twin viewer project — the rendered look. Use for lighting (DirectionalLight sun + ambient + tonemap/exposure), environment, and screen-space post-process shaders (outlines, edge detection, fog, depth, SSAO — clarity for a dense 3D model). NOT asset import wiring (godot-assets), NOT heavy geometry restructuring (xenodot:scene-optimizer), NOT data binding (xenodot:data-binder).
+description: Godot 4.6 VISUALS builder for the digital-twin viewer project — the rendered look. Use for lighting (DirectionalLight sun + ambient + tonemap/exposure), environment, and screen-space post-process shaders (outlines, edge detection, fog, depth, SSAO — clarity for a dense 3D model). NOT asset import wiring (godot-assets), NOT heavy geometry restructuring (xenodot:twin-scene-optimizer), NOT data binding (xenodot:twin-data-binder).
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:

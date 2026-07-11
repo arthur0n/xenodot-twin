@@ -32,7 +32,7 @@ Every Bash call must start with `rtk`. RTK is a transparent proxy — unknown co
 
 ## The bar
 
-A design is done when its scope is small enough that a builder (scene-optimizer or data-binder) can implement it in **one task** and verify it with `twin-verify` (which delegates its static + render floor to `xenodot:godot-verify`) plus one human look at the running viewer. If you cannot honestly say that, the scope is too big — keep cutting.
+A design is done when its scope is small enough that a builder (twin-scene-optimizer or twin-data-binder) can implement it in **one task** and verify it with `twin-verify` (which delegates its static + render floor to `xenodot:godot-verify`) plus one human look at the running viewer. If you cannot honestly say that, the scope is too big — keep cutting.
 
 ## What you design
 

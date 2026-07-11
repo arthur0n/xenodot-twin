@@ -14,8 +14,8 @@ source of truth is the **Agents** tab in the UI and the plugin dirs
 ```
 idea → twin-architect   interviews you, refuses vague scope, writes a one-page design doc
      → twin-import       IFC/BIM → GLB + property sidecar, joined by GlobalId
-     → scene-optimizer   measured LOD / MultiMesh / chunking to hit a frame budget
-     → data-binder       master data + live time-series bound to the actual elements
+     → twin-scene-optimizer   measured LOD / MultiMesh / chunking to hit a frame budget
+     → twin-data-binder       master data + live time-series bound to the actual elements
      → twin-verify       headless engine checks + join / binding / playback gates
      → you               one look in the running viewer — that's your job
 ```
@@ -47,10 +47,10 @@ The digital-twin domain, folded into the one `xenodot` plugin (`twin-*` prefix).
 - `twin-architect` — the design gate: interviews you, owns the scene / join /
   overlay architecture, writes a `design/` doc small enough to build and verify
   in one step.
-- `scene-optimizer` — heavy converted geometry: LOD, MultiMesh instancing,
+- `twin-scene-optimizer` — heavy converted geometry: LOD, MultiMesh instancing,
   chunking, occlusion, draw-call cleanup — every change measured against a stated
   frame budget.
-- `data-binder` — the data join: master data + time-series joined by IFC
+- `twin-data-binder` — the data join: master data + time-series joined by IFC
   GlobalId, DataBus subscriptions, live value → material/label updates, element
   pick → property panel, and recorded-history playback.
 
@@ -66,8 +66,8 @@ The framework's agents, all namespaced `xenodot:<name>` (one plugin — the
 engine-generic base and the digital-twin domain ship together). Grouped by role:
 
 - **Digital-twin domain** — `twin-architect` (the design gate — see above),
-  `scene-optimizer` (heavy converted geometry: LOD, MultiMesh, chunking,
-  occlusion, every change measured against a frame budget), `data-binder`
+  `twin-scene-optimizer` (heavy converted geometry: LOD, MultiMesh, chunking,
+  occlusion, every change measured against a frame budget), `twin-data-binder`
   (master data + time-series joined by IFC GlobalId, live overlays, playback).
 - **Builders** — `godot-dev` (the default builder: scaffolding, main scene,
   camera/navigation rig, UI panels, exports, generic Godot glue), `godot-visuals`

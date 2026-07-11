@@ -1,6 +1,6 @@
 ---
 name: twin-import
-agents: [twin-architect, data-binder]
+agents: [twin-architect, twin-data-binder]
 domain: twin
 description: >-
   The IFC→Godot import pipeline for a digital-twin viewer — convert an IFC/BIM model to a GLB whose

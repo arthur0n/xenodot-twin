@@ -1,6 +1,6 @@
 ---
 name: twin-asset-import
-agents: [twin-architect, data-binder]
+agents: [twin-architect, twin-data-binder]
 domain: twin
 description: >-
   Bring a NON-BIM 3D asset into a digital-twin viewer — a vendor equipment model (pump, valve, rack,

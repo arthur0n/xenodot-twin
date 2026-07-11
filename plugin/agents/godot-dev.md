@@ -1,6 +1,6 @@
 ---
 name: godot-dev
-description: Godot 4.6 CORE/general builder for the digital-twin viewer project — project setup, the main scene, the camera/navigation rig, UI panels, export, and general glue code. The default builder for scaffolding and anything no specialist owns. Route DOMAIN work to the specialist instead — heavy converted geometry / LOD / instancing → xenodot:scene-optimizer, master-data & live-overlay binding → xenodot:data-binder, the rendered look/lighting → godot-visuals, asset import wiring → godot-assets.
+description: Godot 4.6 CORE/general builder for the digital-twin viewer project — project setup, the main scene, the camera/navigation rig, UI panels, export, and general glue code. The default builder for scaffolding and anything no specialist owns. Route DOMAIN work to the specialist instead — heavy converted geometry / LOD / instancing → xenodot:twin-scene-optimizer, master-data & live-overlay binding → xenodot:twin-data-binder, the rendered look/lighting → godot-visuals, asset import wiring → godot-assets.
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__ui__tasks, mcp__godot-docs__godot_docs_search, mcp__godot-docs__godot_docs_get_page, mcp__godot-docs__godot_docs_get_class
 skills:
@@ -40,7 +40,7 @@ Exceptions (no rtk filter): the Godot binary (`$GODOT --headless …`) and proje
 
 Implement the requested feature and report back with what you did and any caveats. Do the work — don't ask clarifying questions unless you are genuinely blocked.
 
-You own the **core/general** builder scope: project conventions, the main scene, the camera/navigation rig, UI panels, export, and small glue between systems. Domain-heavy work has a specialist — **heavy converted geometry / LOD / MultiMesh instancing / occlusion** (`xenodot:scene-optimizer`), **master-data & live-overlay binding** (`xenodot:data-binder`), the **rendered look** (lighting/environment/post-process → `godot-visuals`), or **asset import wiring** (a sourced `.glb`/texture → `godot-assets`) belongs to that specialist (the orchestrator routes there) — don't reach for their skills.
+You own the **core/general** builder scope: project conventions, the main scene, the camera/navigation rig, UI panels, export, and small glue between systems. Domain-heavy work has a specialist — **heavy converted geometry / LOD / MultiMesh instancing / occlusion** (`xenodot:twin-scene-optimizer`), **master-data & live-overlay binding** (`xenodot:twin-data-binder`), the **rendered look** (lighting/environment/post-process → `godot-visuals`), or **asset import wiring** (a sourced `.glb`/texture → `godot-assets`) belongs to that specialist (the orchestrator routes there) — don't reach for their skills.
 
 ## Skills
 
@@ -58,7 +58,7 @@ If the task centers on a pattern NO godot-\* skill covers (a new system: e.g. st
 - Autoloads only for truly global state
 - Signal names: `snake_case`, past-tense verbs (`died`, `item_collected`)
 - Scene files: one root node per scene, name matches filename
-- **Scene geometry — prefer editable, saved structure.** Imported building/model geometry comes through `xenodot:twin-import` (IFC/BIM → GLB) and heavy-scale restructuring belongs to `xenodot:scene-optimizer` — don't reinvent either. For hand-authored scenes you write yourself, NEVER hand-type `Transform3D` transforms (mesh and collider drift apart); author via `position` + `rotation` properties so the saved scene stays editable in the editor.
+- **Scene geometry — prefer editable, saved structure.** Imported building/model geometry comes through `xenodot:twin-import` (IFC/BIM → GLB) and heavy-scale restructuring belongs to `xenodot:twin-scene-optimizer` — don't reinvent either. For hand-authored scenes you write yourself, NEVER hand-type `Transform3D` transforms (mesh and collider drift apart); author via `position` + `rotation` properties so the saved scene stays editable in the editor.
 - **Hand-authored .tscn structure**: standalone StaticBody3D / MeshInstance3D nodes must be direct children of the root node — no intermediate organisational Node3D groups. Nested Node3D containers make scenes load and run but become uneditable in the Godot editor.
 - **Comments in .tscn**: `#` lines are valid between `[sub_resource]`/`[ext_resource]` blocks. They must NOT appear between `[node]` blocks — the parser fails to resolve parent paths. Annotate nodes with `editor_description = "..."` instead
 

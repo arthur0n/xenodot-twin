@@ -1,6 +1,6 @@
 ---
 name: twin-optimize
-agents: [twin-architect, scene-optimizer]
+agents: [twin-architect, twin-scene-optimizer]
 domain: twin
 description: >-
   Scale a digital-twin viewer to large instance counts without lying to yourself about fps — the
