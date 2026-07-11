@@ -8,6 +8,10 @@
 # Playback: `--recording=<path.ndjson>` user arg or viewer.cfg `[twin] recording=...`
 # loads a twin-recording, switches the DataBus to playback mode and shows the timeline
 # bar (_start_playback). With no recording configured the viewer is identical to before.
+#
+# Binding map: `--binding-map=<path.json>` user arg or viewer.cfg `[twin] binding_map=...`
+# (the arg wins, symmetric with --model/--recording). twin_build --auto-map / `npm run byo`
+# emit a generated map, so a one-line boot can carry both the model and its bindings.
 extends Node3D
 
 const CameraRigScript := preload("res://core/camera_rig.gd")
@@ -45,7 +49,8 @@ var _frames_seen := 0
 func _ready() -> void:
 	var model_path := _user_arg("model")
 	var recording_path := _user_arg("recording")
-	var binding_map_path := DEFAULT_BINDING_MAP
+	# --binding-map= wins; else viewer.cfg [twin] binding_map=; else the default (resolved below).
+	var binding_map_path := _user_arg("binding-map")
 	var quit_after_arg := _user_arg("quit-after")
 	if quit_after_arg != "":
 		_quit_after = int(quit_after_arg)
@@ -57,7 +62,10 @@ func _ready() -> void:
 				model_path = str(cfg.get_value("viewer", "model", ""))
 			if recording_path == "":
 				recording_path = str(cfg.get_value("twin", "recording", ""))
-			binding_map_path = str(cfg.get_value("twin", "binding_map", DEFAULT_BINDING_MAP))
+			if binding_map_path == "":
+				binding_map_path = str(cfg.get_value("twin", "binding_map", DEFAULT_BINDING_MAP))
+	if binding_map_path == "":
+		binding_map_path = DEFAULT_BINDING_MAP
 
 	if model_path == "":
 		_build_placeholder_grid()

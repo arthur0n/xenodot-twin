@@ -39,6 +39,10 @@ _usage() {
 	cat <<'USAGE'
 usage: tools/twin_build.sh <model.ifc> [options]
   --map <binding_map.json>   binding map for the data-binding smoke (else it SKIPs loudly)
+  --auto-map                 generate a binding map from the import sidecar (no hand-authoring);
+                             mutually exclusive with --map
+  --provision                bootstrap the pinned .venv-ifc (uv venv 3.12 + ifcopenshell) if it is
+                             missing, instead of failing loud (needs uv on PATH)
   --out-dir <dir>            artifact directory for the glb/sidecar/scene (default: models)
   --chunks <auto|N>          optimizer chunk grid (pass-through to optimize_scene.gd)
   --min-instances <N>        optimizer MultiMesh threshold (pass-through)
@@ -59,12 +63,22 @@ HINTS=""
 WANT_OCCLUDERS=0
 WANT_VIS_RANGES=0
 WANT_WIRE=0
+WANT_AUTO_MAP=0
+WANT_PROVISION=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--map)
 		[ $# -ge 2 ] || _fail "--map requires a value"
 		MAP="$2"
 		shift 2
+		;;
+	--auto-map)
+		WANT_AUTO_MAP=1
+		shift
+		;;
+	--provision)
+		WANT_PROVISION=1
+		shift
 		;;
 	--out-dir)
 		[ $# -ge 2 ] || _fail "--out-dir requires a value"
@@ -120,6 +134,9 @@ if [ -z "$IFC" ]; then
 	_usage >&2
 	_fail "no IFC model given"
 fi
+if [ "$WANT_AUTO_MAP" -eq 1 ] && [ -n "$MAP" ]; then
+	_fail "--map and --auto-map are mutually exclusive (a hand-authored map OR a generated one, not both)"
+fi
 
 # Artifact paths derive from the input stem, co-located under --out-dir (the boot command and
 # verify both reference them there); the optimize report lands under reports/ (build metadata).
@@ -142,12 +159,41 @@ fi
 if [ -n "$HINTS" ] && [ ! -f "$HINTS" ]; then
 	_fail "no such hints file: $HINTS"
 fi
+# --provision bootstraps the pinned venv with the SAME two documented commands the loud FAIL prints,
+# guarded by a uv-presence check and honest on failure — a stranger's one-command on-ramp. Default
+# behavior is UNCHANGED: without the flag a missing venv still FAILs loud (uv may be absent; silently
+# building envs hides failures — the long-standing contract). Runs only when the venv is actually
+# missing/broken, so re-runs are idempotent (a good venv skips it).
+_provision_venv() {
+	if ! command -v uv >/dev/null 2>&1; then
+		echo "$XENO_GATE: FAIL preflight — --provision needs 'uv' on PATH, but it is not installed." >&2
+		echo "  Install uv (https://docs.astral.sh/uv/) then rerun, or create .venv-ifc by hand:" >&2
+		echo "    uv venv --python 3.12 .venv-ifc && uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5" >&2
+		return 1
+	fi
+	echo "$XENO_GATE: preflight — provisioning .venv-ifc (uv venv --python 3.12 + ifcopenshell==0.8.5)"
+	if ! uv venv --python 3.12 .venv-ifc; then
+		echo "$XENO_GATE: FAIL preflight — 'uv venv --python 3.12 .venv-ifc' failed (see output above)." >&2
+		return 1
+	fi
+	if ! uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5; then
+		echo "$XENO_GATE: FAIL preflight — 'uv pip install ifcopenshell==0.8.5' failed (see output above)." >&2
+		return 1
+	fi
+	return 0
+}
+if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -c "import ifcopenshell" >/dev/null 2>&1; then
+	if [ "$WANT_PROVISION" -eq 1 ]; then
+		_provision_venv || exit 1
+	fi
+fi
 if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -c "import ifcopenshell" >/dev/null 2>&1; then
 	echo "$XENO_GATE: FAIL preflight — the ifcopenshell venv (.venv-ifc) is missing or broken." >&2
 	echo "  ifcopenshell has NO wheel for Python 3.14 — create the pinned 3.12 venv (skill twin-import):" >&2
 	echo "    uv venv --python 3.12 .venv-ifc && source .venv-ifc/bin/activate" >&2
 	echo "    uv pip install ifcopenshell==0.8.5" >&2
 	echo "  twin_build.sh never auto-creates it (uv may be absent; silently building envs hides failures)." >&2
+	echo "  Or pass --provision to run those two commands now (needs uv on PATH)." >&2
 	exit 1
 fi
 echo "$XENO_GATE: PASS preflight (engine + .venv-ifc/ifcopenshell present)"
@@ -162,6 +208,22 @@ if [ ! -f "$GLB" ] || [ ! -f "$SIDECAR" ]; then
 	_fail "import produced no $GLB / $SIDECAR"
 fi
 echo "$XENO_GATE: PASS import ($GLB + $SIDECAR)"
+
+# --auto-map: synthesize a binding map from the freshly-written sidecar (no hand-authoring) so the
+# rest of the build (verify's binding smoke, the boot summary) runs data-bound. The generator is
+# deterministic + dependency-free (tools/gen_binding_map.js); it picks a spread across geometric IFC
+# classes, leading with guaranteed-node picks so the smoke's node-drive assertion has a target. The
+# generated map becomes $MAP for the verify stage, exactly as a hand-authored --map would.
+if [ "$WANT_AUTO_MAP" -eq 1 ]; then
+	command -v node >/dev/null 2>&1 || _fail "--auto-map needs 'node' on PATH (the generator is a node script)"
+	AUTO_MAP="$OUT_DIR/${STEM}_auto_binding_map.json"
+	if ! node tools/gen_binding_map.js --sidecar "$SIDECAR" --out "$AUTO_MAP"; then
+		_fail "--auto-map failed to generate a binding map from $SIDECAR (see gen_binding_map output above)"
+	fi
+	[ -f "$AUTO_MAP" ] || _fail "--auto-map produced no $AUTO_MAP"
+	MAP="$AUTO_MAP"
+	echo "$XENO_GATE: PASS auto-map ($MAP — retune ramps/ranges per tag before shipping)"
+fi
 
 # --- stage 3: optimize (GLB → optimized .tscn + report) ----------------------------------------
 _stage 3/5 "optimize (optimize_scene.gd)"
