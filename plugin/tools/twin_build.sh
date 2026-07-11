@@ -1,8 +1,9 @@
 #!/bin/bash
-# tools/twin_build.sh — one command, IFC → verified, data-bound twin (skill: twin-build).
+# tools/twin_build.sh — one command, IFC/USD → verified, data-bound twin (skill: twin-build).
 #
 # The deterministic driver that chains the twin pipeline's four existing tools into a single
-# gate: import (tools/ifc_convert.py) → optimize (tools/optimize_scene.gd) → verify
+# gate: import (tools/ifc_convert.py for .ifc, tools/usd_convert.py for .usd/.usda/.usdc — an
+# EXTENSION-SWITCH, not a second pipeline) → optimize (tools/optimize_scene.gd) → verify
 # (tools/verify_twin.sh) → summary with the exact boot command. Same discipline as
 # verify_twin.sh: loud stage labels, exit nonzero on the FIRST failure, and a SKIP is never a
 # pass (the binding smoke SKIPs loudly when no map is wired — the summary names the next step).
@@ -14,7 +15,7 @@
 # recovery). --wire is the ONLY thing that touches user data (viewer.cfg), opt-in, with a .bak.
 #
 # Usage (from the project root or anywhere):
-#   tools/twin_build.sh <model.ifc> [--map binding_map.json] [--out-dir models/]
+#   tools/twin_build.sh <model.ifc|.usd|.usda|.usdc> [--map binding_map.json] [--out-dir models/]
 #                       [--chunks auto|N] [--min-instances N] [--hints h.json]
 #                       [--occluders] [--vis-ranges] [--wire]
 # Exit 0 = every non-SKIP gate passed ("twin-build: OK").
@@ -37,11 +38,12 @@ _fail() {
 
 _usage() {
 	cat <<'USAGE'
-usage: tools/twin_build.sh <model.ifc> [options]
+usage: tools/twin_build.sh <model.ifc|.usd|.usda|.usdc> [options]
   --map <binding_map.json>   binding map for the data-binding smoke (else it SKIPs loudly)
   --auto-map                 generate a binding map from the import sidecar (no hand-authoring);
                              mutually exclusive with --map
-  --provision                bootstrap the pinned .venv-ifc (uv venv 3.12 + ifcopenshell) if it is
+  --provision                bootstrap the pinned venv the input format needs (uv venv 3.12 +
+                             ifcopenshell for .ifc, + usd-core for .usd/.usda/.usdc) if it is
                              missing, instead of failing loud (needs uv on PATH)
   --out-dir <dir>            artifact directory for the glb/sidecar/scene (default: models)
   --chunks <auto|N>          optimizer chunk grid (pass-through to optimize_scene.gd)
@@ -53,8 +55,8 @@ usage: tools/twin_build.sh <model.ifc> [options]
 USAGE
 }
 
-# --- argument parse (one positional IFC + flags) -----------------------------------------------
-IFC=""
+# --- argument parse (one positional model + flags) ---------------------------------------------
+MODEL=""
 MAP=""
 OUT_DIR="models"
 CHUNKS=""
@@ -121,18 +123,18 @@ while [ $# -gt 0 ]; do
 		_fail "unknown option '$1'"
 		;;
 	*)
-		if [ -z "$IFC" ]; then
-			IFC="$1"
+		if [ -z "$MODEL" ]; then
+			MODEL="$1"
 		else
-			_fail "unexpected argument '$1' (one IFC model per build)"
+			_fail "unexpected argument '$1' (one model per build)"
 		fi
 		shift
 		;;
 	esac
 done
-if [ -z "$IFC" ]; then
+if [ -z "$MODEL" ]; then
 	_usage >&2
-	_fail "no IFC model given"
+	_fail "no model given (want a .ifc / .usd / .usda / .usdc)"
 fi
 if [ "$WANT_AUTO_MAP" -eq 1 ] && [ -n "$MAP" ]; then
 	_fail "--map and --auto-map are mutually exclusive (a hand-authored map OR a generated one, not both)"
@@ -140,19 +142,43 @@ fi
 
 # Artifact paths derive from the input stem, co-located under --out-dir (the boot command and
 # verify both reference them there); the optimize report lands under reports/ (build metadata).
-STEM="$(basename "$IFC")"
+STEM="$(basename "$MODEL")"
 STEM="${STEM%.*}"
 GLB="$OUT_DIR/$STEM.glb"
 SIDECAR="$OUT_DIR/${STEM}_props.json"
 OPT_SCENE="$OUT_DIR/${STEM}_opt.tscn"
 REPORT="reports/${STEM}_optimize.json"
-VENV_PY=".venv-ifc/bin/python"
+
+# EXTENSION-SWITCH: the input extension picks the importer + its pinned venv. Everything downstream
+# (optimize, verify, join, bind) is format-agnostic — it operates on the GLB + sidecar, which both
+# converters write identically (node name = stable id, sidecar keyed the same). Each format keeps
+# the SAME fail-closed venv contract; only the package + import module + convert tool differ.
+case "$(printf '%s' "$MODEL" | tr '[:upper:]' '[:lower:]')" in
+*.ifc)
+	FORMAT="ifc"
+	VENV_DIR=".venv-ifc"
+	IMPORT_MOD="ifcopenshell"
+	CONVERT_TOOL="tools/ifc_convert.py"
+	PROVISION_PKG="ifcopenshell==0.8.5"
+	;;
+*.usd | *.usda | *.usdc)
+	FORMAT="usd"
+	VENV_DIR=".venv-usd"
+	IMPORT_MOD="pxr"
+	CONVERT_TOOL="tools/usd_convert.py"
+	PROVISION_PKG="usd-core"
+	;;
+*)
+	_fail "unsupported model extension: $MODEL (want .ifc, .usd, .usda or .usdc)"
+	;;
+esac
+VENV_PY="$VENV_DIR/bin/python"
 
 # --- stage 1: preflight ------------------------------------------------------------------------
 _stage 1/5 "preflight"
 [ -f project.godot ] || _fail "no project.godot in $(pwd) — run twin_build.sh from a Godot project root"
 xeno_resolve_engine || exit 1
-[ -f "$IFC" ] || _fail "no such IFC model: $IFC"
+[ -f "$MODEL" ] || _fail "no such model: $MODEL"
 if [ -n "$MAP" ] && [ ! -f "$MAP" ]; then
 	_fail "no such binding map: $MAP (drop --map to run the build without the smoke)"
 fi
@@ -167,42 +193,49 @@ fi
 _provision_venv() {
 	if ! command -v uv >/dev/null 2>&1; then
 		echo "$XENO_GATE: FAIL preflight — --provision needs 'uv' on PATH, but it is not installed." >&2
-		echo "  Install uv (https://docs.astral.sh/uv/) then rerun, or create .venv-ifc by hand:" >&2
-		echo "    uv venv --python 3.12 .venv-ifc && uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5" >&2
+		echo "  Install uv (https://docs.astral.sh/uv/) then rerun, or create $VENV_DIR by hand:" >&2
+		echo "    uv venv --python 3.12 $VENV_DIR && uv pip install --python $VENV_PY $PROVISION_PKG" >&2
 		return 1
 	fi
-	echo "$XENO_GATE: preflight — provisioning .venv-ifc (uv venv --python 3.12 + ifcopenshell==0.8.5)"
-	if ! uv venv --python 3.12 .venv-ifc; then
-		echo "$XENO_GATE: FAIL preflight — 'uv venv --python 3.12 .venv-ifc' failed (see output above)." >&2
+	echo "$XENO_GATE: preflight — provisioning $VENV_DIR (uv venv --python 3.12 + $PROVISION_PKG)"
+	if ! uv venv --python 3.12 "$VENV_DIR"; then
+		echo "$XENO_GATE: FAIL preflight — 'uv venv --python 3.12 $VENV_DIR' failed (see output above)." >&2
 		return 1
 	fi
-	if ! uv pip install --python .venv-ifc/bin/python ifcopenshell==0.8.5; then
-		echo "$XENO_GATE: FAIL preflight — 'uv pip install ifcopenshell==0.8.5' failed (see output above)." >&2
+	if ! uv pip install --python "$VENV_PY" "$PROVISION_PKG"; then
+		echo "$XENO_GATE: FAIL preflight — 'uv pip install $PROVISION_PKG' failed (see output above)." >&2
 		return 1
 	fi
 	return 0
 }
-if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -c "import ifcopenshell" >/dev/null 2>&1; then
+if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -c "import $IMPORT_MOD" >/dev/null 2>&1; then
 	if [ "$WANT_PROVISION" -eq 1 ]; then
 		_provision_venv || exit 1
 	fi
 fi
-if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -c "import ifcopenshell" >/dev/null 2>&1; then
-	echo "$XENO_GATE: FAIL preflight — the ifcopenshell venv (.venv-ifc) is missing or broken." >&2
-	echo "  ifcopenshell has NO wheel for Python 3.14 — create the pinned 3.12 venv (skill twin-import):" >&2
-	echo "    uv venv --python 3.12 .venv-ifc && source .venv-ifc/bin/activate" >&2
-	echo "    uv pip install ifcopenshell==0.8.5" >&2
+if [ ! -x "$VENV_PY" ] || ! "$VENV_PY" -c "import $IMPORT_MOD" >/dev/null 2>&1; then
+	if [ "$FORMAT" = "ifc" ]; then
+		echo "$XENO_GATE: FAIL preflight — the ifcopenshell venv (.venv-ifc) is missing or broken." >&2
+		echo "  ifcopenshell has NO wheel for Python 3.14 — create the pinned 3.12 venv (skill twin-import):" >&2
+		echo "    uv venv --python 3.12 .venv-ifc && source .venv-ifc/bin/activate" >&2
+		echo "    uv pip install ifcopenshell==0.8.5" >&2
+	else
+		echo "$XENO_GATE: FAIL preflight — the usd-core venv (.venv-usd) is missing or broken." >&2
+		echo "  usd-core needs a pinned 3.12 venv (the pip wheel has no CLI, only the pxr module) — create it (skill twin-import):" >&2
+		echo "    uv venv --python 3.12 .venv-usd && source .venv-usd/bin/activate" >&2
+		echo "    uv pip install usd-core" >&2
+	fi
 	echo "  twin_build.sh never auto-creates it (uv may be absent; silently building envs hides failures)." >&2
-	echo "  Or pass --provision to run those two commands now (needs uv on PATH)." >&2
+	echo "  Or pass --provision to run those commands now (needs uv on PATH)." >&2
 	exit 1
 fi
-echo "$XENO_GATE: PASS preflight (engine + .venv-ifc/ifcopenshell present)"
+echo "$XENO_GATE: PASS preflight (engine + $VENV_DIR/$IMPORT_MOD present)"
 
-# --- stage 2: import (IFC → GLB + sidecar) -----------------------------------------------------
-_stage 2/5 "import (ifc_convert.py)"
+# --- stage 2: import (model → GLB + sidecar) ---------------------------------------------------
+_stage 2/5 "import ($(basename "$CONVERT_TOOL"))"
 mkdir -p "$OUT_DIR"
-if ! "$VENV_PY" tools/ifc_convert.py "$IFC" --glb "$GLB" --sidecar "$SIDECAR"; then
-	_fail "import failed (ifc_convert.py) — see output above"
+if ! "$VENV_PY" "$CONVERT_TOOL" "$MODEL" --glb "$GLB" --sidecar "$SIDECAR"; then
+	_fail "import failed ($(basename "$CONVERT_TOOL")) — see output above"
 fi
 if [ ! -f "$GLB" ] || [ ! -f "$SIDECAR" ]; then
 	_fail "import produced no $GLB / $SIDECAR"
@@ -277,7 +310,7 @@ echo
 if [ "$SMOKE_SKIPPED" -eq 1 ]; then
 	echo "  binding smoke SKIPPED — no binding map wired into this build (a SKIP is not a pass)."
 	echo "  NEXT: author a binding map with the twin-bind-data skill, then rerun with:"
-	echo "    tools/twin_build.sh $IFC --map <binding_map.json>"
+	echo "    tools/twin_build.sh $MODEL --map <binding_map.json>"
 	echo
 fi
 echo "  boot the optimized twin (live against the sim):"
